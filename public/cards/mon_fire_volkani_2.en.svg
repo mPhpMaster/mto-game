@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="600" viewBox="0 0 420 600" font-family="'Segoe UI', Tahoma, 'Arial Unicode MS', Arial, sans-serif" direction="ltr">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0%" stop-color="#ff6b3d" stop-opacity="0.30"/>
+      <stop offset="55%" stop-color="#0a0c18" stop-opacity="0.97"/>
+      <stop offset="100%" stop-color="#05070f"/>
+    </linearGradient>
+    <clipPath id="frame"><rect x="8" y="8" width="404" height="584" rx="26"/></clipPath>
+  </defs>
+
+  <rect width="420" height="600" rx="30" fill="#05070f"/>
+  <g clip-path="url(#frame)">
+    <rect x="8" y="8" width="404" height="584" rx="26" fill="url(#bg)"/>
+
+    <!-- الرأس: التكلفة والرقم -->
+    <circle cx="66" cy="66" r="30" fill="#ff6b3d"/>
+    <text x="66" y="66" fill="#05070f" font-size="34" font-weight="900" text-anchor="middle" dominant-baseline="central">5</text>
+    <rect x="302" y="40" width="86" height="52" rx="14" fill="#000" opacity="0.55"/>
+    <text x="345" y="66" fill="#ff6b3d" font-size="32" font-weight="900" text-anchor="middle" dominant-baseline="central">0</text>
+
+    <!-- لوحة الرسم -->
+    <rect x="34" y="112" width="352" height="238" rx="18" fill="#000" opacity="0.35"/>
+    <rect x="34" y="112" width="352" height="238" rx="18" fill="none" stroke="#ff6b3d" stroke-opacity="0.45" stroke-width="2"/>
+    <g transform="translate(34 112) scale(3.3846153846153846 2.7045454545454546)"><defs><radialGradient id="art-mon_fire_volkani_2" cx="50%" cy="42%" r="62%"><stop offset="0%" stop-color="#ff8a4c" stop-opacity="0.36"></stop><stop offset="70%" stop-color="#a02b12" stop-opacity="0.16"></stop><stop offset="100%" stop-color="#05070f" stop-opacity="0"></stop></radialGradient></defs><rect x="0" y="0" width="104" height="88" fill="url(#art-mon_fire_volkani_2)" rx="8"></rect><g><ellipse cx="52" cy="48" rx="30" ry="11" fill="none" stroke="#ffd08a" stroke-width="1.6" opacity="0.55" transform="rotate(-9 52 48)"></ellipse><ellipse cx="52" cy="48" rx="25" ry="8.5" fill="none" stroke="#ffd08a" stroke-width="1.6" opacity="0.43000000000000005" transform="rotate(17 52 48)"></ellipse><ellipse cx="52" cy="48" rx="20" ry="6" fill="none" stroke="#ffd08a" stroke-width="1.6" opacity="0.31000000000000005" transform="rotate(43 52 48)"></ellipse><circle cx="52" cy="48" r="21" fill="#a02b12"></circle><circle cx="52" cy="48" r="17" fill="#ff8a4c"></circle><circle cx="47" cy="43" r="7" fill="#ffd08a" opacity="0.75"></circle><ellipse cx="52" cy="48" rx="7" ry="10" fill="#0b0e1c"></ellipse><ellipse cx="52" cy="48" rx="3" ry="6" fill="#ffd08a"></ellipse><circle cx="82" cy="48" r="2.6" fill="#ffd08a" opacity="0.8"></circle><circle cx="61.270509831248425" cy="76.53169548885461" r="2.6" fill="#ffd08a" opacity="0.8"></circle><circle cx="27.72949016875158" cy="65.6335575687742" r="2.6" fill="#ffd08a" opacity="0.8"></circle><circle cx="27.729490168751575" cy="30.36644243122581" r="2.6" fill="#ffd08a" opacity="0.8"></circle><circle cx="61.27050983124842" cy="19.46830451114539" r="2.6" fill="#ffd08a" opacity="0.8"></circle></g></g>
+
+    <!-- الاسم -->
+    <text x="210" y="400" fill="#eef1ff" font-size="34" font-weight="900" text-anchor="middle">Volcanos</text>
+    <text x="210" y="430" fill="#ff6b3d" font-size="19" text-anchor="middle" opacity="0.9">Monster · Fire · Evolved</text>
+    <line x1="46" y1="448" x2="374" y2="448" stroke="#ff6b3d" stroke-opacity="0.35" stroke-width="2"/>
+
+    <!-- النص -->
+    <text x="210" y="478" fill="#cfd5ee" font-size="18" text-anchor="middle" opacity="0.88">Evolved monster. Guard: takes 1 less</text>
+    <text x="210" y="504" fill="#cfd5ee" font-size="18" text-anchor="middle" opacity="0.88">damage.</text>
+
+    <rect x="34" y="512" width="352" height="52" rx="14" fill="#000" opacity="0.45"/>
+    <text x="324" y="538" fill="#ffb37a" font-size="26" font-weight="900" text-anchor="middle" direction="ltr" dominant-baseline="central">⚔ 8</text>
+    <text x="210" y="538" fill="#ff6b3d" font-size="19" text-anchor="middle" dominant-baseline="central">Guard</text>
+    <text x="96" y="538" fill="#8ff0bd" font-size="26" font-weight="900" text-anchor="middle" direction="ltr" dominant-baseline="central">❤ 10</text>
+  </g>
+  <rect x="8" y="8" width="404" height="584" rx="26" fill="none" stroke="#ff6b3d" stroke-opacity="0.55" stroke-width="3"/>
+</svg>

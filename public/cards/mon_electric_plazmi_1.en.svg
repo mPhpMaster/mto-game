@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="600" viewBox="0 0 420 600" font-family="'Segoe UI', Tahoma, 'Arial Unicode MS', Arial, sans-serif" direction="ltr">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0%" stop-color="#ffd23d" stop-opacity="0.30"/>
+      <stop offset="55%" stop-color="#0a0c18" stop-opacity="0.97"/>
+      <stop offset="100%" stop-color="#05070f"/>
+    </linearGradient>
+    <clipPath id="frame"><rect x="8" y="8" width="404" height="584" rx="26"/></clipPath>
+  </defs>
+
+  <rect width="420" height="600" rx="30" fill="#05070f"/>
+  <g clip-path="url(#frame)">
+    <rect x="8" y="8" width="404" height="584" rx="26" fill="url(#bg)"/>
+
+    <!-- الرأس: التكلفة والرقم -->
+    <circle cx="66" cy="66" r="30" fill="#ffd23d"/>
+    <text x="66" y="66" fill="#05070f" font-size="34" font-weight="900" text-anchor="middle" dominant-baseline="central">3</text>
+    <rect x="302" y="40" width="86" height="52" rx="14" fill="#000" opacity="0.55"/>
+    <text x="345" y="66" fill="#ffd23d" font-size="32" font-weight="900" text-anchor="middle" dominant-baseline="central">0</text>
+
+    <!-- لوحة الرسم -->
+    <rect x="34" y="112" width="352" height="238" rx="18" fill="#000" opacity="0.35"/>
+    <rect x="34" y="112" width="352" height="238" rx="18" fill="none" stroke="#ffd23d" stroke-opacity="0.45" stroke-width="2"/>
+    <g transform="translate(34 112) scale(3.3846153846153846 2.7045454545454546)"><defs><radialGradient id="art-mon_electric_plazmi_1" cx="50%" cy="42%" r="62%"><stop offset="0%" stop-color="#ffd83d" stop-opacity="0.36"></stop><stop offset="70%" stop-color="#8a6a00" stop-opacity="0.16"></stop><stop offset="100%" stop-color="#05070f" stop-opacity="0"></stop></radialGradient></defs><rect x="0" y="0" width="104" height="88" fill="url(#art-mon_electric_plazmi_1)" rx="8"></rect><g><path d="M28 56 Q12 54 14 44" stroke="#8a6a00" stroke-width="5" stroke-linecap="round" fill="none"></path><ellipse cx="52" cy="52" rx="20" ry="14" fill="#ffd83d"></ellipse><ellipse cx="52" cy="57" rx="16" ry="8" fill="#8a6a00" opacity="0.45"></ellipse><rect x="38" y="62" width="6" height="11" rx="3" fill="#8a6a00"></rect><rect x="50" y="62" width="6" height="11" rx="3" fill="#8a6a00"></rect><circle cx="70" cy="36" r="13" fill="#ffd83d"></circle><circle cx="70" cy="36" r="13" fill="none" stroke="#8a6a00" stroke-width="1.5" opacity="0.6"></circle><path d="M62 25 L64 16 L68 25 Z" fill="#fff2a8"></path><circle cx="65" cy="34" r="3" fill="#0b0e1c"></circle><circle cx="76" cy="34" r="3" fill="#0b0e1c"></circle><circle cx="66" cy="33" r="1" fill="#fff2a8"></circle><circle cx="77" cy="33" r="1" fill="#fff2a8"></circle><path d="M65 44 L67 49 L69 44 Z" fill="#fff" opacity="0.9"></path><path d="M73 44 L75 49 L77 44 Z" fill="#fff" opacity="0.9"></path></g></g>
+
+    <!-- الاسم -->
+    <text x="210" y="400" fill="#eef1ff" font-size="34" font-weight="900" text-anchor="middle">Plazmi</text>
+    <text x="210" y="430" fill="#ffd23d" font-size="19" text-anchor="middle" opacity="0.9">Monster · Electric</text>
+    <line x1="46" y1="448" x2="374" y2="448" stroke="#ffd23d" stroke-opacity="0.35" stroke-width="2"/>
+
+    <!-- النص -->
+    <text x="210" y="478" fill="#cfd5ee" font-size="18" text-anchor="middle" opacity="0.88">Basic monster. Link: can combo with</text>
+    <text x="210" y="504" fill="#cfd5ee" font-size="18" text-anchor="middle" opacity="0.88">monsters of any element.</text>
+
+    <rect x="34" y="512" width="352" height="52" rx="14" fill="#000" opacity="0.45"/>
+    <text x="324" y="538" fill="#ffb37a" font-size="26" font-weight="900" text-anchor="middle" direction="ltr" dominant-baseline="central">⚔ 5</text>
+    <text x="210" y="538" fill="#ffd23d" font-size="19" text-anchor="middle" dominant-baseline="central">Link</text>
+    <text x="96" y="538" fill="#8ff0bd" font-size="26" font-weight="900" text-anchor="middle" direction="ltr" dominant-baseline="central">❤ 4</text>
+  </g>
+  <rect x="8" y="8" width="404" height="584" rx="26" fill="none" stroke="#ffd23d" stroke-opacity="0.55" stroke-width="3"/>
+</svg>

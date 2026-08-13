@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="600" viewBox="0 0 420 600" font-family="'Segoe UI', Tahoma, 'Arial Unicode MS', Arial, sans-serif" direction="rtl">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0%" stop-color="#ff6b3d" stop-opacity="0.30"/>
+      <stop offset="55%" stop-color="#0a0c18" stop-opacity="0.97"/>
+      <stop offset="100%" stop-color="#05070f"/>
+    </linearGradient>
+    <clipPath id="frame"><rect x="8" y="8" width="404" height="584" rx="26"/></clipPath>
+  </defs>
+
+  <rect width="420" height="600" rx="30" fill="#05070f"/>
+  <g clip-path="url(#frame)">
+    <rect x="8" y="8" width="404" height="584" rx="26" fill="url(#bg)"/>
+
+    <!-- الرأس: التكلفة والرقم -->
+    <circle cx="66" cy="66" r="30" fill="#ff6b3d"/>
+    <text x="66" y="66" fill="#05070f" font-size="34" font-weight="900" text-anchor="middle" dominant-baseline="central">2</text>
+    <rect x="302" y="40" width="86" height="52" rx="14" fill="#000" opacity="0.55"/>
+    <text x="345" y="66" fill="#ff6b3d" font-size="32" font-weight="900" text-anchor="middle" dominant-baseline="central">0</text>
+
+    <!-- لوحة الرسم -->
+    <rect x="34" y="112" width="352" height="238" rx="18" fill="#000" opacity="0.35"/>
+    <rect x="34" y="112" width="352" height="238" rx="18" fill="none" stroke="#ff6b3d" stroke-opacity="0.45" stroke-width="2"/>
+    <g transform="translate(34 112) scale(3.3846153846153846 2.7045454545454546)"><defs><radialGradient id="art-frag_heart" cx="50%" cy="42%" r="62%"><stop offset="0%" stop-color="#ff8a4c" stop-opacity="0.36"></stop><stop offset="70%" stop-color="#a02b12" stop-opacity="0.16"></stop><stop offset="100%" stop-color="#05070f" stop-opacity="0"></stop></radialGradient></defs><rect x="0" y="0" width="104" height="88" fill="url(#art-frag_heart)" rx="8"></rect><g><circle cx="52" cy="46" r="30" fill="#ff8a4c" opacity="0.12"></circle><circle cx="52" cy="46" r="30" fill="none" stroke="#ffd08a" stroke-width="1.2" opacity="0.45" stroke-dasharray="4 5"></circle><path d="M52 72 C26 54 30 28 46 28 C51 28 52 33 52 33 C52 33 53 28 58 28 C74 28 78 54 52 72 Z" fill="#ff8a4c" stroke="#ffd08a" stroke-width="2"></path><path d="M44 42 L52 50 L60 38" stroke="#ffd08a" stroke-width="4" fill="none" stroke-linecap="round"></path></g></g>
+
+    <!-- الاسم -->
+    <text x="210" y="400" fill="#eef1ff" font-size="34" font-weight="900" text-anchor="middle">قلب الوحش</text>
+    <text x="210" y="430" fill="#ff6b3d" font-size="19" text-anchor="middle" opacity="0.9">قطعة · نار</text>
+    <line x1="46" y1="448" x2="374" y2="448" stroke="#ff6b3d" stroke-opacity="0.35" stroke-width="2"/>
+
+    <!-- النص -->
+    <text x="210" y="478" fill="#cfd5ee" font-size="18" text-anchor="middle" opacity="0.88">قطعة من الوحش الأعظم. تُوضع في</text>
+    <text x="210" y="504" fill="#cfd5ee" font-size="18" text-anchor="middle" opacity="0.88">الخزانة دون شرط مطابقة.</text>
+
+    
+  </g>
+  <rect x="8" y="8" width="404" height="584" rx="26" fill="none" stroke="#ff6b3d" stroke-opacity="0.55" stroke-width="3"/>
+</svg>

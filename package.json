@@ -1,0 +1,53 @@
+{
+  "name": "mto-game",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "simulate": "tsx scripts/simulate.ts",
+    "typecheck": "tsc --noEmit",
+    "check:tutorial": "tsx scripts/tutorial-check.ts",
+    "balance": "tsx scripts/balance.ts",
+    "check:order": "tsx scripts/turn-order.ts",
+    "check:coin": "tsx scripts/coin-check.ts",
+    "check:redact": "tsx scripts/redact-check.ts",
+    "cards:export": "tsx scripts/export-cards.tsx",
+    "icons": "tsx scripts/gen-icons.ts",
+    "android:sync": "node scripts/android-sdk-path.mjs && cap sync android",
+    "android:apk": "node scripts/build-apk.mjs",
+    "check:hand": "tsx scripts/hand-order-check.ts",
+    "check:messages": "tsx scripts/messages-check.ts",
+    "check:curve": "tsx scripts/curve-check.ts",
+    "check:opening": "tsx scripts/opening-check.ts",
+    "check:abilities": "tsx scripts/abilities-check.ts"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.5.0",
+    "@capacitor/core": "^8.5.0",
+    "@supabase/ssr": "^0.12.4",
+    "@supabase/supabase-js": "^2.112.2",
+    "@types/three": "^0.180.0",
+    "next": "16.3.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "three": "^0.180.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.0",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vercel/config": "^0.5.6",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.0",
+    "sharp": "^0.35.3",
+    "tailwindcss": "^4",
+    "tsx": "^4.23.9",
+    "typescript": "^5"
+  }
+}

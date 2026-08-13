@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="600" viewBox="0 0 420 600" font-family="'Segoe UI', Tahoma, 'Arial Unicode MS', Arial, sans-serif" direction="ltr">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0%" stop-color="#8b8fa8" stop-opacity="0.30"/>
+      <stop offset="55%" stop-color="#0a0c18" stop-opacity="0.97"/>
+      <stop offset="100%" stop-color="#05070f"/>
+    </linearGradient>
+    <clipPath id="frame"><rect x="8" y="8" width="404" height="584" rx="26"/></clipPath>
+  </defs>
+
+  <rect width="420" height="600" rx="30" fill="#05070f"/>
+  <g clip-path="url(#frame)">
+    <rect x="8" y="8" width="404" height="584" rx="26" fill="url(#bg)"/>
+
+    <!-- الرأس: التكلفة والرقم -->
+    <circle cx="66" cy="66" r="30" fill="#8b8fa8"/>
+    <text x="66" y="66" fill="#05070f" font-size="34" font-weight="900" text-anchor="middle" dominant-baseline="central">4</text>
+    <rect x="302" y="40" width="86" height="52" rx="14" fill="#000" opacity="0.55"/>
+    <text x="345" y="66" fill="#8b8fa8" font-size="32" font-weight="900" text-anchor="middle" dominant-baseline="central">7</text>
+
+    <!-- لوحة الرسم -->
+    <rect x="34" y="112" width="352" height="238" rx="18" fill="#000" opacity="0.35"/>
+    <rect x="34" y="112" width="352" height="238" rx="18" fill="none" stroke="#8b8fa8" stroke-opacity="0.45" stroke-width="2"/>
+    <g transform="translate(34 112) scale(3.3846153846153846 2.7045454545454546)"><defs><radialGradient id="art-mon_dark_shadow_2" cx="50%" cy="42%" r="62%"><stop offset="0%" stop-color="#98a0bd" stop-opacity="0.36"></stop><stop offset="70%" stop-color="#252a45" stop-opacity="0.16"></stop><stop offset="100%" stop-color="#05070f" stop-opacity="0"></stop></radialGradient></defs><rect x="0" y="0" width="104" height="88" fill="url(#art-mon_dark_shadow_2)" rx="8"></rect><g><ellipse cx="52" cy="46" rx="30" ry="32" fill="#98a0bd" opacity="0.16"></ellipse><path d="M52 12 Q78 22 76 50 Q74 74 52 82 Q30 74 28 50 Q26 22 52 12 Z" fill="#252a45"></path><path d="M52 20 Q70 28 69 50 Q68 68 52 74 Q36 68 35 50 Q34 28 52 20 Z" fill="#98a0bd" opacity="0.55"></path><path d="M38 78 q-3 8 2 14" stroke="#98a0bd" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.5"></path><path d="M52 78 q-3 8 2 14" stroke="#98a0bd" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.4"></path><path d="M66 78 q-3 8 2 14" stroke="#98a0bd" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.3"></path><ellipse cx="45" cy="42" rx="4" ry="7" fill="#d3d8ea"></ellipse><ellipse cx="59" cy="42" rx="4" ry="7" fill="#d3d8ea"></ellipse><ellipse cx="45" cy="43" rx="1.6" ry="3" fill="#0b0e1c"></ellipse><ellipse cx="59" cy="43" rx="1.6" ry="3" fill="#0b0e1c"></ellipse><path d="M34 24 L30 8 L44 20 Z" fill="#d3d8ea" opacity="0.7"></path><path d="M70 24 L74 8 L60 20 Z" fill="#d3d8ea" opacity="0.7"></path></g></g>
+
+    <!-- الاسم -->
+    <text x="210" y="400" fill="#eef1ff" font-size="34" font-weight="900" text-anchor="middle">Shadowos</text>
+    <text x="210" y="430" fill="#8b8fa8" font-size="19" text-anchor="middle" opacity="0.9">Monster · Dark · Evolved</text>
+    <line x1="46" y1="448" x2="374" y2="448" stroke="#8b8fa8" stroke-opacity="0.35" stroke-width="2"/>
+
+    <!-- النص -->
+    <text x="210" y="478" fill="#cfd5ee" font-size="18" text-anchor="middle" opacity="0.88">Evolved monster. Rush: can attack the</text>
+    <text x="210" y="504" fill="#cfd5ee" font-size="18" text-anchor="middle" opacity="0.88">turn it is summoned.</text>
+
+    <rect x="34" y="512" width="352" height="52" rx="14" fill="#000" opacity="0.45"/>
+    <text x="324" y="538" fill="#ffb37a" font-size="26" font-weight="900" text-anchor="middle" direction="ltr" dominant-baseline="central">⚔ 7</text>
+    <text x="210" y="538" fill="#8b8fa8" font-size="19" text-anchor="middle" dominant-baseline="central">Rush</text>
+    <text x="96" y="538" fill="#8ff0bd" font-size="26" font-weight="900" text-anchor="middle" direction="ltr" dominant-baseline="central">❤ 6</text>
+  </g>
+  <rect x="8" y="8" width="404" height="584" rx="26" fill="none" stroke="#8b8fa8" stroke-opacity="0.55" stroke-width="3"/>
+</svg>

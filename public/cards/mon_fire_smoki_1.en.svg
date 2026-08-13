@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="600" viewBox="0 0 420 600" font-family="'Segoe UI', Tahoma, 'Arial Unicode MS', Arial, sans-serif" direction="ltr">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.4" y2="1">
+      <stop offset="0%" stop-color="#ff6b3d" stop-opacity="0.30"/>
+      <stop offset="55%" stop-color="#0a0c18" stop-opacity="0.97"/>
+      <stop offset="100%" stop-color="#05070f"/>
+    </linearGradient>
+    <clipPath id="frame"><rect x="8" y="8" width="404" height="584" rx="26"/></clipPath>
+  </defs>
+
+  <rect width="420" height="600" rx="30" fill="#05070f"/>
+  <g clip-path="url(#frame)">
+    <rect x="8" y="8" width="404" height="584" rx="26" fill="url(#bg)"/>
+
+    <!-- الرأس: التكلفة والرقم -->
+    <circle cx="66" cy="66" r="30" fill="#ff6b3d"/>
+    <text x="66" y="66" fill="#05070f" font-size="34" font-weight="900" text-anchor="middle" dominant-baseline="central">2</text>
+    <rect x="302" y="40" width="86" height="52" rx="14" fill="#000" opacity="0.55"/>
+    <text x="345" y="66" fill="#ff6b3d" font-size="32" font-weight="900" text-anchor="middle" dominant-baseline="central">3</text>
+
+    <!-- لوحة الرسم -->
+    <rect x="34" y="112" width="352" height="238" rx="18" fill="#000" opacity="0.35"/>
+    <rect x="34" y="112" width="352" height="238" rx="18" fill="none" stroke="#ff6b3d" stroke-opacity="0.45" stroke-width="2"/>
+    <g transform="translate(34 112) scale(3.3846153846153846 2.7045454545454546)"><defs><radialGradient id="art-mon_fire_smoki_1" cx="50%" cy="42%" r="62%"><stop offset="0%" stop-color="#ff8a4c" stop-opacity="0.36"></stop><stop offset="70%" stop-color="#a02b12" stop-opacity="0.16"></stop><stop offset="100%" stop-color="#05070f" stop-opacity="0"></stop></radialGradient></defs><rect x="0" y="0" width="104" height="88" fill="url(#art-mon_fire_smoki_1)" rx="8"></rect><g><rect x="25" y="44" width="10" height="22" rx="4" fill="#a02b12"></rect><rect x="69" y="44" width="10" height="22" rx="4" fill="#a02b12"></rect><rect x="36" y="38" width="32" height="28" rx="6" fill="#ff8a4c"></rect><rect x="41" y="46" width="22" height="12" rx="3" fill="#ffd08a" opacity="0.28"></rect><rect x="41" y="16" width="22" height="20" rx="5" fill="#ff8a4c"></rect><rect x="45" y="23" width="14" height="6" rx="3" fill="#0b0e1c"></rect><circle cx="48" cy="26" r="1.8" fill="#ffd08a"></circle><circle cx="56" cy="26" r="1.8" fill="#ffd08a"></circle><rect x="38" y="66" width="12" height="9" rx="3" fill="#a02b12"></rect><rect x="54" y="66" width="12" height="9" rx="3" fill="#a02b12"></rect></g></g>
+
+    <!-- الاسم -->
+    <text x="210" y="400" fill="#eef1ff" font-size="34" font-weight="900" text-anchor="middle">Smokel</text>
+    <text x="210" y="430" fill="#ff6b3d" font-size="19" text-anchor="middle" opacity="0.9">Monster · Fire</text>
+    <line x1="46" y1="448" x2="374" y2="448" stroke="#ff6b3d" stroke-opacity="0.35" stroke-width="2"/>
+
+    <!-- النص -->
+    <text x="210" y="478" fill="#cfd5ee" font-size="18" text-anchor="middle" opacity="0.88">Basic monster. Scout: draw a card when</text>
+    <text x="210" y="504" fill="#cfd5ee" font-size="18" text-anchor="middle" opacity="0.88">summoned.</text>
+
+    <rect x="34" y="512" width="352" height="52" rx="14" fill="#000" opacity="0.45"/>
+    <text x="324" y="538" fill="#ffb37a" font-size="26" font-weight="900" text-anchor="middle" direction="ltr" dominant-baseline="central">⚔ 3</text>
+    <text x="210" y="538" fill="#ff6b3d" font-size="19" text-anchor="middle" dominant-baseline="central">Scout</text>
+    <text x="96" y="538" fill="#8ff0bd" font-size="26" font-weight="900" text-anchor="middle" direction="ltr" dominant-baseline="central">❤ 3</text>
+  </g>
+  <rect x="8" y="8" width="404" height="584" rx="26" fill="none" stroke="#ff6b3d" stroke-opacity="0.55" stroke-width="3"/>
+</svg>

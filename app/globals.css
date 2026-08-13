@@ -1,0 +1,128 @@
+@import "tailwindcss";
+
+:root {
+  --background: #070912;
+  --foreground: #e9ecf8;
+  --panel: rgba(255, 255, 255, 0.045);
+  --panel-strong: rgba(255, 255, 255, 0.09);
+  --border: rgba(255, 255, 255, 0.12);
+
+  --el-fire: #ff6b3d;
+  --el-water: #3da5ff;
+  --el-grass: #46d17f;
+  --el-electric: #ffd23d;
+  --el-psychic: #c471ff;
+  --el-dark: #8b8fa8;
+  --el-wild: #ff5fa2;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-panel: var(--panel);
+  --color-line: var(--border);
+  --font-sans: var(--font-cairo);
+}
+
+html,
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+body {
+  /* الشاشة تُرسم تحت شريط الحالة على الجوال (viewport-fit=cover) */
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
+  font-family: var(--font-cairo), "Segoe UI", Tahoma, sans-serif;
+  background-image:
+    radial-gradient(1100px 600px at 15% -10%, rgba(120, 90, 255, 0.22), transparent 60%),
+    radial-gradient(900px 520px at 90% 110%, rgba(0, 190, 190, 0.18), transparent 60%);
+  background-attachment: fixed;
+}
+
+/* شريط تمرير رفيع لليد */
+.thin-scroll::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.18);
+  border-radius: 99px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+}
+
+.card-face {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18) inset,
+    0 10px 24px -12px rgba(0, 0, 0, 0.9);
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.pop-in {
+  animation: pop-in 0.22s ease-out both;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+.shake {
+  animation: shake 0.3s ease-in-out;
+}
+
+/* كارت وصل اليد للتوّ: ينزلق إلى مكانه ثم يومض ليلفت النظر */
+@keyframes card-arrive {
+  0% {
+    opacity: 0;
+    transform: translateY(-26px) scale(0.86) rotate(-6deg);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(2px) scale(1.04) rotate(1deg);
+  }
+  100% {
+    transform: none;
+  }
+}
+@keyframes fresh-ring {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(125, 211, 252, 0); }
+  35% { box-shadow: 0 0 0 4px rgba(125, 211, 252, 0.85); }
+}
+.card-fresh {
+  animation:
+    card-arrive 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.2) both,
+    fresh-ring 0.9s ease-in-out 0.35s 2;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-fresh {
+    animation: fresh-ring 0.9s ease-in-out 2;
+  }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(255, 210, 61, 0.5); }
+  50% { box-shadow: 0 0 0 8px rgba(255, 210, 61, 0); }
+}
+.glow-pulse {
+  animation: glow-pulse 1.6s ease-in-out infinite;
+}
