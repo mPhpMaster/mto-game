@@ -5,12 +5,55 @@ import Link from 'next/link';
 import { useRoom, type PublicSeat, type RoomRole } from '@/lib/multiplayer/useRoom';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { DEFAULT_TURN_SECONDS } from '@/lib/multiplayer/turnClock';
+import { isValidPlayerName, normalizePlayerName } from '@/lib/player/name';
+import { usePlayerName } from '@/lib/player/usePlayerName';
 import MatchChatDock from '@/components/chat/MatchChatDock';
 import OpenInAppButton from '@/components/OpenInAppButton';
+import LobbyFriendsPanel from '@/components/game/LobbyFriendsPanel';
+import PlayerNamePrompt from '@/components/game/PlayerNamePrompt';
+import RoomSharePanel from '@/components/game/RoomSharePanel';
 import GameBoard from './GameBoard';
 import TurnClock from './TurnClock';
 
 export default function OnlineGame({
+  code,
+  role,
+  myName: initialName,
+  turnSeconds = DEFAULT_TURN_SECONDS,
+  playerCount = 2,
+}: {
+  code: string;
+  role: RoomRole;
+  myName: string;
+  turnSeconds?: number;
+  playerCount?: number;
+}) {
+  const storedName = usePlayerName();
+  const resolvedInitial =
+    isValidPlayerName(initialName) ? normalizePlayerName(initialName) : isValidPlayerName(storedName) ? storedName : '';
+  const [myName, setMyName] = useState(resolvedInitial);
+
+  if (!isValidPlayerName(myName)) {
+    return (
+      <PlayerNamePrompt
+        initialName={initialName || storedName}
+        onConfirm={(n) => setMyName(n)}
+      />
+    );
+  }
+
+  return (
+    <OnlineGameInner
+      code={code}
+      role={role}
+      myName={myName}
+      turnSeconds={turnSeconds}
+      playerCount={playerCount}
+    />
+  );
+}
+
+function OnlineGameInner({
   code,
   role,
   myName,
@@ -32,12 +75,8 @@ export default function OnlineGame({
     turnSeconds,
     playerCount,
   });
-  const [copied, setCopied] = useState(false);
   const isHost = role === 'host';
   const ffa3 = room.playerCount >= 3;
-
-  const shareUrl =
-    typeof window !== 'undefined' ? `${window.location.origin}/vs/${code}` : `/vs/${code}`;
 
   const showChat = room.status !== 'unavailable' && room.status !== 'error';
   const humansHere = room.seats.filter((s) => !s.isAI && s.present).length;
@@ -81,19 +120,11 @@ export default function OnlineGame({
             <div className="mb-3 rounded-xl bg-black/50 p-4 text-center">
               <div className="text-5xl font-black tracking-[0.3em] text-emerald-300">{code}</div>
             </div>
-            <button
-              onClick={() => {
-                navigator.clipboard?.writeText(shareUrl);
-                setCopied(true);
-                window.setTimeout(() => setCopied(false), 2000);
-              }}
-              className="mb-3 w-full rounded-lg bg-white/12 px-4 py-2 text-sm font-bold hover:bg-white/20"
-            >
-              {copied ? t('copied') : t('copyInvite')}
-            </button>
-            <div className="mb-4">
+            <RoomSharePanel code={code} roomPath={`/vs/${code}`} />
+            <div className="my-4">
               <OpenInAppButton path={`/vs/${code}`} />
             </div>
+            <LobbyFriendsPanel roomCode={code} showInvite />
           </>
         ) : (
           <p className="mb-4 text-sm opacity-75">

@@ -14,7 +14,7 @@ export default async function RoomPage({ params, searchParams }: PageProps<'/vs/
 
   const isHost = (Array.isArray(sp.host) ? sp.host[0] : sp.host) === '1';
   const rawName = Array.isArray(sp.name) ? sp.name[0] : sp.name;
-  const myName = (rawName ?? '').trim().slice(0, 16) || (isHost ? 'المضيف' : 'الضيف');
+  const myName = (rawName ?? '').trim().slice(0, 20);
 
   const rawSecs = Array.isArray(sp.secs) ? sp.secs[0] : sp.secs;
   const rawPlayers = Array.isArray(sp.players) ? sp.players[0] : sp.players;

@@ -54,4 +54,6 @@
     <!-- WebRTC voice chat in the Capacitor WebView (getUserMedia + remote audio) -->
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- QR room join scanner in the lobby -->
+    <uses-permission android:name="android.permission.CAMERA" />
 </manifest>

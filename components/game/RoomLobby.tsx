@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ROOM_CODE_LENGTH, makeRoomCode, normalizeRoomCode } from '@/lib/multiplayer/code';
+import { buildRoomJoinPath } from '@/lib/multiplayer/joinUrl';
 import {
   DEFAULT_TURN_SECONDS,
   MIN_TURN_SECONDS,
@@ -11,7 +12,15 @@ import {
 } from '@/lib/multiplayer/turnClock';
 import { CROSS_DEVICE_READY } from '@/lib/supabase/client';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import {
+  PLAYER_NAME_MAX,
+  playerNameErrorKey,
+  writePlayerName,
+} from '@/lib/player/name';
+import { usePlayerName } from '@/lib/player/usePlayerName';
 import LanguageSwitch from '@/components/LanguageSwitch';
+import LobbyFriendsPanel from '@/components/game/LobbyFriendsPanel';
+import QrScannerModal from '@/components/game/QrScannerModal';
 import type { PlayerCount } from '@/lib/multiplayer/seats';
 
 export default function RoomLobby({
@@ -21,41 +30,56 @@ export default function RoomLobby({
 }) {
   const { t } = useLocale();
   const router = useRouter();
-  const [name, setName] = useState('');
+  const storedName = usePlayerName();
+  const [nameDraft, setNameDraft] = useState<string | null>(null);
+  const name = nameDraft ?? storedName;
+  const setName = (value: string) => setNameDraft(value);
   const [code, setCode] = useState('');
   const [turnSecs, setTurnSecs] = useState<number>(DEFAULT_TURN_SECONDS);
   const [playerCount, setPlayerCount] = useState<PlayerCount>(
     initialPlayerCount === 3 ? 3 : 2
   );
   const [error, setError] = useState<string | null>(null);
+  const [scanOpen, setScanOpen] = useState(false);
   const ffa3 = playerCount === 3;
 
-  function saveName(): string {
-    const n = name.trim() || t('player');
-    try {
-      window.localStorage.setItem('mto-name', n);
-    } catch {
-      // التخزين المحلي قد يكون معطّلاً — الاسم يُمرَّر في الرابط على أي حال
+  function requireName(): string | null {
+    const key = playerNameErrorKey(name);
+    if (key) {
+      setError(t(key));
+      return null;
     }
-    return n;
+    return writePlayerName(name);
   }
 
   function host() {
-    const n = saveName();
-    const players = ffa3 ? '&players=3' : '';
+    const n = requireName();
+    if (!n) return;
     router.push(
-      `/vs/${makeRoomCode()}?host=1&name=${encodeURIComponent(n)}&secs=${turnSecs}${players}`
+      buildRoomJoinPath(makeRoomCode(), {
+        name: n,
+        host: true,
+        secs: turnSecs,
+        players: ffa3 ? 3 : 2,
+      })
     );
   }
 
-  function join() {
-    const c = normalizeRoomCode(code);
+  function join(targetCode?: string) {
+    const c = normalizeRoomCode(targetCode ?? code);
     if (c.length !== ROOM_CODE_LENGTH) {
       setError(t('codeLength', { n: ROOM_CODE_LENGTH }));
       return;
     }
-    const n = saveName();
-    router.push(`/vs/${c}?name=${encodeURIComponent(n)}`);
+    const n = requireName();
+    if (!n) return;
+    router.push(buildRoomJoinPath(c, { name: n }));
+  }
+
+  function onQrScan(result: { code: string; name?: string }) {
+    if (result.name && !name.trim()) setName(result.name);
+    setCode(result.code);
+    join(result.code);
   }
 
   return (
@@ -85,8 +109,11 @@ export default function RoomLobby({
           <span className="mb-1 block text-xs opacity-70">{t('yourName')}</span>
           <input
             value={name}
-            maxLength={16}
-            onChange={(e) => setName(e.target.value)}
+            maxLength={PLAYER_NAME_MAX}
+            onChange={(e) => {
+              setName(e.target.value);
+              setError(null);
+            }}
             placeholder={t('yourNamePlaceholder')}
             className="w-full rounded-lg bg-black/40 px-3 py-2 outline-none ring-1 ring-white/15 focus:ring-emerald-400"
           />
@@ -169,17 +196,30 @@ export default function RoomLobby({
         </label>
         {error && <p className="mt-1 text-xs text-rose-300">{error}</p>}
 
-        <button
-          onClick={join}
-          className="mt-3 w-full rounded-xl bg-white/12 px-6 py-3 font-bold hover:bg-white/20"
-        >
-          {t('join')}
-        </button>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <button
+            onClick={() => join()}
+            className="rounded-xl bg-white/12 px-6 py-3 font-bold hover:bg-white/20"
+          >
+            {t('join')}
+          </button>
+          <button
+            type="button"
+            onClick={() => setScanOpen(true)}
+            className="rounded-xl border border-emerald-400/35 bg-emerald-500/10 px-4 py-3 text-sm font-black text-emerald-200 hover:bg-emerald-500/20"
+          >
+            {t('scanQr')}
+          </button>
+        </div>
       </div>
+
+      <LobbyFriendsPanel />
 
       <p className="mt-4 text-[11px] leading-relaxed opacity-50">
         {ffa3 ? t('hostNote3') : t('hostNote')}
       </p>
+
+      <QrScannerModal open={scanOpen} onClose={() => setScanOpen(false)} onScan={onQrScan} />
     </div>
   );
 }
