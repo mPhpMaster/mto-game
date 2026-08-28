@@ -222,11 +222,12 @@ export default function GameBoard({
   const foe = game.players[FOE];
   const myTurn = game.current === ME && game.phase !== 'ended';
   const canAct = myTurn && !autoPlaying;
+  const turnLimit = Number(turnSeconds) > 0 ? Number(turnSeconds) : DEFAULT_TURN_SECONDS;
   const clockOn =
     !tutorial &&
     !controlled &&
     game.phase !== 'ended' &&
-    !game.players[game.current].isAI &&
+    !game.players[game.current]?.isAI &&
     !(hotseat && readyTurn !== game.turn);
 
   useEffect(() => {
@@ -323,14 +324,15 @@ export default function GameBoard({
   }, [game, tutorial, advanceLesson, controlled, hotseat, setGame, autoPlaying]);
 
   // ---------- مهلة الجولة: عند الصفر يلعب الكمبيوتر عن اللاعب البشري ----------
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!clockOn) {
       setTurnDeadline(null);
       return;
     }
+    if (deadlineTurnRef.current === game.turn && turnDeadline !== null) return;
     deadlineTurnRef.current = game.turn;
-    setTurnDeadline(Date.now() + turnSeconds * 1000);
-  }, [clockOn, game.turn, game.current, turnSeconds]);
+    setTurnDeadline(Date.now() + turnLimit * 1000);
+  }, [clockOn, game.turn, game.current, turnLimit, turnDeadline]);
 
   useEffect(() => {
     if (turnDeadline === null || autoPlaying) return;
@@ -762,6 +764,7 @@ export default function GameBoard({
               className={`rounded-md px-2 py-1 font-bold ${
                 myTurn ? 'bg-emerald-500/25 text-emerald-200' : 'bg-white/10 opacity-70'
               }`}
+              data-clock={clockOn ? 'on' : 'off'}
             >
               {game.phase === 'ended'
                 ? t('ended')
@@ -773,8 +776,8 @@ export default function GameBoard({
                       : t('yourTurn')
                     : t('playerTurn', { name: pname(game.players[game.current].name) })}
             </span>
-            {!controlled && turnDeadline !== null && (
-              <TurnClock deadline={turnDeadline} seconds={turnSeconds} isMyTurn={myTurn} />
+            {!controlled && clockOn && (
+              <TurnClock deadline={turnDeadline} seconds={turnLimit} isMyTurn={myTurn} />
             )}
             <SoundToggle />
             <LanguageSwitch compact />
