@@ -11,7 +11,7 @@ import { applyGameAction, createGame } from '../lib/game/engine';
 import { LOCALES } from '../lib/i18n/locale';
 import { LOG_MESSAGES, renderMessage } from '../lib/i18n/messages';
 import { REASONS, UI } from '../lib/i18n/ui';
-import type { GameState } from '../lib/game/types';
+import type { GameState, LogEntry } from '../lib/game/types';
 
 let failures = 0;
 const fail = (m: string) => {

@@ -417,6 +417,41 @@ export const UI = {
   minute: { ar: 'دقيقة', en: '1 min' },
   turnClockTip: { ar: 'مهلة الجولة {n} ثانية', en: 'Turn limit: {n} seconds' },
 
+  // --- دردشة الغرفة ---
+  chatTitle: { ar: 'الدردشة', en: 'Chat' },
+  chatOpen: { ar: 'افتح الدردشة', en: 'Open chat' },
+  chatClose: { ar: 'أغلق الدردشة', en: 'Close chat' },
+  chatPlaceholder: { ar: 'اكتب رسالة…', en: 'Write a message…' },
+  chatSend: { ar: 'إرسال', en: 'Send' },
+  chatEmpty: { ar: 'لا رسائل بعد — قل مرحباً.', en: 'No messages yet — say hello.' },
+  chatRoster: { ar: 'اللاعبون', en: 'Players' },
+  chatWaitingPeers: { ar: 'بانتظار انضمام الآخرين…', en: 'Waiting for others to join…' },
+  chatJoinVoice: { ar: 'انضم للصوت (الميكروفون يبدأ مكتوماً)', en: 'Join voice (mic starts muted)' },
+  chatLeaveVoice: { ar: 'غادر الصوت', en: 'Leave voice' },
+  chatMicOn: { ar: 'الميكروفون مفتوح — اضغط للكتم', en: 'Mic on — tap to mute' },
+  chatMicOff: { ar: 'الميكروفون مكتوم — اضغط للتفعيل', en: 'Mic muted — tap to unmute' },
+  chatDeafenOn: { ar: 'سماعاتك مكتومة — لن تسمع أحداً', en: 'Speakers muted — you won’t hear anyone' },
+  chatDeafenOff: { ar: 'السماعات تعمل — اضغط لكتم كل الأصوات الواردة', en: 'Speakers on — tap to mute all incoming voice' },
+  chatMutePeer: {
+    ar: 'كتم {name} — لن تسمع صوته ولن ترى رسائله',
+    en: 'Mute {name} — you won’t hear their voice or see their messages',
+  },
+  chatUnmutePeer: { ar: 'إلغاء كتم {name}', en: 'Unmute {name}' },
+  chatVoiceOn: { ar: 'في الصوت', en: 'In voice' },
+  chatMicDenied: {
+    ar: 'المتصفّح رفض الميكروفون. اسمح بالوصول ثم أعد المحاولة.',
+    en: 'The browser blocked the microphone. Allow access and try again.',
+  },
+  chatMicError: { ar: 'تعذّر فتح الميكروفون.', en: 'Could not open the microphone.' },
+  chatVoiceUnsupported: { ar: 'الصوت غير مدعوم في هذا المتصفّح.', en: 'Voice is not supported in this browser.' },
+  chatIceFailed: {
+    ar: 'تعذّر اتصال الصوت على هذه الشبكة (قد تحتاج TURN). الدردشة النصية ما زالت تعمل.',
+    en: 'Voice could not connect on this network (TURN may be required). Text chat still works.',
+  },
+  chatConnecting: { ar: 'جارٍ ربط الدردشة…', en: 'Connecting chat…' },
+  chatConnected: { ar: 'الدردشة متصلة', en: 'Chat connected' },
+  chatUnread: { ar: '{n} رسالة جديدة', en: '{n} new messages' },
+
   // --- تفاصيل الكارت والخصائص ---
   cardEffect: { ar: 'ما يفعله الكارت', en: 'What the card does' },
   whyLocked: { ar: 'لماذا لا يمكن لعبه الآن', en: 'Why you can’t play it now' },
