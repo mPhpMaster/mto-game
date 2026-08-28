@@ -717,7 +717,7 @@ export default function GameBoard({
 
   // ---------- العرض ----------
   return (
-    <div ref={boardRef} className="flex min-h-screen max-w-full flex-col overflow-x-clip lg:flex-row">
+    <div ref={boardRef} data-players={game.players.length} className="flex min-h-screen max-w-full flex-col overflow-x-clip lg:flex-row">
       <main className="flex min-w-0 flex-1 flex-col gap-2 p-2 sm:p-3">
         {/* شريط علوي */}
         <header className="panel flex flex-wrap items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs">
@@ -756,7 +756,7 @@ export default function GameBoard({
                     ? hotseat
                       ? t('playerTurn', { name: pname(me.name) })
                       : t('yourTurn')
-                    : t('playerTurn', { name: pname(foe.name) })}
+                    : t('playerTurn', { name: pname(game.players[game.current].name) })}
             </span>
             {!controlled && turnDeadline !== null && (
               <TurnClock deadline={turnDeadline} seconds={turnSeconds} isMyTurn={myTurn} />
@@ -849,54 +849,98 @@ export default function GameBoard({
           </section>
         )}
 
-        {/* الخصم */}
-        <section className={`panel rounded-xl p-2 ${focusRing('foeField')} ${strikePanelClass(foe.field)}`}>
-          <PlayerStrip
-            state={foe}
-            align="start"
-            face="foe"
-            impact={
-              battle?.type === 'strike' && battle.target === 'face' && battle.entry.side === ME
-                ? battle.damage
-                : 0
-            }
-          />
-          <div data-field="foe" className={`relative mt-2 flex min-h-[92px] flex-wrap items-start gap-2 ${fieldIsStriking(foe.field) ? 'z-30 overflow-visible' : ''}`}>
-            {foe.field.length === 0 && (
-              <EmptySlot text={t('noFoeMonsters')} />
-            )}
-            {foe.field.map((m) => (
-              <div key={m.uid} data-uid={m.uid} className={monsterWrapClass(m.uid)}>
-                <MonsterView
-                  monster={m}
-                  strike={strikeDelta[m.uid] ?? null}
-                  hit={battle?.type === 'strike' && battle.target === m.uid}
-                  targetable={
-                    (attackers.length > 0 && canAct) || targeting === 'enemy_monster'
+        {/* الخصوم — واحد في 1 ضد 1، واثنان جنباً إلى جنب في 1 ضد 1 ضد 1 */}
+        <div
+          data-foes={foeSeats.length}
+          className={
+            foeSeats.length > 1
+              ? 'grid min-w-0 gap-2 sm:grid-cols-2'
+              : 'min-w-0'
+          }
+        >
+          {foeSeats.map((seat) => {
+            const foeP = game.players[seat];
+            const isCurrent = game.current === seat;
+            const canHitFace =
+              attackers.length > 0 && canAct && foeP.field.length === 0 && !foeP.eliminated;
+            return (
+              <section
+                key={seat}
+                data-seat={seat}
+                className={`panel min-w-0 rounded-xl p-2 ${
+                  seat === FOE ? focusRing('foeField') : ''
+                } ${strikePanelClass(foeP.field)} ${
+                  foeP.eliminated ? 'opacity-55' : ''
+                } ${isCurrent ? 'ring-1 ring-amber-300/50' : ''}`}
+              >
+                <PlayerStrip
+                  state={foeP}
+                  align="start"
+                  face={`p${seat}`}
+                  current={isCurrent}
+                  impact={
+                    battle?.type === 'strike' &&
+                    battle.target === 'face' &&
+                    (battle.targetSeat === seat ||
+                      (battle.targetSeat === undefined && battle.entry.side === ME && seat === FOE))
+                      ? battle.damage
+                      : 0
                   }
-                  onClick={
-                    targeting === 'enemy_monster'
-                      ? () => pickTarget(m.uid)
-                      : attackers.length > 0 && canAct
-                        ? () => launchAttack(m.uid)
-                        : undefined
-                  }
+                  onFaceClick={canHitFace ? () => launchAttack('face', seat) : undefined}
                 />
-                {battle?.type === 'strike' && battle.target === m.uid && battle.damage > 0 && (
-                  <span className="damage-pop pointer-events-none absolute start-1/2 top-0 z-40 text-lg font-black text-rose-300 drop-shadow">
-                    −{battle.damage}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-          <TrapRow
-            traps={foe.traps}
-            hidden
-            selectable={targeting === 'enemy_trap'}
-            onPick={pickTarget}
-          />
-        </section>
+                <div
+                  data-field={`p${seat}`}
+                  className={`relative mt-2 flex min-h-[92px] flex-wrap items-start gap-2 ${
+                    fieldIsStriking(foeP.field) ? 'z-30 overflow-visible' : ''
+                  }`}
+                >
+                  {foeP.field.length === 0 && (
+                    <EmptySlot
+                      text={
+                        foeP.eliminated
+                          ? t('eliminatedTag')
+                          : canHitFace
+                            ? t('attackFaceNamed', { name: pname(foeP.name) })
+                            : t('noFoeMonsters')
+                      }
+                      onClick={canHitFace ? () => launchAttack('face', seat) : undefined}
+                    />
+                  )}
+                  {foeP.field.map((m) => (
+                    <div key={m.uid} data-uid={m.uid} className={monsterWrapClass(m.uid)}>
+                      <MonsterView
+                        monster={m}
+                        strike={strikeDelta[m.uid] ?? null}
+                        hit={battle?.type === 'strike' && battle.target === m.uid}
+                        targetable={
+                          (attackers.length > 0 && canAct) || targeting === 'enemy_monster'
+                        }
+                        onClick={
+                          targeting === 'enemy_monster'
+                            ? () => pickTarget(m.uid)
+                            : attackers.length > 0 && canAct
+                              ? () => launchAttack(m.uid, seat)
+                              : undefined
+                        }
+                      />
+                      {battle?.type === 'strike' && battle.target === m.uid && battle.damage > 0 && (
+                        <span className="damage-pop pointer-events-none absolute start-1/2 top-0 z-40 text-lg font-black text-rose-300 drop-shadow">
+                          −{battle.damage}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <TrapRow
+                  traps={foeP.traps}
+                  hidden
+                  selectable={targeting === 'enemy_trap'}
+                  onPick={pickTarget}
+                />
+              </section>
+            );
+          })}
+        </div>
 
         {/* الوسط: طابور التدفق */}
         <section
@@ -941,7 +985,7 @@ export default function GameBoard({
         {/* أنت */}
         <section className={`panel rounded-xl p-2 ${focusRing('myField')} ${strikePanelClass(me.field)}`}>
           <TrapRow traps={me.traps} peekable={!pending} onPeek={peekOwnTrap} />
-          <div data-field="me" className={`relative mt-2 flex min-h-[92px] flex-wrap items-start gap-2 ${fieldIsStriking(me.field) ? 'z-30 overflow-visible' : ''}`}>
+          <div data-field={`p${ME}`} className={`relative mt-2 flex min-h-[92px] flex-wrap items-start gap-2 ${fieldIsStriking(me.field) ? 'z-30 overflow-visible' : ''}`}>
             {me.field.length === 0 && <EmptySlot text={t('summonHint', { n: RULES.MAX_FIELD })} />}
             {me.field.map((m) => (
               <div key={m.uid} data-uid={m.uid} className={monsterWrapClass(m.uid)}>
@@ -969,9 +1013,13 @@ export default function GameBoard({
             <PlayerStrip
               state={me}
               align="end"
-              face="me"
+              face={`p${ME}`}
+              current={myTurn}
               impact={
-                battle?.type === 'strike' && battle.target === 'face' && battle.entry.side !== ME
+                battle?.type === 'strike' &&
+                battle.target === 'face' &&
+                (battle.targetSeat === ME ||
+                  (battle.targetSeat === undefined && battle.entry.side !== ME))
                   ? battle.damage
                   : 0
               }
@@ -998,13 +1046,28 @@ export default function GameBoard({
             </>
           ) : (
             <>
-              <button
-                disabled={!attackers.length || foe.field.length > 0 || autoPlaying}
-                onClick={() => launchAttack('face')}
-                className="rounded-lg bg-orange-500/85 px-3 py-1.5 font-bold enabled:hover:bg-orange-500 disabled:opacity-35"
-              >
-                {t('attackFace')}
-              </button>
+              {foeSeats.length <= 1 ? (
+                <button
+                  disabled={!attackers.length || game.players[FOE]?.field.length > 0 || autoPlaying}
+                  onClick={() => launchAttack('face', FOE)}
+                  className="rounded-lg bg-orange-500/85 px-3 py-1.5 font-bold enabled:hover:bg-orange-500 disabled:opacity-35"
+                >
+                  {t('attackFace')}
+                </button>
+              ) : (
+                foeSeats
+                  .filter((seat) => !game.players[seat].eliminated && game.players[seat].field.length === 0)
+                  .map((seat) => (
+                    <button
+                      key={seat}
+                      disabled={!attackers.length || autoPlaying}
+                      onClick={() => launchAttack('face', seat)}
+                      className="rounded-lg bg-orange-500/85 px-3 py-1.5 font-bold enabled:hover:bg-orange-500 disabled:opacity-35"
+                    >
+                      {t('attackFaceNamed', { name: pname(game.players[seat].name) })}
+                    </button>
+                  ))
+              )}
               <button
                 disabled={!attackers.length || autoPlaying}
                 onClick={() => setAttackers([])}
@@ -1053,7 +1116,13 @@ export default function GameBoard({
                     attackers.length > 1
                       ? t('comboPreview', { damage: comboPreview.damage })
                       : t('attackPreview', { damage: comboPreview.damage })
-                  } ${foe.field.length ? t('pickFoeMonster') : t('pressDirect')}`
+                  } ${
+                    foeSeats.some((seat) => game.players[seat].field.length > 0)
+                      ? foeSeats.length > 1
+                        ? t('pickEitherOpponent')
+                        : t('pickFoeMonster')
+                      : t('pressDirect')
+                  }`}
                 : reason(comboPreview.reason)}
             </span>
           )}
@@ -1150,7 +1219,7 @@ export default function GameBoard({
                       ? 'bg-orange-500/12 text-orange-100'
                       : l.side === ME
                         ? 'bg-emerald-500/10'
-                        : l.side === FOE
+                        : l.side !== null
                           ? 'bg-sky-500/10'
                           : 'bg-white/5 opacity-70'
               }`}
@@ -1330,14 +1399,14 @@ export default function GameBoard({
             <p className="mt-2 text-sm opacity-70">
               {t('handHidden')}
             </p>
-            <div className="mt-4 flex justify-center gap-4 text-xs opacity-60">
+            <div className="mt-4 flex flex-wrap justify-center gap-3 text-xs opacity-60">
               <span>{t('turnLabel', { n: game.turn })}</span>
-              <span>
-                ❤ {pname(me.name)}: {me.hp}
-              </span>
-              <span>
-                ❤ {pname(foe.name)}: {foe.hp}
-              </span>
+              {game.players.map((p) => (
+                <span key={p.id}>
+                  ❤ {pname(p.name)}: {p.hp}
+                  {p.eliminated ? ` (${t('eliminatedTag')})` : ''}
+                </span>
+              ))}
             </div>
             <button
               onClick={() => setReadyTurn(game.turn)}
@@ -1447,20 +1516,45 @@ function PlayerStrip({
   align,
   face,
   impact = 0,
+  current = false,
+  onFaceClick,
 }: {
   state: GameState['players'][0];
   align: 'start' | 'end';
-  face: 'me' | 'foe';
+  face: string;
   impact?: number;
+  current?: boolean;
+  onFaceClick?: () => void;
 }) {
   const { t: tr, L, name: pn } = useLocale();
-  const hpPct = Math.round((state.hp / state.maxHp) * 100);
+  const hpPct = Math.round((state.hp / Math.max(1, state.maxHp)) * 100);
   return (
     <div
       data-face={face}
-      className={`relative flex flex-wrap items-center gap-2 text-xs ${align === 'end' ? 'justify-end' : ''}`}
+      data-current={current ? '1' : undefined}
+      role={onFaceClick ? 'button' : undefined}
+      tabIndex={onFaceClick ? 0 : undefined}
+      onClick={onFaceClick}
+      onKeyDown={
+        onFaceClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onFaceClick();
+              }
+            }
+          : undefined
+      }
+      className={`relative flex flex-wrap items-center gap-2 text-xs ${align === 'end' ? 'justify-end' : ''} ${
+        onFaceClick ? 'cursor-pointer rounded-lg ring-2 ring-orange-400/80' : ''
+      }`}
     >
       <span className="font-black">{pn(state.name)}</span>
+      {state.eliminated && (
+        <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-bold opacity-70">
+          {tr('eliminatedTag')}
+        </span>
+      )}
 
       <div className="flex items-center gap-1">
         <span className="text-emerald-300">❤</span>
@@ -1610,9 +1704,26 @@ function HandSplit({ title }: { title: string }) {
   );
 }
 
-function EmptySlot({ text }: { text: string }) {
+function EmptySlot({ text, onClick }: { text: string; onClick?: () => void }) {
   return (
-    <div className="grid h-[92px] flex-1 place-items-center rounded-xl border border-dashed border-white/12 text-[11px] opacity-40">
+    <div
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
+      className={`grid h-[92px] flex-1 place-items-center rounded-xl border border-dashed border-white/12 text-[11px] opacity-40 ${
+        onClick ? 'cursor-pointer opacity-90 ring-2 ring-orange-400/70' : ''
+      }`}
+    >
       {text}
     </div>
   );
