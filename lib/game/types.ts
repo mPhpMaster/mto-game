@@ -107,10 +107,15 @@ export interface SetTrap {
   defId: string;
 }
 
+/** خانة اللاعب في المباراة — 0 و 1 في 1 ضد 1، و2 تُضاف في 1 ضد 1 ضد 1 */
+export type Seat = number;
+
 export interface PlayerState {
   id: string;
   name: string;
   isAI: boolean;
+  /** أُقصي (حياته وصلت صفراً) — يبقى على اللوحة لكن لا يلعب */
+  eliminated: boolean;
   hp: number;
   /** سقف الشفاء — يساوي حياة البداية، وتقلّ للخصم في المستويات السهلة */
   maxHp: number;
@@ -155,7 +160,7 @@ export type LogParams = Record<string, string | number>;
  */
 export interface LogEntry {
   turn: number;
-  side: 0 | 1 | null;
+  side: Seat | null;
   kind: 'play' | 'attack' | 'trap' | 'system' | 'win';
   key: string;
   params?: LogParams;
@@ -173,26 +178,34 @@ export interface GameState {
   rng: number;
   difficulty: import('./difficulty').Difficulty;
   turn: number;
-  current: 0 | 1;
+  current: Seat;
+  /** اتجاه الدور: 1 مع عقارب الخانات، -1 عكسها (من كارت الانعكاس في ثلاثي) */
+  turnDir: 1 | -1;
   phase: Phase;
-  winner: 0 | 1 | null;
+  winner: Seat | null;
   winReason: GameOutcome | null;
   deck: CardInstance[];
   discard: CardInstance[];
   flow: FlowTop;
   /** عقوبة السحب المتراكمة (draw2 / wild4) */
   pendingDraw: number;
-  players: [PlayerState, PlayerState];
+  players: PlayerState[];
   log: LogEntry[];
   /** كروت مكشوفة مؤقتاً للاعب (كارت البحث) */
-  reveal: { side: 0 | 1; cards: CardInstance[] } | null;
+  reveal: { side: Seat; cards: CardInstance[] } | null;
 }
 
 export type GameAction =
   | { type: 'PLAY'; uid: string; chosenElement?: PlayableElement; targetUid?: string }
   | { type: 'DRAW' }
   | { type: 'ACCEPT_DRAW' }
-  | { type: 'ATTACK'; attackers: string[]; target: string | 'face' }
+  | {
+      type: 'ATTACK';
+      attackers: string[];
+      target: string | 'face';
+      /** لازم للهجوم المباشر حين يوجد أكثر من خصم */
+      targetSeat?: Seat;
+    }
   | { type: 'SUMMON_TITAN' }
   | { type: 'PICK_REVEAL'; uid: string }
   | { type: 'END_TURN' };

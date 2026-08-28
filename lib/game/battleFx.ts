@@ -9,6 +9,7 @@ export type BattleFx =
       type: 'strike';
       strikers: string[];
       target: string | 'face';
+      targetSeat?: number;
       damage: number;
       blocked: boolean;
       entry: LogEntry;
@@ -41,6 +42,12 @@ export function pickBattleFx(entries: LogEntry[]): BattleFx | null {
       type: 'strike',
       strikers: uids(strike.params?.strikers),
       target: typeof strike.params?.target === 'string' ? strike.params.target : 'face',
+      targetSeat:
+        typeof strike.params?.targetSeat === 'number'
+          ? strike.params.targetSeat
+          : Number.isFinite(Number(strike.params?.targetSeat))
+            ? Number(strike.params?.targetSeat)
+            : undefined,
       damage,
       blocked: strike.key === 'attack_blocked',
       entry: strike,

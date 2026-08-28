@@ -242,21 +242,49 @@ export default function CardView({
   );
 }
 
-export function CardBack({ size = 'md', label }: { size?: 'sm' | 'md'; label?: string }) {
-  const small = size === 'sm';
+const BACK_BOX: Record<CardSize, string> = {
+  xs: 'w-[52px] h-[76px] rounded-lg',
+  sm: 'w-[86px] h-[122px] rounded-xl',
+  md: 'w-[116px] h-[166px] rounded-xl',
+};
+
+export function CardBack({
+  size = 'md',
+  label,
+  onClick,
+  title,
+}: {
+  size?: CardSize;
+  label?: string;
+  onClick?: () => void;
+  title?: string;
+}) {
+  const tiny = size === 'xs';
+  const small = size === 'sm' || tiny;
+  const className = [
+    'card-face grid shrink-0 place-items-center border border-white/15',
+    BACK_BOX[size],
+    onClick ? 'cursor-pointer hover:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-fuchsia-300' : '',
+  ].join(' ');
+  const style = {
+    background: 'repeating-linear-gradient(135deg, #1a1f3d 0 8px, #131735 8px 16px)',
+  };
+  const inner = (
+    <div className="text-center">
+      <div className={tiny ? 'text-base' : small ? 'text-lg' : 'text-2xl'}>🃏</div>
+      {label && <div className="mt-0.5 text-[9px] leading-tight opacity-70">{label}</div>}
+    </div>
+  );
+  if (onClick) {
+    return (
+      <button type="button" className={className} style={style} onClick={onClick} title={title} aria-label={title}>
+        {inner}
+      </button>
+    );
+  }
   return (
-    <div
-      className={`card-face grid shrink-0 place-items-center rounded-xl border border-white/15 ${
-        small ? 'w-[86px] h-[122px]' : 'w-[116px] h-[166px]'
-      }`}
-      style={{
-        background: 'repeating-linear-gradient(135deg, #1a1f3d 0 8px, #131735 8px 16px)',
-      }}
-    >
-      <div className="text-center">
-        <div className={small ? 'text-lg' : 'text-2xl'}>🃏</div>
-        {label && <div className="mt-1 text-[9px] opacity-70">{label}</div>}
-      </div>
+    <div className={className} style={style} title={title}>
+      {inner}
     </div>
   );
 }

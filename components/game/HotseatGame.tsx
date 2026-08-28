@@ -7,7 +7,7 @@ import { useLocale } from '@/lib/i18n/LocaleProvider';
 import LanguageSwitch from '@/components/LanguageSwitch';
 import GameBoard from './GameBoard';
 
-export default function HotseatGame() {
+export default function HotseatGame({ turnSeconds }: { turnSeconds?: number }) {
   const { t } = useLocale();
   const [names, setNames] = useState<[string, string]>(['', '']);
   const [started, setStarted] = useState(false);
@@ -76,5 +76,5 @@ export default function HotseatGame() {
     );
   }
 
-  return <GameBoard hotseat makeGame={makeGame} />;
+  return <GameBoard hotseat makeGame={makeGame} turnSeconds={turnSeconds} />;
 }

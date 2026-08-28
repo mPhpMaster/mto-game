@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import {
   ABILITY_NAME,
   ABILITY_TEXT,
@@ -28,6 +29,14 @@ export default function CardDetail({
 }) {
   const { t, L } = useLocale();
   const color = ELEMENT_HEX[card.element];
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   return (
     <div

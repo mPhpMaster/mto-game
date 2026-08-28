@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import { applyGameAction, createGame } from '@/lib/game/engine';
+import { applyAutoPlay } from '@/lib/game/ai';
 import { redactFor } from '@/lib/game/redact';
 import type { GameAction, GameState } from '@/lib/game/types';
 import { MULTIPLAYER_READY, getBrowserSupabase } from '@/lib/supabase/client';
@@ -227,21 +227,18 @@ export function useRoom({
   );
 
   /**
-   * انتهاء المهلة: المضيف وحده ينهي الدور — فهو الحَكَم، ولو فعلها الطرفان
-   * لأُنهي دوران في وقت واحد.
+   * انتهاء المهلة: المضيف وحده يشغّل اللعب التلقائي — فهو الحَكَم، ولو فعلها
+   * الطرفان لأُنجز دوران في وقت واحد.
    */
   useEffect(() => {
     if (!isHost || turnDeadline === null) return;
     const delay = Math.max(0, turnDeadline - Date.now());
+    const expectedTurn = lastTurnRef.current;
     const timer = window.setTimeout(() => {
       const current = fullRef.current;
       if (!current || current.phase === 'ended') return;
-      publish(
-        applyGameAction(
-          current,
-          current.phase === 'respond' ? { type: 'ACCEPT_DRAW' } : { type: 'END_TURN' }
-        )
-      );
+      if (current.turn !== expectedTurn) return;
+      publish(applyAutoPlay(current));
     }, delay);
     return () => window.clearTimeout(timer);
   }, [isHost, turnDeadline, publish]);

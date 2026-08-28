@@ -13,6 +13,7 @@ import type {
   LogParams,
   PlayableElement,
   PlayerState,
+  Seat,
 } from './types';
 
 export const RULES = {
@@ -42,6 +43,8 @@ export const RULES = {
   /** سقف وحوش الساحة — يكفي لدمج أكبر دون ازدحام اللوحة */
   MAX_FIELD: 6,
   MAX_TRAPS: 3,
+  /** أقصى عدد لاعبين في مباراة واحدة (1 ضد 1 ضد 1) */
+  MAX_PLAYERS: 3,
   FATIGUE_DAMAGE: 2,
   COMBO_BONUS_PER_EXTRA: 2,
 };
@@ -61,7 +64,7 @@ function clone<T>(v: T): T {
 function log(
   s: GameState,
   kind: LogEntry['kind'],
-  side: 0 | 1 | null,
+  side: Seat | null,
   key: string,
   params?: LogParams
 ) {
@@ -69,8 +72,64 @@ function log(
   if (s.log.length > 200) s.log.splice(0, s.log.length - 200);
 }
 
-export function opponentOf(i: 0 | 1): 0 | 1 {
-  return i === 0 ? 1 : 0;
+export function livingSeats(s: GameState): Seat[] {
+  return s.players.map((_, i) => i).filter((i) => !s.players[i].eliminated && s.players[i].hp > 0);
+}
+
+export function opponentsOf(s: GameState, seat: Seat): Seat[] {
+  return livingSeats(s).filter((i) => i !== seat);
+}
+
+/** الخانة التالية في اتجاه الدور، بما فيها المُقصَون — للاجتياز فقط */
+function nextSeatIndex(s: GameState, from: Seat, dir: 1 | -1 = s.turnDir): Seat {
+  const n = s.players.length;
+  return (from + dir + n) % n;
+}
+
+/** أقرب لاعب حيّ بعد `from` في اتجاه الدور (أو المعطى) */
+export function nextLiving(s: GameState, from: Seat, dir: 1 | -1 = s.turnDir): Seat {
+  const n = s.players.length;
+  let i = from;
+  for (let step = 0; step < n; step++) {
+    i = nextSeatIndex(s, i, dir);
+    if (!s.players[i].eliminated && s.players[i].hp > 0) return i;
+  }
+  return from;
+}
+
+/**
+ * الخصم «الافتراضي»: في 1 ضد 1 هو الآخر، وفي الثلاثي اللاعب التالي في الدور.
+ * يُستخدم لكروت التخطي/السحب التي تصيب «التالي» على طريقة الأونو.
+ */
+export function opponentOf(s: GameState, i: Seat): Seat {
+  return nextLiving(s, i);
+}
+
+export function findMonsterOwner(s: GameState, uid: string, among?: Seat[]): Seat | null {
+  const seats = among ?? s.players.map((_, i) => i);
+  for (const i of seats) {
+    if (s.players[i].field.some((m) => m.uid === uid)) return i;
+  }
+  return null;
+}
+
+export function findTrapOwner(s: GameState, uid: string, among?: Seat[]): Seat | null {
+  const seats = among ?? s.players.map((_, i) => i);
+  for (const i of seats) {
+    if (s.players[i].traps.some((t) => t.uid === uid)) return i;
+  }
+  return null;
+}
+
+/** الخصوم الأحياء بترتيب الدور بدءاً من التالي بعد `from` */
+function opponentsInTurnOrder(s: GameState, from: Seat): Seat[] {
+  const ordered: Seat[] = [];
+  let i = from;
+  for (let step = 0; step < s.players.length - 1; step++) {
+    i = nextSeatIndex(s, i);
+    if (!s.players[i].eliminated && s.players[i].hp > 0 && i !== from) ordered.push(i);
+  }
+  return ordered;
 }
 
 /**
@@ -108,7 +167,7 @@ function buildDeck(): CardInstance[] {
  * السطح بأول بطاقة غير وحش في اليد، فلا يتغيّر مجموع الـ200 ولا تتكرّر بطاقة،
  * والوحش المسحوب هو الأرخص (السطح مرتّب بالمنحنى) فيبقى ميسور اللعب مبكّراً.
  */
-function ensureOpeningMonsters(s: GameState, side: 0 | 1, floor: number): void {
+function ensureOpeningMonsters(s: GameState, side: Seat, floor: number): void {
   const hand = s.players[side].hand;
   const isMonster = (c: CardInstance) => def(c.defId).kind === 'monster';
   let have = hand.filter(isMonster).length;
@@ -130,6 +189,7 @@ function newPlayer(id: string, name: string, isAI: boolean): PlayerState {
     id,
     name,
     isAI,
+    eliminated: false,
     hp: RULES.START_HP,
     maxHp: RULES.START_HP,
     energy: 0,
@@ -168,10 +228,14 @@ export function createGame(opts?: {
   playerName?: string;
   opponentName?: string;
   opponentIsAI?: boolean;
+  /** 2 = 1 ضد 1 (الافتراضي)، 3 = 1 ضد 1 ضد 1 */
+  playerCount?: number;
+  /** أسماء ومَن الآلي — إن وُجدت تتجاوز playerName/opponentName */
+  roster?: { name: string; isAI: boolean }[];
   script?: GameScript;
   difficulty?: Difficulty;
-  /** من يبدأ: 0 أو 1، أو قرعة عشوائية (الوضع الافتراضي) */
-  firstPlayer?: 0 | 1 | 'random';
+  /** من يبدأ: خانة، أو قرعة عشوائية (الوضع الافتراضي) */
+  firstPlayer?: Seat | 'random';
   /** لضبط منحنى السطح في أدوات القياس فقط */
   curveSpread?: number;
   /** لتجربة دوال وزن مختلفة في أدوات القياس فقط */
@@ -188,12 +252,24 @@ export function createGame(opts?: {
   const difficulty = opts?.difficulty ?? DEFAULT_DIFFICULTY;
   const level = DIFFICULTIES[difficulty];
 
+  const roster =
+    opts?.roster && opts.roster.length >= 2
+      ? opts.roster.slice(0, RULES.MAX_PLAYERS)
+      : [
+          { name: opts?.playerName ?? '@you', isAI: false },
+          { name: opts?.opponentName ?? '@opponent', isAI: opts?.opponentIsAI ?? true },
+          ...(Math.min(Math.max(opts?.playerCount ?? 2, 2), RULES.MAX_PLAYERS) >= 3
+            ? [{ name: '@ai2', isAI: true }]
+            : []),
+        ];
+
   const s: GameState = {
     seed,
     rng: rngAfterShuffle,
     difficulty,
     turn: 0,
     current: 0,
+    turnDir: 1,
     phase: 'main',
     winner: null,
     winReason: null,
@@ -201,49 +277,58 @@ export function createGame(opts?: {
     discard: [],
     flow: { element: 'fire', number: null, defId: null },
     pendingDraw: 0,
-    players: [
-      newPlayer('p0', opts?.playerName ?? '@you', false),
-      newPlayer('p1', opts?.opponentName ?? '@opponent', opts?.opponentIsAI ?? true),
-    ],
+    players: roster.map((p, i) => newPlayer(`p${i}`, p.name, p.isAI)),
     log: [],
     reveal: null,
   };
 
-  // مستوى الصعوبة يضبط الخصم وحده — اللاعب لا يُمَسّ
-  s.players[1].hp = level.aiHp;
-  s.players[1].maxHp = level.aiHp;
-  s.players[1].maxEnergyCap = level.aiMaxEnergyCap;
+  // مستوى الصعوبة يضبط الخصوم الآليين وحدهم — اللاعب البشري لا يُمَسّ
+  for (const p of s.players) {
+    if (!p.isAI) continue;
+    p.hp = level.aiHp;
+    p.maxHp = level.aiHp;
+    p.maxEnergyCap = level.aiMaxEnergyCap;
+  }
+
+  const n = s.players.length;
 
   // قرعة البداية — الافتراضي عشوائي حتى لا يبدأ اللاعب نفسه كل مرة
-  if (opts?.firstPlayer === 0 || opts?.firstPlayer === 1) {
+  if (
+    typeof opts?.firstPlayer === 'number' &&
+    opts.firstPlayer >= 0 &&
+    opts.firstPlayer < n
+  ) {
     s.current = opts.firstPlayer;
   } else if (opts?.script) {
     // توزيع مُعدّ مسبقاً يعني درساً ثابتاً، فلا قرعة فيه
     s.current = 0;
   } else {
-    const [coin, rng] = randomInt(s.rng, 2);
+    const [coin, rng] = randomInt(s.rng, n);
     s.rng = rng;
-    s.current = coin === 0 ? 0 : 1;
+    s.current = coin;
   }
   const first = s.current;
-  const second = opponentOf(first);
+  const dealOrder: Seat[] = [];
+  for (let k = 0; k < n; k++) dealOrder.push((first + k) % n);
+  const later = dealOrder.slice(1);
 
   if (opts?.script) {
     applyScript(s, opts.script);
   } else {
     // توزيع البداية: 5 كروت لكل لاعب، بدءاً بالبادئ
     for (let i = 0; i < RULES.START_HAND; i++) {
-      for (const p of [first, second]) {
+      for (const p of dealOrder) {
         drawCards(s, p, 1, true);
       }
     }
-    // تعويض من يلعب ثانياً: كارت إضافي، ومن يبدأ لا يسحب في دوره الأول
-    drawCards(s, second, RULES.SECOND_PLAYER_BONUS_CARDS, true);
-    // طاقة إضافية لمرة واحدة (بداية دوره الأول) — bonusEnergy يُستهلك ثم يُصفَّر
-    s.players[second].bonusEnergy += RULES.SECOND_PLAYER_BONUS_ENERGY;
+    // تعويض من لا يبدأ: كارت إضافي وطاقة لمرة واحدة في دوره الأول
+    for (const p of later) {
+      drawCards(s, p, RULES.SECOND_PLAYER_BONUS_CARDS, true);
+      s.players[p].bonusEnergy += RULES.SECOND_PLAYER_BONUS_ENERGY;
+    }
 
-    // ضمان حدٍّ أدنى من الوحوش لكلا اللاعبين — عدل ومتّسق
-    for (const p of [first, second]) {
+    // ضمان حدٍّ أدنى من الوحوش لكل لاعب — عدل ومتّسق
+    for (const p of dealOrder) {
       ensureOpeningMonsters(s, p, RULES.OPENING_MONSTER_FLOOR);
     }
 
@@ -268,10 +353,18 @@ export function createGame(opts?: {
   }
 
   log(s, 'system', null, 'match_start', { deck: s.deck.length });
-  log(s, 'system', null, 'coin_toss', {
-    first: s.players[first].name,
-    second: s.players[second].name,
-  });
+  if (n > 2) {
+    log(s, 'system', null, 'coin_toss_ffa', {
+      first: s.players[dealOrder[0]].name,
+      second: s.players[dealOrder[1]].name,
+      third: s.players[dealOrder[2]].name,
+    });
+  } else {
+    log(s, 'system', null, 'coin_toss', {
+      first: s.players[first].name,
+      second: s.players[later[0]].name,
+    });
+  }
   beginTurn(s);
   return s;
 }
@@ -332,7 +425,7 @@ function refillDeck(s: GameState): boolean {
   return true;
 }
 
-function drawCards(s: GameState, side: 0 | 1, n: number, silent = false): number {
+function drawCards(s: GameState, side: Seat, n: number, silent = false): number {
   const p = s.players[side];
   let drawn = 0;
   for (let i = 0; i < n; i++) {
@@ -377,7 +470,7 @@ export interface Playability {
  */
 export function canPlayCard(
   s: GameState,
-  side: 0 | 1,
+  side: Seat,
   uid: string,
   ignoreTurn = false
 ): Playability {
@@ -408,9 +501,9 @@ export function canPlayCard(
 
   if (d.needsTarget === 'own_monster' && p.field.length === 0)
     return { ok: false, reason: 'no_own_monster' };
-  if (d.needsTarget === 'enemy_monster' && s.players[opponentOf(side)].field.length === 0)
+  if (d.needsTarget === 'enemy_monster' && opponentsOf(s, side).every((i) => s.players[i].field.length === 0))
     return { ok: false, reason: 'no_enemy_monster' };
-  if (d.needsTarget === 'enemy_trap' && s.players[opponentOf(side)].traps.length === 0)
+  if (d.needsTarget === 'enemy_trap' && opponentsOf(s, side).every((i) => s.players[i].traps.length === 0))
     return { ok: false, reason: 'no_enemy_traps' };
   if (d.needsTarget === 'discard_monster' && !s.discard.some((c) => def(c.defId).kind === 'monster'))
     return { ok: false, reason: 'no_discard_monster' };
@@ -418,7 +511,7 @@ export function canPlayCard(
   return { ok: true };
 }
 
-export function hasAnyPlayable(s: GameState, side: 0 | 1): boolean {
+export function hasAnyPlayable(s: GameState, side: Seat): boolean {
   return s.players[side].hand.some((c) => canPlayCard(s, side, c.uid).ok);
 }
 
@@ -426,13 +519,14 @@ export function hasAnyPlayable(s: GameState, side: 0 | 1): boolean {
 
 function triggerTraps(
   s: GameState,
-  ownerIdx: 0 | 1,
+  ownerIdx: Seat,
+  foeIdx: Seat,
   timing: 'opponent_turn_start' | 'opponent_attack' | 'opponent_summon',
   ctx: { summonedUid?: string; attackerUid?: string } = {}
-) {
+): boolean {
   const owner = s.players[ownerIdx];
-  const foeIdx = opponentOf(ownerIdx);
   const foe = s.players[foeIdx];
+  if (owner.eliminated || owner.hp <= 0) return false;
 
   for (let i = owner.traps.length - 1; i >= 0; i--) {
     const t = owner.traps[i];
@@ -511,8 +605,26 @@ function triggerTraps(
       owner.traps.splice(i, 1);
       s.discard.push(t);
       // فخ واحد فقط لكل حدث
-      return;
+      return true;
     }
+  }
+  return false;
+}
+
+/** يجرّب فخاخ الخصوم بالترتيب حتى ينطلق واحد — نفس قاعدة «فخ لكل حدث» */
+function triggerOpponentTraps(
+  s: GameState,
+  actingSeat: Seat,
+  timing: 'opponent_turn_start' | 'opponent_attack' | 'opponent_summon',
+  ctx: { summonedUid?: string; attackerUid?: string; targetSeat?: Seat } = {}
+): void {
+  const owners =
+    timing === 'opponent_attack' && ctx.targetSeat !== undefined
+      ? [ctx.targetSeat]
+      : opponentsInTurnOrder(s, actingSeat);
+  for (const ownerIdx of owners) {
+    if (triggerTraps(s, ownerIdx, actingSeat, timing, ctx)) return;
+    if (isEnded(s)) return;
   }
 }
 
@@ -520,7 +632,7 @@ function triggerTraps(
 
 function damageMonster(
   s: GameState,
-  ownerIdx: 0 | 1,
+  ownerIdx: Seat,
   m: FieldMonster,
   amount: number
 ): number {
@@ -541,7 +653,7 @@ function damageMonster(
   return dealt;
 }
 
-function damagePlayer(s: GameState, side: 0 | 1, amount: number) {
+function damagePlayer(s: GameState, side: Seat, amount: number) {
   const p = s.players[side];
   p.hp = Math.max(0, p.hp - amount);
   checkDeath(s);
@@ -549,15 +661,29 @@ function damagePlayer(s: GameState, side: 0 | 1, amount: number) {
 
 function checkDeath(s: GameState) {
   if (s.phase === 'ended') return;
-  for (const i of [0, 1] as const) {
-    if (s.players[i].hp <= 0) {
-      endGame(s, opponentOf(i), { key: 'reason_hp', params: { loser: s.players[i].name } });
-      return;
-    }
+  for (let i = 0; i < s.players.length; i++) {
+    const p = s.players[i];
+    if (p.hp > 0 || p.eliminated) continue;
+    p.eliminated = true;
+    p.hp = 0;
+    log(s, 'system', i, 'eliminated', { player: p.name });
+  }
+  const living = livingSeats(s);
+  if (living.length === 1) {
+    const winner = living[0];
+    const lastLoser = s.players.find((p) => p.eliminated);
+    endGame(s, winner, {
+      key: 'reason_hp',
+      params: { loser: lastLoser?.name ?? s.players.find((_, i) => i !== winner)?.name ?? '' },
+    });
+    return;
+  }
+  if (living.length === 0) {
+    endGame(s, s.current, { key: 'reason_hp', params: { loser: s.players[s.current].name } });
   }
 }
 
-function endGame(s: GameState, winner: 0 | 1, outcome: GameOutcome) {
+function endGame(s: GameState, winner: Seat, outcome: GameOutcome) {
   s.phase = 'ended';
   s.winner = winner;
   s.winReason = outcome;
@@ -574,6 +700,12 @@ function beginTurn(s: GameState) {
   if (s.phase === 'ended') return;
   const idx = s.current;
   const p = s.players[idx];
+  if (!p || p.eliminated || p.hp <= 0) {
+    s.current = nextLiving(s, idx);
+    if (s.current === idx) return;
+    beginTurn(s);
+    return;
+  }
   s.turn += 1;
 
   p.energyCap = Math.min(p.maxEnergyCap, p.energyCap + 1);
@@ -594,9 +726,14 @@ function beginTurn(s: GameState) {
 
   log(s, 'system', idx, 'turn_start', { player: p.name, energy: p.energy, cap: p.energyCap });
 
-  // فخاخ الخصم التي تنطلق مع بداية دورك
-  triggerTraps(s, opponentOf(idx), 'opponent_turn_start');
+  // فخاخ الخصوم التي تنطلق مع بداية دورك (فخ واحد لكل حدث)
+  triggerOpponentTraps(s, idx, 'opponent_turn_start');
   if (isEnded(s)) return;
+
+  if (p.eliminated || p.hp <= 0) {
+    endTurn(s);
+    return;
+  }
 
   if (p.skipNext) {
     p.skipNext = false;
@@ -619,13 +756,13 @@ function beginTurn(s: GameState) {
 function endTurn(s: GameState) {
   if (s.phase === 'ended') return;
   s.reveal = null;
-  s.current = opponentOf(s.current);
+  s.current = nextLiving(s, s.current);
   beginTurn(s);
 }
 
 // ===================== لعب الكروت =====================
 
-function playMonster(s: GameState, side: 0 | 1, d: CardDef, inst: CardInstance) {
+function playMonster(s: GameState, side: Seat, d: CardDef, inst: CardInstance) {
   const p = s.players[side];
   const m: FieldMonster = {
     uid: inst.uid,
@@ -645,18 +782,18 @@ function playMonster(s: GameState, side: 0 | 1, d: CardDef, inst: CardInstance) 
     log(s, 'play', side, 'ability_scout', { card: d.id });
     drawCards(s, side, 1, true);
   }
-  triggerTraps(s, opponentOf(side), 'opponent_summon', { summonedUid: m.uid });
+  triggerOpponentTraps(s, side, 'opponent_summon', { summonedUid: m.uid });
 }
 
 function applySpell(
   s: GameState,
-  side: 0 | 1,
+  side: Seat,
   d: CardDef,
   targetUid?: string
 ) {
   const p = s.players[side];
-  const foeIdx = opponentOf(side);
-  const foe = s.players[foeIdx];
+  const foes = opponentsOf(s, side);
+  const defaultFoe = foes[0] ?? opponentOf(s, side);
 
   switch (d.spell) {
     case 'heal':
@@ -672,9 +809,12 @@ function applySpell(
       break;
     }
     case 'storm': {
-      const targets = foe.field.slice();
-      for (const m of targets) damageMonster(s, foeIdx, m, 3);
-      log(s, 'play', side, 'storm', { player: foe.name, amount: 3 });
+      for (const foeIdx of foes) {
+        const foe = s.players[foeIdx];
+        const targets = foe.field.slice();
+        for (const m of targets) damageMonster(s, foeIdx, m, 3);
+        if (targets.length) log(s, 'play', side, 'storm', { player: foe.name, amount: 3 });
+      }
       break;
     }
     case 'surge':
@@ -691,6 +831,8 @@ function applySpell(
       break;
     }
     case 'swap': {
+      const foeIdx = (targetUid ? findMonsterOwner(s, targetUid, foes) : null) ?? defaultFoe;
+      const foe = s.players[foeIdx];
       const m = foe.field.find((x) => x.uid === targetUid) ?? foe.field[0];
       if (m) {
         foe.field = foe.field.filter((x) => x.uid !== m.uid);
@@ -725,6 +867,8 @@ function applySpell(
       break;
     }
     case 'purge': {
+      const foeIdx = (targetUid ? findTrapOwner(s, targetUid, foes) : null) ?? defaultFoe;
+      const foe = s.players[foeIdx];
       const i = targetUid ? foe.traps.findIndex((t) => t.uid === targetUid) : 0;
       if (i >= 0 && foe.traps.length) {
         const t = foe.traps.splice(i, 1)[0];
@@ -736,8 +880,8 @@ function applySpell(
   }
 }
 
-function applyAction(s: GameState, side: 0 | 1, d: CardDef) {
-  const foeIdx = opponentOf(side);
+function applyAction(s: GameState, side: Seat, d: CardDef) {
+  const foeIdx = opponentOf(s, side);
   const foe = s.players[foeIdx];
   const p = s.players[side];
 
@@ -747,9 +891,15 @@ function applyAction(s: GameState, side: 0 | 1, d: CardDef) {
       log(s, 'play', side, 'skip_next', { player: foe.name });
       break;
     case 'reverse':
-      foe.skipNext = true;
-      drawCards(s, side, 1);
-      log(s, 'play', side, 'reverse', { foe: foe.name, player: p.name });
+      if (s.players.length > 2) {
+        s.turnDir = s.turnDir === 1 ? -1 : 1;
+        drawCards(s, side, 1);
+        log(s, 'play', side, 'reverse_dir', { player: p.name });
+      } else {
+        foe.skipNext = true;
+        drawCards(s, side, 1);
+        log(s, 'play', side, 'reverse', { foe: foe.name, player: p.name });
+      }
       break;
     case 'draw2':
       s.pendingDraw += 2;
@@ -855,7 +1005,7 @@ export interface ComboCheck {
 
 export function evaluateAttack(
   s: GameState,
-  side: 0 | 1,
+  side: Seat,
   attackerUids: string[]
 ): ComboCheck {
   const p = s.players[side];
@@ -895,19 +1045,40 @@ export function evaluateAttack(
   return { ok: true, damage };
 }
 
+function resolveAttackFoe(
+  s: GameState,
+  side: Seat,
+  action: Extract<GameAction, { type: 'ATTACK' }>
+): { foeIdx: Seat; targetMonster: FieldMonster | null } | null {
+  const foes = opponentsOf(s, side);
+  if (action.target === 'face') {
+    const foeIdx =
+      action.targetSeat !== undefined && foes.includes(action.targetSeat)
+        ? action.targetSeat
+        : foes.length === 1
+          ? foes[0]
+          : null;
+    if (foeIdx === null) return null;
+    if (s.players[foeIdx].field.length > 0) return null;
+    return { foeIdx, targetMonster: null };
+  }
+  const foeIdx = findMonsterOwner(s, action.target, foes);
+  if (foeIdx === null) return null;
+  const targetMonster = s.players[foeIdx].field.find((m) => m.uid === action.target) ?? null;
+  if (!targetMonster) return null;
+  return { foeIdx, targetMonster };
+}
+
 function doAttack(s: GameState, action: Extract<GameAction, { type: 'ATTACK' }>) {
   const side = s.current;
   const check = evaluateAttack(s, side, action.attackers);
   if (!check.ok) return;
 
   const p = s.players[side];
-  const foeIdx = opponentOf(side);
+  const resolved = resolveAttackFoe(s, side, action);
+  if (!resolved) return;
+  const { foeIdx, targetMonster } = resolved;
   const foe = s.players[foeIdx];
-
-  if (action.target === 'face' && foe.field.length > 0) return;
-  const targetMonster =
-    action.target === 'face' ? null : foe.field.find((m) => m.uid === action.target);
-  if (action.target !== 'face' && !targetMonster) return;
 
   const monsters = action.attackers.map((u) => p.field.find((m) => m.uid === u)!);
   const isCombo = monsters.length > 1;
@@ -919,8 +1090,11 @@ function doAttack(s: GameState, action: Extract<GameAction, { type: 'ATTACK' }>)
     p.amplified = false;
   }
 
-  // فخاخ دفاعية للخصم
-  triggerTraps(s, foeIdx, 'opponent_attack', { attackerUid: monsters[0].uid });
+  // فخاخ دفاعية لصاحب الهدف فقط
+  triggerOpponentTraps(s, side, 'opponent_attack', {
+    attackerUid: monsters[0].uid,
+    targetSeat: foeIdx,
+  });
   if (s.phase === 'ended') return;
 
   if (foe.barrier) {
@@ -929,6 +1103,7 @@ function doAttack(s: GameState, action: Extract<GameAction, { type: 'ATTACK' }>)
       names,
       strikers: monsters.map((m) => m.uid).join(','),
       target: targetMonster?.uid ?? 'face',
+      targetSeat: foeIdx,
     });
     return;
   }
@@ -948,6 +1123,7 @@ function doAttack(s: GameState, action: Extract<GameAction, { type: 'ATTACK' }>)
     log(s, 'attack', side, 'attack_failed', {
       strikers: monsters.map((m) => m.uid).join(','),
       target: targetMonster?.uid ?? 'face',
+      targetSeat: foeIdx,
     });
     return;
   }
@@ -965,6 +1141,7 @@ function doAttack(s: GameState, action: Extract<GameAction, { type: 'ATTACK' }>)
       damage,
       strikers: alive.map((m) => m.uid).join(','),
       target: 'face',
+      targetSeat: foeIdx,
     });
   } else {
     const before = targetMonster.hp;
@@ -976,6 +1153,7 @@ function doAttack(s: GameState, action: Extract<GameAction, { type: 'ATTACK' }>)
       damage,
       strikers: alive.map((m) => m.uid).join(','),
       target: targetMonster.uid,
+      targetSeat: foeIdx,
     });
     // اختراق
     const overflow = damage - (tDef.ability === 'guard' ? before + 1 : before);
@@ -1005,7 +1183,7 @@ function doAttack(s: GameState, action: Extract<GameAction, { type: 'ATTACK' }>)
 
 // ===================== الوحش الأعظم =====================
 
-export function canSummonTitan(s: GameState, side: 0 | 1): Playability {
+export function canSummonTitan(s: GameState, side: Seat): Playability {
   if (s.phase !== 'main' || s.current !== side) return { ok: false, reason: 'not_your_turn' };
   const p = s.players[side];
   if (p.fragments.length < TITAN.fragmentsNeeded)
@@ -1079,6 +1257,10 @@ export function applyGameAction(state: GameState, action: GameAction): GameState
       endTurn(s);
       break;
     }
+  }
+
+  if (s.phase !== 'ended' && s.players[s.current]?.hp <= 0) {
+    endTurn(s);
   }
 
   return s;

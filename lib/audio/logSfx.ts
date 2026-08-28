@@ -1,4 +1,4 @@
-import type { LogEntry } from '@/lib/game/types';
+import type { LogEntry, Seat } from '@/lib/game/types';
 import type { SfxName } from './sfx';
 
 /**
@@ -7,6 +7,7 @@ import type { SfxName } from './sfx';
  * بما فيه ما يقع في دور الخصم — دون نثر نداءات صوت في المحرّك.
  */
 const BY_KEY: Record<string, SfxName> = {
+  auto_play: 'turn',
   drew: 'draw',
   summoned: 'summon',
   played: 'play',
@@ -41,7 +42,7 @@ const BY_KEY: Record<string, SfxName> = {
   ability_guard: 'hit',
 };
 
-export function sfxForLog(entry: LogEntry, mySeat: 0 | 1, winner: 0 | 1 | null): SfxName | null {
+export function sfxForLog(entry: LogEntry, mySeat: Seat, winner: Seat | null): SfxName | null {
   if (entry.key === 'win') return winner === mySeat ? 'win' : 'lose';
   // بداية دورك وحدها تستحقّ تنبيهاً؛ دور الخصم لا
   if (entry.key === 'turn_start') return entry.side === mySeat ? 'turn' : null;
@@ -67,7 +68,7 @@ const PRIORITY: SfxName[] = [
   'error',
 ];
 
-export function pickSfx(entries: LogEntry[], mySeat: 0 | 1, winner: 0 | 1 | null): SfxName[] {
+export function pickSfx(entries: LogEntry[], mySeat: Seat, winner: Seat | null): SfxName[] {
   const found = new Set<SfxName>();
   for (const e of entries) {
     const s = sfxForLog(e, mySeat, winner);

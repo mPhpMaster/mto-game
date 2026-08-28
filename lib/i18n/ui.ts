@@ -13,8 +13,8 @@ export const UI = {
 
   // --- الصفحة الرئيسية ---
   tagline: {
-    ar: 'لعبة كروت استراتيجية 1 ضد 1 — مطابقة عناصر وأرقام، طاقة متصاعدة، هجمات مشتركة، ووحش أعظم يحسم المباراة.',
-    en: 'A 1v1 strategy card game — match elements and numbers, rising energy, combo attacks, and a Titan that ends the match.',
+    ar: 'لعبة كروت استراتيجية — 1 ضد 1 أو 1 ضد 1 ضد 1. مطابقة عناصر وأرقام، طاقة متصاعدة، هجمات مشتركة، ووحش أعظم يحسم المباراة.',
+    en: 'A strategy card game — 1v1 or 1v1v1. Match elements and numbers, rising energy, combo attacks, and a Titan that ends the match.',
   },
   learnFirst: { ar: '🎓 تعلّم اللعب أولاً', en: '🎓 Learn to play first' },
   startMatch: { ar: 'ابدأ المباراة', en: 'Start a match' },
@@ -40,6 +40,29 @@ export const UI = {
     ar: 'تتناوبان على نفس الشاشة، وستارة تخفي اليد عند تسليم الجهاز.',
     en: 'Take turns on the same screen, with a curtain hiding the hand when you hand the device over.',
   },
+  ffa3Title: { ar: '⚔️ 1 ضد 1 ضد 1', en: '⚔️ 1v1v1' },
+  ffa3Intro: {
+    ar: 'ثلاثة لاعبين في مباراة واحدة — كلٌّ ضد الاثنين الآخرين. آخر واقف يفوز.',
+    en: 'Three players in one match — each against the other two. Last one standing wins.',
+  },
+  ffa3VsAi: { ar: 'أنت ضد خصمين آليين', en: 'You vs two AI opponents' },
+  ffa3VsAiDesc: {
+    ar: 'خانة واحدة لك وخانتان للخصم الآلي. تختار المستوى كما في 1 ضد 1.',
+    en: 'One seat for you, two for the AI. Pick a difficulty just like in 1v1.',
+  },
+  ffa3Hotseat: { ar: 'ثلاثة لاعبين على جهاز واحد', en: 'Three players, one device' },
+  ffa3HotseatDesc: {
+    ar: 'تمرّرون الجهاز بينكم. الستارة تخفي اليد عند كل تسليم.',
+    en: 'Pass the device around. The curtain hides each hand at handover.',
+  },
+  playerThreeName: { ar: 'اللاعب الثالث', en: 'Player Three' },
+  attackFaceNamed: { ar: '⚔ هجوم مباشر على {name}', en: '⚔ Attack {name} directly' },
+  pickEitherOpponent: {
+    ar: '· اختر وحشاً من أي خصم، أو اضغط هجوماً مباشراً على من خلت ساحته',
+    en: '· pick a monster from either opponent, or attack a player whose field is empty',
+  },
+  eliminatedTag: { ar: 'أُقصي', en: 'Eliminated' },
+  remainingPlayers: { ar: 'المتبقّون: {n}', en: 'Remaining: {n}' },
   installTitle: { ar: '📱 ثبّتها على جوالك', en: '📱 Install it on your phone' },
   downloadApk: { ar: '🤖 حمّل تطبيق أندرويد', en: '🤖 Download the Android app' },
   downloadApkDesc: {
@@ -54,8 +77,8 @@ export const UI = {
   browseCards: { ar: 'تصفّح الكروت', en: 'Browse cards' },
   history: { ar: 'السجل', en: 'History' },
   footerNote: {
-    ar: 'النسخة الأولية: مواجهات 1 ضد 1 ضد خصم آلي.',
-    en: 'Early build: 1v1 duels against an AI opponent.',
+    ar: 'النسخة الأولية: مواجهات 1 ضد 1 و1 ضد 1 ضد 1 ضد خصم آلي أو على جهاز واحد.',
+    en: 'Early build: 1v1 and 1v1v1 duels against AI or on one device.',
   },
 
   // --- قواعد الصفحة الرئيسية ---
@@ -122,6 +145,15 @@ export const UI = {
   trapsLabel: { ar: 'فخاخ:', en: 'Traps:' },
   faceDown: { ar: 'مقلوب', en: 'Face-down' },
   faceDownTrap: { ar: 'فخ مقلوب', en: 'Face-down trap' },
+  peekTrap: { ar: 'اطّلع على فخك', en: 'Peek at your trap' },
+  peekTrapHint: {
+    ar: 'اضغط لترى فخك المجهّز. يبقى مقلوباً أمام الخصم.',
+    en: 'Click to see your set trap. It stays face-down to the opponent.',
+  },
+  ownTrapPeek: {
+    ar: 'فخك المجهّز — اضغط للإغلاق حتى لا يبقى مكشوفاً.',
+    en: 'Your set trap — click to close so it does not stay revealed.',
+  },
   yourHand: { ar: 'يدك ({n})', en: 'Your hand ({n})' },
   greenPlayable: { ar: 'الأخضر = قابل للعب الآن', en: 'Green = playable now' },
   finishTargeting: { ar: 'أكمل اختيار الهدف أولاً', en: 'Finish choosing a target first' },
@@ -250,12 +282,18 @@ export const UI = {
 
   // --- جهاز واحد ---
   hotseatTitle: { ar: '🤝 لاعبان على جهاز واحد', en: '🤝 Two players, one device' },
+  hotseatTitle3: { ar: '🤝 ثلاثة لاعبين على جهاز واحد', en: '🤝 Three players, one device' },
   hotseatIntro: {
     ar: 'تلعبان بالتناوب على نفس الشاشة. بين كل دور وآخر تظهر ستارة تخفي اليد حتى يستلم اللاعب التالي الجهاز — فلا يرى أحدكما كروت الآخر.',
     en: 'Take turns on the same screen. Between turns a curtain hides the hand until the next player takes the device — so neither of you sees the other’s cards.',
   },
+  hotseatIntro3: {
+    ar: 'ثلاثة لاعبين بالتناوب على نفس الشاشة. بين كل دور وآخر تظهر ستارة تخفي اليد حتى يستلم التالي الجهاز.',
+    en: 'Three players take turns on the same screen. Between turns a curtain hides the hand until the next player takes the device.',
+  },
   playerOneName: { ar: 'اللاعب الأول', en: 'Player One' },
   playerTwoName: { ar: 'اللاعب الثاني', en: 'Player Two' },
+  playerThreeNameHotseat: { ar: 'اللاعب الثالث', en: 'Player Three' },
   playerNameLabel: { ar: 'اسم {which}', en: '{which} name' },
   startGame: { ar: 'ابدأوا المباراة', en: 'Start the match' },
   hotseatCoin: {
@@ -307,6 +345,7 @@ export const UI = {
   player: { ar: 'لاعب', en: 'Player' },
   you: { ar: 'أنت', en: 'You' },
   aiOpponent: { ar: 'الخصم الآلي', en: 'AI opponent' },
+  aiOpponentN: { ar: 'الخصم الآلي {n}', en: 'AI opponent {n}' },
   coach: { ar: 'المدرّب', en: 'Coach' },
 
   // --- الكروت ---
@@ -370,9 +409,10 @@ export const UI = {
   // --- مهلة الجولة ---
   turnLength: { ar: 'مدّة الجولة', en: 'Turn length' },
   turnLengthHint: {
-    ar: 'إن انتهت المهلة يُنهى الدور تلقائياً. أقلّ مدّة {min} ثانية.',
-    en: 'When time runs out the turn ends automatically. Minimum {min} seconds.',
+    ar: 'إن انتهت المهلة يلعب الكمبيوتر عنك ثم يُنهي الدور. أقلّ مدّة {min} ثانية.',
+    en: 'When time runs out the computer plays for you, then ends the turn. Minimum {min} seconds.',
   },
+  autoPlaying: { ar: 'الكمبيوتر يلعب عنك…', en: 'The computer is playing for you…' },
   seconds: { ar: '{n} ث', en: '{n}s' },
   minute: { ar: 'دقيقة', en: '1 min' },
   turnClockTip: { ar: 'مهلة الجولة {n} ثانية', en: 'Turn limit: {n} seconds' },
