@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { aiChooseAction } from '@/lib/game/ai';
 import {
@@ -22,6 +22,7 @@ import {
   hasAnyPlayable,
   matchesFlow,
 } from '@/lib/game/engine';
+import { pickBattleFx, type BattleFx } from '@/lib/game/battleFx';
 import {
   DEFAULT_DIFFICULTY,
   DIFFICULTIES,
@@ -163,6 +164,9 @@ export default function GameBoard({
   const [attackers, setAttackers] = useState<string[]>([]);
   const [pending, setPending] = useState<Pending>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [battle, setBattle] = useState<BattleFx | null>(null);
+  const [strikeDelta, setStrikeDelta] = useState<Record<string, { dx: number; dy: number }>>({});
+  const [fly, setFly] = useState<{ left: number; top: number; tx: number; ty: number } | null>(null);
   const showLog = useSyncExternalStore(subscribeLogPref, readLogPref, () => false);
   const [saveState, setSaveState] = useState<
     'idle' | 'saving' | 'saved' | 'skipped' | 'error'
@@ -181,6 +185,7 @@ export default function GameBoard({
   const aiSteps = useRef<{ turn: number; n: number }>({ turn: -1, n: 0 });
   const savedRef = useRef(false);
   const logEnd = useRef<HTMLDivElement>(null);
+  const boardRef = useRef<HTMLDivElement>(null);
 
   const me = game.players[ME];
   const foe = game.players[FOE];
@@ -249,7 +254,7 @@ export default function GameBoard({
           aiSteps.current.n > 40 ? ({ type: 'END_TURN' } as const) : aiChooseAction(g);
         return applyGameAction(g, action);
       });
-    }, game.phase === 'respond' ? 500 : 720);
+    }, game.phase === 'respond' ? 500 : 900);
 
     return () => window.clearTimeout(timer);
   }, [game, tutorial, advanceLesson, controlled, hotseat, setGame]);
@@ -303,7 +308,7 @@ export default function GameBoard({
   // المتصفّحات لا تسمح بالصوت قبل تفاعل المستخدم
   useEffect(() => primeAudio(), []);
 
-  // صوت لكل ما استجدّ في السجل منذ آخر رسم
+  // صوت وحركة لكل ما استجدّ في السجل منذ آخر رسم
   useEffect(() => {
     const from = lastSfxIndex.current;
     if (game.log.length < from) lastSfxIndex.current = 0; // مباراة جديدة
@@ -311,7 +316,62 @@ export default function GameBoard({
     lastSfxIndex.current = game.log.length;
     if (!fresh.length) return;
     for (const name of pickSfx(fresh, ME, game.winner)) playSfx(name);
+    const fx = pickBattleFx(fresh);
+    if (fx) setBattle(fx);
   }, [game.log, ME, game.winner]);
+
+  useEffect(() => {
+    if (!battle) return;
+    const ms = 1400;
+    const timer = window.setTimeout(() => {
+      setBattle(null);
+      setStrikeDelta({});
+      setFly(null);
+    }, ms);
+    return () => window.clearTimeout(timer);
+  }, [battle]);
+
+  useLayoutEffect(() => {
+    if (!battle || !boardRef.current) return;
+    const root = boardRef.current;
+    const center = (el: Element | null) => {
+      if (!el) return null;
+      const r = el.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    };
+
+    if (battle.type === 'strike') {
+      const targetEl =
+        battle.target === 'face'
+          ? root.querySelector(battle.entry.side === ME ? '[data-face="foe"]' : '[data-face="me"]')
+          : root.querySelector(`[data-uid="${battle.target}"]`) ??
+            root.querySelector(battle.entry.side === ME ? '[data-field="foe"]' : '[data-field="me"]');
+      const dest = center(targetEl);
+      if (!dest) return;
+      const next: Record<string, { dx: number; dy: number }> = {};
+      for (const uid of battle.strikers) {
+        const origin = center(root.querySelector(`[data-uid="${uid}"]`));
+        if (!origin) continue;
+        next[uid] = { dx: (dest.x - origin.x) * 0.72, dy: (dest.y - origin.y) * 0.72 };
+      }
+      setStrikeDelta(next);
+      return;
+    }
+
+    const fromEl =
+      battle.entry.side === ME
+        ? root.querySelector('[data-hand]')
+        : root.querySelector('[data-field="foe"]');
+    const sideField = battle.entry.side === ME ? 'me' : 'foe';
+    const toEl =
+      battle.dest === 'flow'
+        ? root.querySelector('[data-flow]')
+        : root.querySelector(`[data-field="${sideField}"] [data-uid]:last-of-type`) ??
+          root.querySelector(`[data-field="${sideField}"]`);
+    const from = center(fromEl) ?? { x: window.innerWidth / 2, y: window.innerHeight - 80 };
+    const to = center(toEl) ?? from;
+    setFly({ left: from.x - 43, top: from.y - 61, tx: to.x - from.x, ty: to.y - from.y });
+  }, [battle, ME]);
 
   // ---------- مساعدات ----------
   const playableUids = useMemo(() => {
@@ -450,6 +510,23 @@ export default function GameBoard({
 
   const targeting = pending?.kind === 'target' ? pending.need : null;
 
+  /** backdrop-filter على .panel يحبس z-index — ارفع الإطار كلّه فوق الجيران أثناء الاندفاع */
+  const fieldIsStriking = (field: GameState['players'][0]['field']) =>
+    field.some((m) => Boolean(strikeDelta[m.uid]));
+  const monsterWrapClass = (uid: string) => {
+    const striking = Boolean(strikeDelta[uid]);
+    const hitting = battle?.type === 'strike' && battle.target === uid;
+    return [
+      'relative',
+      striking || hitting ? 'overflow-visible' : '',
+      striking ? 'z-50' : hitting ? 'z-20' : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
+  };
+  const strikePanelClass = (field: GameState['players'][0]['field']) =>
+    fieldIsStriking(field) ? 'relative z-30 overflow-visible' : '';
+
   // ---------- التعليم ----------
   const lesson = tutorial ? TUTORIAL_STEPS[step] : null;
   const isLastLesson = step === TUTORIAL_STEPS.length - 1;
@@ -499,7 +576,7 @@ export default function GameBoard({
 
   // ---------- العرض ----------
   return (
-    <div className="flex min-h-screen max-w-full flex-col overflow-x-hidden lg:flex-row">
+    <div ref={boardRef} className="flex min-h-screen max-w-full flex-col overflow-x-clip lg:flex-row">
       <main className="flex min-w-0 flex-1 flex-col gap-2 p-2 sm:p-3">
         {/* شريط علوي */}
         <header className="panel flex flex-wrap items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs">
@@ -616,27 +693,44 @@ export default function GameBoard({
         )}
 
         {/* الخصم */}
-        <section className={`panel rounded-xl p-2 ${focusRing('foeField')}`}>
-          <PlayerStrip state={foe} align="start" />
-          <div className="mt-2 flex min-h-[92px] flex-wrap items-start gap-2">
+        <section className={`panel rounded-xl p-2 ${focusRing('foeField')} ${strikePanelClass(foe.field)}`}>
+          <PlayerStrip
+            state={foe}
+            align="start"
+            face="foe"
+            impact={
+              battle?.type === 'strike' && battle.target === 'face' && battle.entry.side === ME
+                ? battle.damage
+                : 0
+            }
+          />
+          <div data-field="foe" className={`relative mt-2 flex min-h-[92px] flex-wrap items-start gap-2 ${fieldIsStriking(foe.field) ? 'z-30 overflow-visible' : ''}`}>
             {foe.field.length === 0 && (
               <EmptySlot text={t('noFoeMonsters')} />
             )}
             {foe.field.map((m) => (
-              <MonsterView
-                key={m.uid}
-                monster={m}
-                targetable={
-                  (attackers.length > 0 && myTurn) || targeting === 'enemy_monster'
-                }
-                onClick={
-                  targeting === 'enemy_monster'
-                    ? () => pickTarget(m.uid)
-                    : attackers.length > 0 && myTurn
-                      ? () => launchAttack(m.uid)
-                      : undefined
-                }
-              />
+              <div key={m.uid} data-uid={m.uid} className={monsterWrapClass(m.uid)}>
+                <MonsterView
+                  monster={m}
+                  strike={strikeDelta[m.uid] ?? null}
+                  hit={battle?.type === 'strike' && battle.target === m.uid}
+                  targetable={
+                    (attackers.length > 0 && myTurn) || targeting === 'enemy_monster'
+                  }
+                  onClick={
+                    targeting === 'enemy_monster'
+                      ? () => pickTarget(m.uid)
+                      : attackers.length > 0 && myTurn
+                        ? () => launchAttack(m.uid)
+                        : undefined
+                  }
+                />
+                {battle?.type === 'strike' && battle.target === m.uid && battle.damage > 0 && (
+                  <span className="damage-pop pointer-events-none absolute start-1/2 top-0 z-40 text-lg font-black text-rose-300 drop-shadow">
+                    −{battle.damage}
+                  </span>
+                )}
+              </div>
             ))}
           </div>
           <TrapRow
@@ -656,7 +750,7 @@ export default function GameBoard({
             <CardBack size="sm" label={`${game.deck.length}`} />
           </div>
 
-          <div className="text-center">
+          <div className="text-center" data-flow>
             <div className="mb-1 text-[10px] opacity-60">{t('flowPile')}</div>
             {game.flow.defId ? (
               <CardView card={def(game.flow.defId)} size="sm" />
@@ -688,26 +782,43 @@ export default function GameBoard({
         </section>
 
         {/* أنت */}
-        <section className={`panel rounded-xl p-2 ${focusRing('myField')}`}>
+        <section className={`panel rounded-xl p-2 ${focusRing('myField')} ${strikePanelClass(me.field)}`}>
           <TrapRow traps={me.traps} />
-          <div className="mt-2 flex min-h-[92px] flex-wrap items-start gap-2">
+          <div data-field="me" className={`relative mt-2 flex min-h-[92px] flex-wrap items-start gap-2 ${fieldIsStriking(me.field) ? 'z-30 overflow-visible' : ''}`}>
             {me.field.length === 0 && <EmptySlot text={t('summonHint', { n: RULES.MAX_FIELD })} />}
             {me.field.map((m) => (
-              <MonsterView
-                key={m.uid}
-                monster={m}
-                selected={attackers.includes(m.uid)}
-                ready={myTurn && !m.sick && !m.exhausted && !me.attackLocked}
-                onClick={
-                  targeting === 'own_monster'
-                    ? () => pickTarget(m.uid)
-                    : () => toggleAttacker(m.uid)
-                }
-              />
+              <div key={m.uid} data-uid={m.uid} className={monsterWrapClass(m.uid)}>
+                <MonsterView
+                  monster={m}
+                  selected={attackers.includes(m.uid)}
+                  ready={myTurn && !m.sick && !m.exhausted && !me.attackLocked}
+                  strike={strikeDelta[m.uid] ?? null}
+                  hit={battle?.type === 'strike' && battle.target === m.uid}
+                  onClick={
+                    targeting === 'own_monster'
+                      ? () => pickTarget(m.uid)
+                      : () => toggleAttacker(m.uid)
+                  }
+                />
+                {battle?.type === 'strike' && battle.target === m.uid && battle.damage > 0 && (
+                  <span className="damage-pop pointer-events-none absolute start-1/2 top-0 z-40 text-lg font-black text-rose-300 drop-shadow">
+                    −{battle.damage}
+                  </span>
+                )}
+              </div>
             ))}
           </div>
           <div className="mt-2">
-            <PlayerStrip state={me} align="end" />
+            <PlayerStrip
+              state={me}
+              align="end"
+              face="me"
+              impact={
+                battle?.type === 'strike' && battle.target === 'face' && battle.entry.side !== ME
+                  ? battle.damage
+                  : 0
+              }
+            />
           </div>
         </section>
 
@@ -791,7 +902,7 @@ export default function GameBoard({
         </section>
 
         {/* اليد: سطران مستقلّان يتمرّران أفقياً حتى لا تتّسع الصفحة مع عقوبة سحب كبيرة */}
-        <section className={`panel min-w-0 overflow-hidden rounded-xl p-2 ${focusRing('hand')}`}>
+        <section data-hand className={`panel min-w-0 overflow-hidden rounded-xl p-2 ${focusRing('hand')}`}>
           <div className="mb-1 flex items-center justify-between text-[11px] opacity-70">
             <span>{t('yourHand', { n: me.hand.length })}</span>
             <span className="truncate">
@@ -1108,6 +1219,28 @@ export default function GameBoard({
         </Modal>
       )}
 
+      {battle && (
+        <div className="battle-caption pointer-events-none fixed inset-x-0 top-14 z-40 flex justify-center px-3">
+          <div className="max-w-lg rounded-full bg-black/85 px-4 py-2 text-center text-sm font-black text-amber-100 ring-1 ring-white/20">
+            {logText(battle.entry)}
+          </div>
+        </div>
+      )}
+      {battle?.type === 'play' && battle.defId && fly && (
+        <div
+          className="play-fly pointer-events-none fixed z-50"
+          style={
+            {
+              left: fly.left,
+              top: fly.top,
+              '--tx': `${fly.tx}px`,
+              '--ty': `${fly.ty}px`,
+            } as React.CSSProperties
+          }
+        >
+          <CardView card={def(battle.defId)} size="sm" />
+        </div>
+      )}
       {toast && (
         <div className="pointer-events-none fixed inset-x-0 top-16 z-50 flex justify-center">
           <div className="shake rounded-full bg-rose-500/90 px-4 py-2 text-xs font-bold shadow-lg">
@@ -1124,14 +1257,21 @@ export default function GameBoard({
 function PlayerStrip({
   state,
   align,
+  face,
+  impact = 0,
 }: {
   state: GameState['players'][0];
   align: 'start' | 'end';
+  face: 'me' | 'foe';
+  impact?: number;
 }) {
   const { t: tr, L, name: pn } = useLocale();
   const hpPct = Math.round((state.hp / state.maxHp) * 100);
   return (
-    <div className={`flex flex-wrap items-center gap-2 text-xs ${align === 'end' ? 'justify-end' : ''}`}>
+    <div
+      data-face={face}
+      className={`relative flex flex-wrap items-center gap-2 text-xs ${align === 'end' ? 'justify-end' : ''}`}
+    >
       <span className="font-black">{pn(state.name)}</span>
 
       <div className="flex items-center gap-1">
@@ -1143,6 +1283,11 @@ function PlayerStrip({
           />
         </div>
         <b className="tabular-nums">{state.hp}</b>
+        {impact > 0 && (
+          <span className="damage-pop pointer-events-none absolute start-1/2 top-0 z-40 text-base font-black text-rose-300">
+            −{impact}
+          </span>
+        )}
       </div>
 
       <span className="rounded bg-yellow-400/20 px-2 py-0.5 font-bold text-yellow-200">

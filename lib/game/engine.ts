@@ -925,7 +925,11 @@ function doAttack(s: GameState, action: Extract<GameAction, { type: 'ATTACK' }>)
 
   if (foe.barrier) {
     foe.barrier = false;
-    log(s, 'attack', side, 'attack_blocked', { names });
+    log(s, 'attack', side, 'attack_blocked', {
+      names,
+      strikers: monsters.map((m) => m.uid).join(','),
+      target: targetMonster?.uid ?? 'face',
+    });
     return;
   }
 
@@ -941,7 +945,10 @@ function doAttack(s: GameState, action: Extract<GameAction, { type: 'ATTACK' }>)
   // بعض المهاجمين قد يكونون سقطوا بفخ الكمين
   const alive = monsters.filter((m) => p.field.some((x) => x.uid === m.uid));
   if (alive.length === 0) {
-    log(s, 'attack', side, 'attack_failed');
+    log(s, 'attack', side, 'attack_failed', {
+      strikers: monsters.map((m) => m.uid).join(','),
+      target: targetMonster?.uid ?? 'face',
+    });
     return;
   }
   if (alive.length !== monsters.length) {
@@ -956,6 +963,8 @@ function doAttack(s: GameState, action: Extract<GameAction, { type: 'ATTACK' }>)
       names,
       player: foe.name,
       damage,
+      strikers: alive.map((m) => m.uid).join(','),
+      target: 'face',
     });
   } else {
     const before = targetMonster.hp;
@@ -965,6 +974,8 @@ function doAttack(s: GameState, action: Extract<GameAction, { type: 'ATTACK' }>)
       names,
       card: tDef.id,
       damage,
+      strikers: alive.map((m) => m.uid).join(','),
+      target: targetMonster.uid,
     });
     // اختراق
     const overflow = damage - (tDef.ability === 'guard' ? before + 1 : before);
