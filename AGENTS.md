@@ -7,3 +7,11 @@ This version has breaking changes — APIs, conventions, and file structure may 
 This block is written and re-added by `next dev` — verify at `node_modules/next/dist/server/lib/generate-agent-files.js`. Removing it from a diff only re-creates the uncommitted change; committing it with your work keeps the tree clean.
 
 <!-- END:nextjs-agent-rules -->
+
+## مسار العمل و Git
+
+- **جذر المشروع:** `G:\mto-game\` — لا تستخدم المجلد الفرعي `G:\mto-game\mto-game\`.
+- **الفرع الافتراضي:** `main` دائماً. لا تنشئ فرع `cursor/*` إلا إذا طُلب صراحة.
+- **الريموت المرجعي:** `mphpmaster` → `https://github.com/mPhpMaster/mto-game.git`
+- قبل أي عمل: `git checkout main && git pull mphpmaster main`
+

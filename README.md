@@ -145,8 +145,18 @@ npm run cards:export -- --png
 ```bash
 npm run icons          # يولّد الأيقونات من الشعار
 npx @capacitor/assets generate --android
-npm run android:apk    # ينتج APK وينسخها إلى public/download/
+npm run android:apk    # يرفع الإصدار تلقائياً، يبني APK، وينسخها إلى public/download/
 ```
+
+### رقم الإصدار
+
+المصدر الوحيد: `version` في `package.json`. يظهر في أسفل كل صفحة، بجانب رابط APK، وفي إعدادات تطبيق أندرويد.
+
+| الأمر | متى تستخدمه |
+|-------|-------------|
+| `npm run version:bump` | رفع patch (`0.1.0` → `0.1.1`) |
+| `npm run version:release` | رفع + مزامنة — قبل دفع تحديث الموقع |
+| `npm run android:apk` | يرفع الإصدار تلقائياً (`SKIP_VERSION_BUMP=1` لتخطّي الرفع) |
 
 الحزمة الحالية موقّعة بمفتاح debug — تُثبَّت وتُشارَك بعد تفعيل «مصادر غير معروفة».
 لإصدار موقّع للنشر: أنشئ keystore، أضف `signingConfigs` في `android/app/build.gradle`،

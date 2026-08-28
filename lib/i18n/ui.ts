@@ -74,6 +74,7 @@ export const UI = {
     ar: 'ملفّ APK جاهز للتثبيت. فعّل «تثبيت من مصادر غير معروفة» عند السؤال.',
     en: 'A ready-to-install APK. Enable “install from unknown sources” when asked.',
   },
+  apkVersion: { ar: 'الإصدار {v}', en: 'Version {v}' },
   addToHome: { ar: '➕ أو أضِفها للشاشة الرئيسية', en: '➕ Or add it to your home screen' },
   addToHomeDesc: {
     ar: 'من قائمة المتصفّح اختر «إضافة إلى الشاشة الرئيسية» — تعمل دون إنترنت بعد أول فتح.',

@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Cairo } from "next/font/google";
+import AppVersion from "@/components/AppVersion";
 import DeepLinkHandler from "@/components/DeepLinkHandler";
 import PwaRegister from "@/components/PwaRegister";
+import { APP_VERSION } from "@/lib/version";
 import "./globals.css";
 
 const cairo = Cairo({
@@ -28,6 +30,7 @@ export const metadata: Metadata = {
     ],
     apple: "/icons/apple-touch-icon.png",
   },
+  other: { "app-version": APP_VERSION },
 };
 
 export const viewport: Viewport = {
@@ -45,6 +48,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="ar" dir="rtl" className={`${cairo.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         {children}
+        <AppVersion />
         <DeepLinkHandler />
         <PwaRegister />
       </body>

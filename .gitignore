@@ -50,3 +50,6 @@ next-env.d.ts
 /android/local.properties
 /android/.idea
 /android/app/src/main/assets/public
+
+# نسخة مكررة محلية — المشروع الجذري هو G:\mto-game
+/mto-game/

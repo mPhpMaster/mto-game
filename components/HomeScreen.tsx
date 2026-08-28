@@ -13,6 +13,7 @@ import { DEFAULT_DIFFICULTY, DIFFICULTIES, type Difficulty } from '@/lib/game/di
 import { RULES } from '@/lib/game/engine';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import type { UIKey } from '@/lib/i18n/ui';
+import { APP_VERSION } from '@/lib/version';
 import LanguageSwitch from './LanguageSwitch';
 import SoundToggle from './SoundToggle';
 
@@ -200,6 +201,9 @@ export default function HomeScreen() {
             >
               <div className="text-lg font-black">{t('downloadApk')}</div>
               <div className="mt-0.5 text-[11px] leading-snug opacity-80">{t('downloadApkDesc')}</div>
+              <div className="mt-1 text-[10px] font-bold tabular-nums opacity-60">
+                {t('apkVersion', { v: APP_VERSION })}
+              </div>
             </a>
             <div className="rounded-xl bg-white/8 p-3 text-start">
               <div className="text-lg font-black">{t('addToHome')}</div>

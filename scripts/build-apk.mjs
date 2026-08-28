@@ -11,6 +11,13 @@ import { execSync } from 'node:child_process';
 import { copyFileSync, existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 
+// كل بناء APK يرفع الإصدار تلقائياً (تخطِّ: SKIP_VERSION_BUMP=1 npm run android:apk)
+if (!process.env.SKIP_VERSION_BUMP) {
+  console.log('▶ رفع رقم الإصدار…');
+  execSync('node scripts/bump-version.mjs', { stdio: 'inherit' });
+}
+execSync('node scripts/sync-version.mjs', { stdio: 'inherit' });
+
 const variant = process.argv[2] === 'release' ? 'release' : 'debug';
 const task = variant === 'release' ? 'assembleRelease' : 'assembleDebug';
 
