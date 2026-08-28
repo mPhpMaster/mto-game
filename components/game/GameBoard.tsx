@@ -936,7 +936,7 @@ export default function GameBoard({
             <div
               data-hand-layout="mobile"
               data-hand-scroller="mobile"
-              className="thin-scroll flex w-full min-w-0 items-stretch gap-2 overflow-x-auto overscroll-x-contain pb-1 pt-1 lg:hidden"
+              className="thin-scroll flex w-full min-w-0 items-stretch gap-2 overflow-x-auto overscroll-x-contain px-0.5 py-2 lg:hidden"
             >
               {playableHand.map((c) => renderHandCard(c, 'md'))}
               {playableHand.length > 0 && parkedHand.length > 0 && (
