@@ -510,6 +510,23 @@ export default function GameBoard({
 
   const targeting = pending?.kind === 'target' ? pending.need : null;
 
+  /** backdrop-filter على .panel يحبس z-index — ارفع الإطار كلّه فوق الجيران أثناء الاندفاع */
+  const fieldIsStriking = (field: GameState['players'][0]['field']) =>
+    field.some((m) => Boolean(strikeDelta[m.uid]));
+  const monsterWrapClass = (uid: string) => {
+    const striking = Boolean(strikeDelta[uid]);
+    const hitting = battle?.type === 'strike' && battle.target === uid;
+    return [
+      'relative',
+      striking || hitting ? 'overflow-visible' : '',
+      striking ? 'z-50' : hitting ? 'z-20' : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
+  };
+  const strikePanelClass = (field: GameState['players'][0]['field']) =>
+    fieldIsStriking(field) ? 'relative z-30 overflow-visible' : '';
+
   // ---------- التعليم ----------
   const lesson = tutorial ? TUTORIAL_STEPS[step] : null;
   const isLastLesson = step === TUTORIAL_STEPS.length - 1;
@@ -559,7 +576,7 @@ export default function GameBoard({
 
   // ---------- العرض ----------
   return (
-    <div ref={boardRef} className="flex min-h-screen max-w-full flex-col overflow-x-hidden lg:flex-row">
+    <div ref={boardRef} className="flex min-h-screen max-w-full flex-col overflow-x-clip lg:flex-row">
       <main className="flex min-w-0 flex-1 flex-col gap-2 p-2 sm:p-3">
         {/* شريط علوي */}
         <header className="panel flex flex-wrap items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs">
@@ -676,7 +693,7 @@ export default function GameBoard({
         )}
 
         {/* الخصم */}
-        <section className={`panel rounded-xl p-2 ${focusRing('foeField')}`}>
+        <section className={`panel rounded-xl p-2 ${focusRing('foeField')} ${strikePanelClass(foe.field)}`}>
           <PlayerStrip
             state={foe}
             align="start"
@@ -687,12 +704,12 @@ export default function GameBoard({
                 : 0
             }
           />
-          <div data-field="foe" className="relative mt-2 flex min-h-[92px] flex-wrap items-start gap-2">
+          <div data-field="foe" className={`relative mt-2 flex min-h-[92px] flex-wrap items-start gap-2 ${fieldIsStriking(foe.field) ? 'z-30 overflow-visible' : ''}`}>
             {foe.field.length === 0 && (
               <EmptySlot text={t('noFoeMonsters')} />
             )}
             {foe.field.map((m) => (
-              <div key={m.uid} data-uid={m.uid} className="relative">
+              <div key={m.uid} data-uid={m.uid} className={monsterWrapClass(m.uid)}>
                 <MonsterView
                   monster={m}
                   strike={strikeDelta[m.uid] ?? null}
@@ -765,12 +782,12 @@ export default function GameBoard({
         </section>
 
         {/* أنت */}
-        <section className={`panel rounded-xl p-2 ${focusRing('myField')}`}>
+        <section className={`panel rounded-xl p-2 ${focusRing('myField')} ${strikePanelClass(me.field)}`}>
           <TrapRow traps={me.traps} />
-          <div data-field="me" className="relative mt-2 flex min-h-[92px] flex-wrap items-start gap-2">
+          <div data-field="me" className={`relative mt-2 flex min-h-[92px] flex-wrap items-start gap-2 ${fieldIsStriking(me.field) ? 'z-30 overflow-visible' : ''}`}>
             {me.field.length === 0 && <EmptySlot text={t('summonHint', { n: RULES.MAX_FIELD })} />}
             {me.field.map((m) => (
-              <div key={m.uid} data-uid={m.uid} className="relative">
+              <div key={m.uid} data-uid={m.uid} className={monsterWrapClass(m.uid)}>
                 <MonsterView
                   monster={m}
                   selected={attackers.includes(m.uid)}
