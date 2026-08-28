@@ -212,6 +212,7 @@ export default function GameBoard({
   const autoPlayTurnRef = useRef<number | null>(null);
   const [turnDeadline, setTurnDeadline] = useState<number | null>(null);
   const deadlineTurnRef = useRef(-1);
+  const clockEpochRef = useRef('');
   const gameRef = useRef(game);
   gameRef.current = game;
   const savedRef = useRef(false);
@@ -229,6 +230,7 @@ export default function GameBoard({
     game.phase !== 'ended' &&
     !game.players[game.current]?.isAI &&
     !(hotseat && readyTurn !== game.turn);
+  const clockEpochKey = clockOn ? `${game.turn}:${game.current}` : '';
 
   useEffect(() => {
     if (showCurtain) setDetail(null);
@@ -326,13 +328,15 @@ export default function GameBoard({
   // ---------- مهلة الجولة: عند الصفر يلعب الكمبيوتر عن اللاعب البشري ----------
   useLayoutEffect(() => {
     if (!clockOn) {
+      clockEpochRef.current = '';
       setTurnDeadline(null);
       return;
     }
-    if (deadlineTurnRef.current === game.turn && turnDeadline !== null) return;
+    if (clockEpochRef.current === clockEpochKey) return;
+    clockEpochRef.current = clockEpochKey;
     deadlineTurnRef.current = game.turn;
     setTurnDeadline(Date.now() + turnLimit * 1000);
-  }, [clockOn, game.turn, game.current, turnLimit, turnDeadline]);
+  }, [clockOn, clockEpochKey, game.turn, turnLimit]);
 
   useEffect(() => {
     if (turnDeadline === null || autoPlaying) return;
