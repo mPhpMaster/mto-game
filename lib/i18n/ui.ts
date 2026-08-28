@@ -81,8 +81,8 @@ export const UI = {
   },
   ruleComboTitle: { ar: 'الهجوم المشترك', en: 'Combo attacks' },
   ruleComboBody: {
-    ar: 'ادمج وحشين أو أكثر يشتركان في العنصر أو الرقم — أو أحدهما بخاصية «رابط» — في ضربة واحدة، بمكافأة +{bonus} لكل وحش إضافي. مرة واحدة كل دور.',
-    en: 'Combine two or more monsters sharing an element or number — or one with Link — into a single strike, with a +{bonus} bonus per extra monster. Once per turn.',
+    ar: 'ادمج وحشين أو أكثر يشتركان في العنصر أو الرقم — أو أحدهما بخاصية «رابط» — في ضربة واحدة، بمكافأة +{bonus} لكل وحش إضافي. مرة واحدة كل دور. سقف الساحة {field} وحوش.',
+    en: 'Combine two or more monsters sharing an element or number — or one with Link — into a single strike, with a +{bonus} bonus per extra monster. Once per turn. The field holds up to {field} monsters.',
   },
   ruleTrapTitle: { ar: 'الفخاخ والمناورة', en: 'Traps and maneuvering' },
   ruleTrapBody: {
@@ -116,7 +116,7 @@ export const UI = {
   numberLabel: { ar: 'الرقم:', en: 'Number:' },
   matchHint: { ar: 'طابِق العنصر أو الرقم', en: 'Match the element or the number' },
   noFoeMonsters: { ar: 'لا وحوش لدى الخصم — هجومك يصله مباشرة', en: 'No enemy monsters — your attacks hit directly' },
-  summonHint: { ar: 'استدعِ وحوشاً للدفاع والهجوم', en: 'Summon monsters to defend and attack' },
+  summonHint: { ar: 'استدعِ وحوشاً للدفاع والهجوم — حتى {n} على الساحة', en: 'Summon monsters to defend and attack — up to {n} on the field' },
   trapsLabel: { ar: 'فخاخ:', en: 'Traps:' },
   faceDown: { ar: 'مقلوب', en: 'Face-down' },
   faceDownTrap: { ar: 'فخ مقلوب', en: 'Face-down trap' },
@@ -185,8 +185,8 @@ export const UI = {
   },
   help3: { ar: '3 · استدعِ ثم هاجم', en: '3 · Summon, then attack' },
   help3Body: {
-    ar: 'الوحش المكتوب عليه «جديد» لا يهاجم في دور استدعائه إلا بخاصية «اندفاع». للهجوم: اضغط وحشك (سيظهر الضرر المتوقّع) ثم اضغط وحش الخصم. الهجوم المباشر على اللاعب متاح فقط حين تخلو ساحته من الوحوش.',
-    en: 'A monster marked “New” cannot attack the turn it was summoned unless it has Rush. To attack: tap your monster (the expected damage appears), then tap an enemy monster. Attacking the player directly is only possible when their field is empty.',
+    ar: 'يمكنك إنزال حتى {field} وحوش على الساحة. الوحش المكتوب عليه «جديد» لا يهاجم في دور استدعائه إلا بخاصية «اندفاع». للهجوم: اضغط وحشك (سيظهر الضرر المتوقّع) ثم اضغط وحش الخصم. الهجوم المباشر على اللاعب متاح فقط حين تخلو ساحته من الوحوش.',
+    en: 'You can have up to {field} monsters on the field. A monster marked “New” cannot attack the turn it was summoned unless it has Rush. To attack: tap your monster (the expected damage appears), then tap an enemy monster. Attacking the player directly is only possible when their field is empty.',
   },
   help4: { ar: '4 · ادمج الهجمات', en: '4 · Combine attacks' },
   help4Body: {
@@ -394,8 +394,8 @@ export const REASONS: Record<string, Localized> = {
   },
   no_match_flow: { ar: 'لا يطابق طابور التدفق', en: 'Does not match the flow pile' },
   not_enough_energy: { ar: 'طاقة غير كافية', en: 'Not enough energy' },
-  field_full: { ar: 'الساحة ممتلئة', en: 'Your field is full' },
-  traps_full: { ar: 'خانات الفخاخ ممتلئة', en: 'All trap slots are full' },
+  field_full: { ar: 'الساحة ممتلئة (الحد {n} وحوش)', en: 'Your field is full ({n} monsters max)' },
+  traps_full: { ar: 'خانات الفخاخ ممتلئة (الحد {n})', en: 'All trap slots are full ({n} max)' },
   already_own_fragment: { ar: 'تملك هذه القطعة بالفعل', en: 'You already own this fragment' },
   no_match: { ar: 'لا يطابق العنصر ولا الرقم', en: 'Matches neither the element nor the number' },
   no_own_monster: { ar: 'لا يوجد وحش لك', en: 'You have no monster' },

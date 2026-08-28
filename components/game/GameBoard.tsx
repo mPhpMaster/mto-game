@@ -614,7 +614,7 @@ export default function GameBoard({
         <section className={`panel rounded-xl p-2 ${focusRing('myField')}`}>
           <TrapRow traps={me.traps} />
           <div className="mt-2 flex min-h-[92px] flex-wrap items-start gap-2">
-            {me.field.length === 0 && <EmptySlot text={t('summonHint')} />}
+            {me.field.length === 0 && <EmptySlot text={t('summonHint', { n: RULES.MAX_FIELD })} />}
             {me.field.map((m) => (
               <MonsterView
                 key={m.uid}
@@ -1009,9 +1009,7 @@ export default function GameBoard({
               القوية تصبح متاحة تدريجياً.
             </HelpRow>
             <HelpRow icon="🐾" title={t('help3')}>
-              الوحش المكتوب عليه «جديد» لا يهاجم في دور استدعائه إلا بخاصية «اندفاع». للهجوم:
-              اضغط وحشك (سيظهر الضرر المتوقّع) ثم اضغط وحش الخصم. الهجوم المباشر على اللاعب
-              متاح فقط حين تخلو ساحته من الوحوش.
+              {t('help3Body', { field: RULES.MAX_FIELD })}
             </HelpRow>
             <HelpRow icon="💥" title={t('help4')}>
               حدّد وحشين أو أكثر يشتركان في العنصر أو الرقم (أو أحدهما بخاصية «رابط») لتضربهما

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from 'react';
 import type { GameOutcome, LogEntry } from '@/lib/game/types';
 import { LOCALE_META, type Locale, type Localized, tx } from './locale';
+import { RULES } from '@/lib/game/engine';
 import { playerName, renderLog, renderOutcome } from './messages';
 import {
   getLocaleSnapshot,
@@ -61,7 +62,11 @@ export function useLocale(): LocaleApi {
       L: (value) => tx(value, locale),
       logText: (entry) => renderLog(entry, locale),
       outcomeText: (outcome) => renderOutcome(outcome, locale),
-      reason: (key) => (key && REASONS[key] ? tx(REASONS[key], locale) : ''),
+      reason: (key) => {
+        if (!key || !REASONS[key]) return '';
+        const caps: Params = { n: key === 'traps_full' ? RULES.MAX_TRAPS : RULES.MAX_FIELD };
+        return fill(tx(REASONS[key], locale), caps);
+      },
       name: (value) => playerName(value, locale),
     }),
     [locale, setLocale]

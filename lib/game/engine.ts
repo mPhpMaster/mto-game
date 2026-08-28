@@ -39,7 +39,8 @@ export const RULES = {
   MONSTER_CURVE_BONUS: 1.0,
   /** أقل عدد وحوش مضمون في اليد الافتتاحية — شبكة أمان لليد التعيسة */
   OPENING_MONSTER_FLOOR: 2,
-  MAX_FIELD: 4,
+  /** سقف وحوش الساحة — يكفي لدمج أكبر دون ازدحام اللوحة */
+  MAX_FIELD: 6,
   MAX_TRAPS: 3,
   FATIGUE_DAMAGE: 2,
   COMBO_BONUS_PER_EXTRA: 2,

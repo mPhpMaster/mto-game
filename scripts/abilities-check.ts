@@ -6,7 +6,7 @@
  *   npm run check:abilities
  */
 import { def } from '../lib/game/cards';
-import { applyGameAction, createGame, evaluateAttack } from '../lib/game/engine';
+import { applyGameAction, canPlayCard, createGame, evaluateAttack, RULES } from '../lib/game/engine';
 import type { GameScript } from '../lib/game/engine';
 import type { GameState } from '../lib/game/types';
 
@@ -175,7 +175,34 @@ console.log('خصائص الوحوش:\n');
   else bad('رابط', `مع رابط ok=${withLink.ok}، بدونه ok=${withoutLink.ok}`);
 }
 
+// ---------- سقف الساحة: أكثر من 4 وحوش مسموح، والسابع يُرفض ----------
+{
+  const fifth = 'mon_fire_jamra_1';
+  const sixth = 'mon_fire_lahibo_1';
+  const seventh = 'mon_fire_smoki_1';
+  let s = game({
+    flow: 'mon_fire_nariks_1',
+    fields: [['mon_grass_waraqi_1', 'mon_water_muwaija_1', 'mon_electric_sharara_1', 'mon_dark_thilli_1'], []],
+    hands: [[fifth, sixth, seventh], []],
+    energyCap: [10, 10],
+  });
+
+  s = applyGameAction(s, { type: 'PLAY', uid: uidInHand(s, fifth) });
+  s = applyGameAction(s, { type: 'PLAY', uid: uidInHand(s, sixth) });
+  const atSix = s.players[0].field.length;
+  const seventhUid = uidInHand(s, seventh);
+  const blocked = canPlayCard(s, 0, seventhUid);
+
+  if (atSix === RULES.MAX_FIELD && !blocked.ok && blocked.reason === 'field_full')
+    ok('سقف الساحة', `يُسمح بـ${RULES.MAX_FIELD} وحوش ويُرفض السابع`);
+  else
+    bad(
+      'سقف الساحة',
+      `الساحة=${atSix} (المتوقع ${RULES.MAX_FIELD})، السابع ok=${blocked.ok} reason=${blocked.reason}`
+    );
+}
+
 console.log(
-  failures === 0 ? '\n✓ كل الخصائص الثماني تعمل في لحظتها.' : `\n✗ ${failures} خاصية لا تعمل.`
+  failures === 0 ? '\n✓ كل الخصائص الثماني وسقف الساحة تعمل.' : `\n✗ ${failures} فحصاً فشل.`
 );
 process.exit(failures > 0 ? 1 : 0);

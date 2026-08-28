@@ -53,7 +53,7 @@ export default function HomeScreen() {
     {
       icon: '💥',
       title: 'ruleComboTitle',
-      body: t('ruleComboBody', { bonus: RULES.COMBO_BONUS_PER_EXTRA }),
+      body: t('ruleComboBody', { bonus: RULES.COMBO_BONUS_PER_EXTRA, field: RULES.MAX_FIELD }),
     },
     { icon: '🕸️', title: 'ruleTrapTitle', body: t('ruleTrapBody') },
     {
