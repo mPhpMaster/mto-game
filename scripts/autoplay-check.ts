@@ -101,7 +101,7 @@ console.log('لعب تلقائي:\n');
   s.pendingDraw = 2;
   const next = applyAutoPlay(s);
   const accepted = next.log.some((l) => l.key === 'auto_play');
-  const leftRespond = next.phase !== 'respond' || next.phase === 'ended' || next.turn !== s.turn;
+  const leftRespond = next.phase !== 'respond' || next.turn !== s.turn;
   if (accepted && leftRespond) ok('في عقوبة السحب: يقبل أو يردّ ثم يغادر طور الرد');
   else fail(`عقوبة السحب بقيت عالقة (phase=${next.phase} turn=${next.turn})`);
 }

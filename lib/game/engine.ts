@@ -1259,7 +1259,7 @@ export function applyGameAction(state: GameState, action: GameAction): GameState
     }
   }
 
-  if (s.phase !== 'ended' && s.players[s.current]?.hp <= 0) {
+  if (!isEnded(s) && s.players[s.current]?.hp <= 0) {
     endTurn(s);
   }
 
