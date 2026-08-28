@@ -31,6 +31,8 @@ export default function TurnClock({
 
   return (
     <span
+      data-turn-clock
+      data-left={left}
       className={`flex items-center gap-1.5 rounded px-2 py-0.5 font-black tabular-nums ${
         urgent ? 'bg-rose-500/30 text-rose-100' : 'bg-white/10'
       } ${urgent && isMyTurn ? 'animate-pulse' : ''}`}

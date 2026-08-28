@@ -212,7 +212,6 @@ export default function GameBoard({
   const autoPlayTurnRef = useRef<number | null>(null);
   const [turnDeadline, setTurnDeadline] = useState<number | null>(null);
   const deadlineTurnRef = useRef(-1);
-  const clockEpochRef = useRef('');
   const gameRef = useRef(game);
   gameRef.current = game;
   const savedRef = useRef(false);
@@ -227,10 +226,11 @@ export default function GameBoard({
   const clockOn =
     !tutorial &&
     !controlled &&
+    !autoPlaying &&
     game.phase !== 'ended' &&
     !game.players[game.current]?.isAI &&
     !(hotseat && readyTurn !== game.turn);
-  const clockEpochKey = clockOn ? `${game.turn}:${game.current}` : '';
+  const clockEpochKey = clockOn ? `${game.seed}:${game.turn}:${game.current}` : '';
 
   useEffect(() => {
     if (showCurtain) setDetail(null);
@@ -326,22 +326,15 @@ export default function GameBoard({
   }, [game, tutorial, advanceLesson, controlled, hotseat, setGame, autoPlaying]);
 
   // ---------- مهلة الجولة: عند الصفر يلعب الكمبيوتر عن اللاعب البشري ----------
-  useLayoutEffect(() => {
+  useEffect(() => {
     if (!clockOn) {
-      clockEpochRef.current = '';
       setTurnDeadline(null);
+      deadlineTurnRef.current = -1;
       return;
     }
-    if (clockEpochRef.current === clockEpochKey) return;
-    clockEpochRef.current = clockEpochKey;
-    deadlineTurnRef.current = game.turn;
+    const expectedTurn = game.turn;
+    deadlineTurnRef.current = expectedTurn;
     setTurnDeadline(Date.now() + turnLimit * 1000);
-  }, [clockOn, clockEpochKey, game.turn, turnLimit]);
-
-  useEffect(() => {
-    if (turnDeadline === null || autoPlaying) return;
-    const delay = Math.max(0, turnDeadline - Date.now());
-    const expectedTurn = deadlineTurnRef.current;
     const timer = window.setTimeout(() => {
       const g = gameRef.current;
       if (g.phase === 'ended' || g.players[g.current].isAI) return;
@@ -367,9 +360,9 @@ export default function GameBoard({
         }
         return stampAutoPlay(prev);
       });
-    }, delay);
+    }, turnLimit * 1000);
     return () => window.clearTimeout(timer);
-  }, [turnDeadline, autoPlaying, setGame]);
+  }, [clockOn, clockEpochKey, turnLimit, game.turn, setGame]);
 
   // ---------- حفظ نتيجة المباراة ----------
   useEffect(() => {
@@ -711,7 +704,7 @@ export default function GameBoard({
     const isFresh = freshUids.includes(c.uid);
     const livePlayable = !pending && playableUids.has(c.uid);
     return (
-      <div key={c.uid} data-fresh={isFresh ? '1' : '0'} className="shrink-0">
+      <div key={c.uid} data-fresh={isFresh ? '1' : '0'} data-card-id={d.id} className="shrink-0">
         <CardView
           card={d}
           size={size}
@@ -1429,7 +1422,12 @@ export default function GameBoard({
       )}
 
       {detail && (
-        <CardDetail card={detail.card} reason={detail.reason} onClose={() => setDetail(null)} />
+        <CardDetail
+          card={detail.card}
+          reason={detail.reason}
+          trapPeek={Boolean(detail.peekUid)}
+          onClose={() => setDetail(null)}
+        />
       )}
 
       {/* مرجع سريع */}

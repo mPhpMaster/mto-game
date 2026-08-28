@@ -21,10 +21,12 @@ import { ELEMENT_HEX, numberLabel } from './CardView';
 export default function CardDetail({
   card,
   reason,
+  trapPeek,
   onClose,
 }: {
   card: CardDef;
   reason?: string;
+  trapPeek?: boolean;
   onClose: () => void;
 }) {
   const { t, L } = useLocale();
@@ -49,6 +51,8 @@ export default function CardDetail({
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-label={L(card.name)}
+        data-card-detail=""
+        data-trap-peek={trapPeek ? '1' : undefined}
       >
         <div
           className="p-4"
