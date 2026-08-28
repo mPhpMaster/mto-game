@@ -20,6 +20,28 @@ export function voiceSupported(): boolean {
   );
 }
 
+/** Some mobile WebViews suspend audio until a user gesture unlocks playback. */
+export async function unlockAudioPlayback(): Promise<void> {
+  if (typeof window === 'undefined') return;
+  const Ctx = window.AudioContext ?? (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!Ctx) return;
+  try {
+    const ctx = new Ctx();
+    if (ctx.state === 'suspended') await ctx.resume();
+    await ctx.close();
+  } catch {
+    /* optional unlock — remote <audio> play() is retried separately */
+  }
+}
+
+export async function playRemoteAudio(el: HTMLAudioElement): Promise<void> {
+  try {
+    await el.play();
+  } catch {
+    /* may succeed after the next user gesture (join voice / unmute) */
+  }
+}
+
 export async function captureMic(): Promise<MediaStream> {
   return navigator.mediaDevices.getUserMedia({
     audio: {

@@ -480,6 +480,10 @@ export const UI = {
     ar: 'المتصفّح رفض الميكروفون. اسمح بالوصول ثم أعد المحاولة.',
     en: 'The browser blocked the microphone. Allow access and try again.',
   },
+  chatMicDeniedNative: {
+    ar: 'التطبيق رفض الميكروفون. اسمح بالوصول من إعدادات التطبيق ثم أعد المحاولة.',
+    en: 'The app blocked the microphone. Allow it in app settings and try again.',
+  },
   chatMicError: { ar: 'تعذّر فتح الميكروفون.', en: 'Could not open the microphone.' },
   chatVoiceUnsupported: { ar: 'الصوت غير مدعوم في هذا المتصفّح.', en: 'Voice is not supported in this browser.' },
   chatIceFailed: {
