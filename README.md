@@ -157,6 +157,36 @@ npm run android:apk    # ينتج APK وينسخها إلى public/download/
 فإن كان مسار TEMP طويلاً فشل البناء برسالة مُضلّلة: «Unable to establish loopback connection».
 ولهذا أيضاً عُطِّل `org.gradle.jvmargs` في `android/gradle.properties` ويُمرَّر من السكربت.
 
+### روابط عميقة (App Links)
+
+عند النقر على رابط `https://mto-game.vercel.app/...` من كروم أو الرسائل على أندرويد:
+
+- **التطبيق مثبّت**: يُفتح غلاف Capacitor مباشرة على المسار (مثل `/vs/ABC`).
+- **غير مثبّت**: يبقى الرابط في المتصفّح كالمعتاد.
+
+الإعداد:
+
+| الملف | الغرض |
+|---|---|
+| `android/app/src/main/AndroidManifest.xml` | `intent-filter` مع `autoVerify` لـ `mto-game.vercel.app` + مخطط `mto-game://` احتياطي |
+| `public/.well-known/assetlinks.json` | بصمة SHA256 لمفتاح debug الحالي (`com.mto.monsterclash`) |
+| `lib/deep-link.ts` | بناء `intent://` وفتح التطبيق من الويب |
+| `components/DeepLinkHandler.tsx` | توجيه WebView عند فتح رابط والتطبيق يعمل |
+
+**التحقق بعد النشر**: يجب أن يكون `assetlinks.json` متاحاً على
+`https://mto-game.vercel.app/.well-known/assetlinks.json` حتى يتحقق أندرويد من App Links تلقائياً.
+
+```bash
+# محاكاة نقرة على رابط (بعد تثبيت APK)
+adb shell am start -a android.intent.action.VIEW -d "https://mto-game.vercel.app/vs/test"
+
+# حالة التحقق من الروابط
+adb shell pm get-app-links com.mto.monsterclash
+```
+
+بصمة debug الحالية (SHA256): `08:BA:62:C4:...:6B:47`. عند إنشاء keystore إصدار، أضف بصمته إلى
+`assetlinks.json` بجانب بصمة debug.
+
 ## اللعب الجماعي
 
 ### 🤝 على جهاز واحد — `/local`

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Cairo } from "next/font/google";
+import DeepLinkHandler from "@/components/DeepLinkHandler";
 import PwaRegister from "@/components/PwaRegister";
 import "./globals.css";
 
@@ -44,6 +45,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html lang="ar" dir="rtl" className={`${cairo.variable} h-full antialiased`}>
       <body className="min-h-full flex flex-col">
         {children}
+        <DeepLinkHandler />
         <PwaRegister />
       </body>
     </html>

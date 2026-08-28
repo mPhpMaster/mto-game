@@ -18,6 +18,25 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+
+            <!-- Android App Links: open https://mto-game.vercel.app/... in the native app when installed -->
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="https"
+                    android:host="mto-game.vercel.app"
+                    android:pathPrefix="/" />
+            </intent-filter>
+
+            <!-- Custom scheme fallback for older Android / intent:// handoff from mobile web -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="mto-game" />
+            </intent-filter>
         </activity>
 
         <provider
