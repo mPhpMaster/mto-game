@@ -127,6 +127,10 @@ export const UI = {
   finishTargeting: { ar: 'أكمل اختيار الهدف أولاً', en: 'Finish choosing a target first' },
   emptyHand: { ar: 'يدك فارغة.', en: 'Your hand is empty.' },
   sortedHint: { ar: 'القابل للعب أعلى — والباقي صغير أسفل', en: 'Playable on top — the rest small below' },
+  sortedHintMobile: {
+    ar: 'الأصفر = قابل للعب — والقفل يفصل الباقي',
+    en: 'Yellow = playable — the lock splits the rest',
+  },
   unplayableRow: { ar: 'غير قابلة للعب', en: 'Not playable' },
 
   // --- الأوامر ---

@@ -72,7 +72,8 @@ export default function CardView({
     // وإخفاؤه يمنع اللاعب من التخطيط لدوره القادم. grayscale كان يمحوه.
     dimmed ? 'opacity-75 saturate-[0.85]' : '',
     selected ? 'ring-2 ring-white -translate-y-2' : '',
-    playable ? 'ring-2 ring-emerald-400/80' : '',
+    // على الكمبيوتر يبقى الإطار الأخضر؛ على الجوال يشعّ أصفر لأن الحجم لم يعد يميّز القابل للعب
+    playable ? 'ring-2 ring-emerald-400/80 max-lg:ring-amber-300 max-lg:playable-glow' : '',
     fresh ? 'card-fresh' : '',
   ].join(' ');
 

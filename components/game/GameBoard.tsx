@@ -51,6 +51,10 @@ type Pending =
 
 const other = (seat: 0 | 1): 0 | 1 => (seat === 0 ? 1 : 0);
 
+/** lg = تخطيط الكمبيوتر (سطران). دونه = الجوال (سطر واحد). */
+const visibleHandLayout = () =>
+  window.matchMedia('(min-width: 1024px)').matches ? 'desktop' : 'mobile';
+
 const LOG_PREF_KEY = 'mto-match-log';
 let logPref: boolean | null = null;
 const logPrefListeners = new Set<() => void>();
@@ -427,7 +431,6 @@ export default function GameBoard({
     setFreshUids(added);
   }
 
-  const handScroller = useRef<HTMLDivElement>(null);
   const handArea = useRef<HTMLDivElement>(null);
   const freshKey = freshUids.join(',');
 
@@ -438,14 +441,22 @@ export default function GameBoard({
    */
   useEffect(() => {
     if (!myTurn) return;
-    const first = handScroller.current?.firstElementChild;
-    first?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+    const scroller = handArea.current?.querySelector(
+      `[data-hand-scroller="${visibleHandLayout()}"]`
+    );
+    scroller?.firstElementChild?.scrollIntoView({
+      behavior: 'smooth',
+      inline: 'start',
+      block: 'nearest',
+    });
   }, [game.turn, myTurn]);
 
   // تمرير الشريط إلى أول كارت جديد، ثم إطفاء الإبراز
   useEffect(() => {
     if (!freshUids.length) return;
-    const node = handArea.current?.querySelector<HTMLElement>('[data-fresh="1"]');
+    const node = handArea.current?.querySelector<HTMLElement>(
+      `[data-hand-layout="${visibleHandLayout()}"] [data-fresh="1"]`
+    );
     node?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     const timer = window.setTimeout(() => setFreshUids([]), 2200);
     return () => window.clearTimeout(timer);
@@ -901,36 +912,66 @@ export default function GameBoard({
           )}
         </section>
 
-        {/* اليد: سطران مستقلّان يتمرّران أفقياً حتى لا تتّسع الصفحة مع عقوبة سحب كبيرة */}
-        <section data-hand className={`panel min-w-0 overflow-hidden rounded-xl p-2 ${focusRing('hand')}`}>
-          <div className="mb-1 flex items-center justify-between text-[11px] opacity-70">
-            <span>{t('yourHand', { n: me.hand.length })}</span>
-            <span className="truncate">
-              {pending ? t('finishTargeting') : `${t('sortedHint')} · ${t('holdForDetails')}`}
+        {/* اليد: الجوال سطر واحد يتمرّر أفقياً؛ الكمبيوتر سطران (قابل كبير / موقوف مصغّر) */}
+        <section data-hand className={`panel min-w-0 overflow-x-hidden rounded-xl p-2 ${focusRing('hand')}`}>
+          <div className="mb-1 flex min-w-0 items-center justify-between gap-2 text-[11px] opacity-70">
+            <span className="shrink-0">{t('yourHand', { n: me.hand.length })}</span>
+            <span className="min-w-0 truncate">
+              {pending ? (
+                t('finishTargeting')
+              ) : (
+                <>
+                  <span className="lg:hidden">
+                    {t('sortedHintMobile')} · {t('holdForDetails')}
+                  </span>
+                  <span className="hidden lg:inline">
+                    {t('sortedHint')} · {t('holdForDetails')}
+                  </span>
+                </>
+              )}
             </span>
           </div>
-          <div ref={handArea} className="flex min-w-0 flex-col gap-1.5">
-            {(playableHand.length > 0 || me.hand.length === 0) && (
-              <div
-                ref={handScroller}
-                className="thin-scroll flex w-full min-w-0 gap-2 overflow-x-auto overscroll-x-contain pb-1 pt-1"
-              >
-                {playableHand.map((c) => renderHandCard(c, 'md'))}
-                {me.hand.length === 0 && (
-                  <div className="p-4 text-xs opacity-60">{t('emptyHand')}</div>
-                )}
-              </div>
-            )}
-            {parkedHand.length > 0 && (
-              <div className="min-w-0 rounded-lg bg-black/25 px-1 py-1">
-                <div className="mb-0.5 px-1 text-[10px] font-bold opacity-45">
-                  🔒 {t('unplayableRow')} · {parkedHand.length}
+          <div ref={handArea} className="min-w-0">
+            {/* جوال: كل الكروت بنفس الحجم في سطر واحد، وفاصل 🔒 بين المجموعتين */}
+            <div
+              data-hand-layout="mobile"
+              data-hand-scroller="mobile"
+              className="thin-scroll flex w-full min-w-0 items-stretch gap-2 overflow-x-auto overscroll-x-contain pb-1 pt-1 lg:hidden"
+            >
+              {playableHand.map((c) => renderHandCard(c, 'md'))}
+              {playableHand.length > 0 && parkedHand.length > 0 && (
+                <HandSplit title={t('cannotPlay')} />
+              )}
+              {parkedHand.map((c) => renderHandCard(c, 'md'))}
+              {me.hand.length === 0 && (
+                <div className="p-4 text-xs opacity-60">{t('emptyHand')}</div>
+              )}
+            </div>
+
+            {/* كمبيوتر: القابل للعب كبيراً أعلى، والموقوف مصغّراً أسفل */}
+            <div data-hand-layout="desktop" className="hidden min-w-0 flex-col gap-1.5 lg:flex">
+              {(playableHand.length > 0 || me.hand.length === 0) && (
+                <div
+                  data-hand-scroller="desktop"
+                  className="thin-scroll flex w-full min-w-0 gap-2 overflow-x-auto overscroll-x-contain pb-1 pt-1"
+                >
+                  {playableHand.map((c) => renderHandCard(c, 'md'))}
+                  {me.hand.length === 0 && (
+                    <div className="p-4 text-xs opacity-60">{t('emptyHand')}</div>
+                  )}
                 </div>
-                <div className="thin-scroll flex w-full min-w-0 items-end gap-1 overflow-x-auto overscroll-x-contain pb-0.5">
-                  {parkedHand.map((c) => renderHandCard(c, 'xs'))}
+              )}
+              {parkedHand.length > 0 && (
+                <div className="min-w-0 rounded-lg bg-black/25 px-1 py-1">
+                  <div className="mb-0.5 px-1 text-[10px] font-bold opacity-45">
+                    🔒 {t('unplayableRow')} · {parkedHand.length}
+                  </div>
+                  <div className="thin-scroll flex w-full min-w-0 items-end gap-1 overflow-x-auto overscroll-x-contain pb-0.5">
+                    {parkedHand.map((c) => renderHandCard(c, 'xs'))}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </section>
       </main>
@@ -1380,6 +1421,20 @@ function HelpRow({
         {title}
       </div>
       <p className="opacity-80">{children}</p>
+    </div>
+  );
+}
+
+function HandSplit({ title }: { title: string }) {
+  return (
+    <div
+      aria-hidden
+      className="mx-1 flex shrink-0 flex-col items-center justify-center self-stretch"
+      title={title}
+    >
+      <div className="w-0 flex-1 border-l border-dashed border-white/25" />
+      <span className="my-1 text-base leading-none opacity-40">🔒</span>
+      <div className="w-0 flex-1 border-l border-dashed border-white/25" />
     </div>
   );
 }
