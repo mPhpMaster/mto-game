@@ -1,24 +1,52 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { RealtimeChannel } from '@supabase/supabase-js';
+import { applyAutoPlay } from '@/lib/game/ai';
 import { applyGameAction, createGame } from '@/lib/game/engine';
 import { redactFor } from '@/lib/game/redact';
-import type { GameAction, GameState } from '@/lib/game/types';
-import { MULTIPLAYER_READY, getBrowserSupabase } from '@/lib/supabase/client';
+import type { GameAction, GameState, Seat } from '@/lib/game/types';
+import { CROSS_DEVICE_READY } from '@/lib/supabase/client';
 import { DEFAULT_TURN_SECONDS } from './turnClock';
+import {
+  HOST_SEAT,
+  canStart,
+  claimSeat,
+  fillEmptyWithAi,
+  makeLobby,
+  normalizePlayerCount,
+  occupantByClient,
+  publicSeats,
+  setPresent,
+  toRoster,
+  type PlayerCount,
+  type SeatOccupant,
+} from './seats';
+import {
+  getRoomClientId,
+  openRoomTransport,
+  type ActionPayload,
+  type AssignPayload,
+  type ConfigPayload,
+  type HelloPayload,
+  type PresenceMember,
+  type RosterPayload,
+  type RoomTransport,
+  type StatePayload,
+} from './roomTransport';
 
 export type RoomRole = 'host' | 'guest';
-export type RoomStatus =
-  | 'unavailable'
-  | 'connecting'
-  | 'waiting'
-  | 'playing'
-  | 'error';
+export type RoomStatus = 'unavailable' | 'connecting' | 'waiting' | 'playing' | 'error';
+export type RoomVia = 'supabase' | 'local' | 'none';
 
-/** المضيف هو الخانة 0 والضيف الخانة 1 — ومن يبدأ تحدّده القرعة لا الدور في الغرفة */
-export const HOST_SEAT = 0 as const;
-export const GUEST_SEAT = 1 as const;
+export { HOST_SEAT, GUEST_SEAT } from './seats';
+
+export type PublicSeat = {
+  seat: Seat;
+  name: string | null;
+  present: boolean;
+  isAI: boolean;
+  isMe: boolean;
+};
 
 interface Options {
   code: string;
@@ -28,20 +56,24 @@ interface Options {
   fallbackOpponentName?: string;
   /** مدّة الجولة بالثواني — يضبطها المضيف ويلتزم بها الطرفان */
   turnSeconds?: number;
+  /** 2 = 1 ضد 1، 3 = 1 ضد 1 ضد 1 — المضيف يفرضها عبر البثّ */
+  playerCount?: number;
 }
 
 interface RoomResult {
   status: RoomStatus;
-  /** الحالة المعروضة لهذا اللاعب (منقوصة عند الضيف) */
   state: GameState | null;
-  mySeat: 0 | 1;
+  mySeat: Seat;
+  playerCount: PlayerCount;
+  seats: PublicSeat[];
   opponentName: string | null;
   opponentPresent: boolean;
   error: string | null;
+  via: RoomVia;
+  crossDevice: boolean;
   sendAction: (action: GameAction) => void;
-  /** للمضيف فقط: مباراة جديدة بنفس الغرفة */
   newMatch: () => void;
-  /** لحظة انتهاء الجولة بتوقيت هذا الجهاز، أو null إن لا مؤقّت */
+  fillEmptyWithAi: () => void;
   turnDeadline: number | null;
   turnSeconds: number;
 }
@@ -52,166 +84,344 @@ export function useRoom({
   myName,
   fallbackOpponentName = 'Guest',
   turnSeconds = DEFAULT_TURN_SECONDS,
+  playerCount: requestedCount = 2,
 }: Options): RoomResult {
   const isHost = role === 'host';
-  const mySeat: 0 | 1 = isHost ? HOST_SEAT : GUEST_SEAT;
+  const clientIdRef = useRef('');
+  if (!clientIdRef.current) clientIdRef.current = getRoomClientId();
 
-  // شرطان ثابتان يُعرفان وقت العرض، فلا داعي لمؤثّر جانبي يضبطهما
-  const usable = MULTIPLAYER_READY && Boolean(code);
-  const [status, setStatus] = useState<RoomStatus>(() =>
-    !MULTIPLAYER_READY ? 'unavailable' : !code ? 'error' : 'connecting'
-  );
+  const [status, setStatus] = useState<RoomStatus>(() => (!code ? 'error' : 'connecting'));
   const [state, setState] = useState<GameState | null>(null);
-  const [opponentName, setOpponentName] = useState<string | null>(null);
-  const [opponentPresent, setOpponentPresent] = useState(false);
-  const [error, setError] = useState<string | null>(() =>
-    MULTIPLAYER_READY && !code ? 'invalidCode' : null
+  const [mySeat, setMySeat] = useState<Seat>(isHost ? HOST_SEAT : -1);
+  const [playerCount, setPlayerCount] = useState<PlayerCount>(() =>
+    isHost ? normalizePlayerCount(requestedCount) : 2
   );
-  /**
-   * المهلة تُبثّ كمدّة متبقّية لا كوقت مطلق: ساعتا الجهازين قد تختلفان،
-   * فيحسب كل طرف لحظة الانتهاء بتوقيته هو.
-   */
+  const [lobby, setLobby] = useState<SeatOccupant[]>(() =>
+    isHost
+      ? makeLobby(normalizePlayerCount(requestedCount), {
+          clientId: clientIdRef.current,
+          name: myName,
+        })
+      : []
+  );
+  const [error, setError] = useState<string | null>(() => (!code ? 'invalidCode' : null));
+  const [via, setVia] = useState<RoomVia>('none');
   const [turnDeadline, setTurnDeadline] = useState<number | null>(null);
   const [activeSeconds, setActiveSeconds] = useState(turnSeconds);
   const lastTurnRef = useRef(-1);
 
-  /** الحالة الكاملة — عند المضيف فقط، فهو الحَكَم */
   const fullRef = useRef<GameState | null>(null);
-  const channelRef = useRef<RealtimeChannel | null>(null);
-  const opponentNameRef = useRef<string | null>(null);
+  const transportRef = useRef<RoomTransport | null>(null);
+  const lobbyRef = useRef<SeatOccupant[]>(
+    isHost
+      ? makeLobby(normalizePlayerCount(requestedCount), {
+          clientId: clientIdRef.current,
+          name: myName,
+        })
+      : []
+  );
+  const mySeatRef = useRef<Seat>(isHost ? HOST_SEAT : -1);
+  const playerCountRef = useRef<PlayerCount>(isHost ? normalizePlayerCount(requestedCount) : 2);
+  const fillAiRef = useRef(false);
+  const pendingViews = useRef<Map<Seat, StatePayload>>(new Map());
+  const myNameRef = useRef(myName);
+  myNameRef.current = myName;
 
-  /** يبثّ للضيف نسخة منقوصة، ويعرض للمضيف النسخة الكاملة */
+  const syncLobby = useCallback((next: SeatOccupant[]) => {
+    lobbyRef.current = next;
+    setLobby(next);
+  }, []);
+
+  const applyView = useCallback((p: StatePayload) => {
+    setState(p.state);
+    setStatus('playing');
+    if (p.turnSeconds) setActiveSeconds(p.turnSeconds);
+    if (p.ended) setTurnDeadline(null);
+    else if (typeof p.remainingMs === 'number') setTurnDeadline(Date.now() + p.remainingMs);
+  }, []);
+
   const publish = useCallback(
     (next: GameState) => {
       fullRef.current = next;
       setState(next);
+      setStatus('playing');
 
-      // المؤقّت يُصفَّر عند تغيّر الدور فقط، لا مع كل حركة داخل الدور
       const turnChanged = next.turn !== lastTurnRef.current;
       if (turnChanged) lastTurnRef.current = next.turn;
       const running = next.phase !== 'ended' && turnSeconds > 0;
       if (turnChanged && running) setTurnDeadline(Date.now() + turnSeconds * 1000);
       if (!running) setTurnDeadline(null);
 
-      channelRef.current?.send({
-        type: 'broadcast',
-        event: 'state',
-        payload: {
-          state: redactFor(next, GUEST_SEAT),
-          // مدّة متبقّية، لا وقت مطلق
+      const n = next.players.length;
+      for (let seat = 0; seat < n; seat++) {
+        if (seat === HOST_SEAT) continue;
+        transportRef.current?.send('state', {
+          forSeat: seat,
+          state: redactFor(next, seat),
           remainingMs: running && turnChanged ? turnSeconds * 1000 : undefined,
           turnSeconds,
           ended: next.phase === 'ended',
-        },
-      });
+        } satisfies StatePayload);
+      }
+    },
+    [turnSeconds]
+  );
+
+  const broadcastRoster = useCallback(
+    (next: SeatOccupant[]) => {
+      transportRef.current?.send('roster', {
+        seats: next,
+        playerCount: playerCountRef.current,
+        fillAi: fillAiRef.current,
+      } satisfies RosterPayload);
+      transportRef.current?.send('config', {
+        playerCount: playerCountRef.current,
+        turnSeconds,
+        fillAi: fillAiRef.current,
+      } satisfies ConfigPayload);
     },
     [turnSeconds]
   );
 
   const startMatch = useCallback(() => {
+    const roster = toRoster(lobbyRef.current);
+    if (roster.length < 2) return;
     const g = createGame({
-      playerName: myName,
-      opponentName: opponentNameRef.current ?? fallbackOpponentName,
-      opponentIsAI: false,
+      playerName: roster[0]?.name ?? myNameRef.current,
+      opponentName: roster[1]?.name ?? fallbackOpponentName,
+      opponentIsAI: roster.some((p) => p.isAI),
       difficulty: 'hard',
+      playerCount: roster.length,
+      roster,
     });
     publish(g);
-    setStatus('playing');
-  }, [myName, publish, fallbackOpponentName]);
+  }, [fallbackOpponentName, publish]);
+
+  const tryStart = useCallback(() => {
+    if (!isHost) return;
+    if (fullRef.current) {
+      const current = fullRef.current;
+      for (const seat of lobbyRef.current) {
+        if (seat.name && current.players[seat.seat]) {
+          current.players[seat.seat].name = seat.name;
+        }
+      }
+      publish(current);
+      return;
+    }
+    if (canStart(lobbyRef.current, fillAiRef.current)) startMatch();
+  }, [isHost, publish, startMatch]);
 
   useEffect(() => {
-    if (!usable) return;
-    const supabase = getBrowserSupabase();
-    if (!supabase) return;
+    if (!code) return;
 
-    const channel = supabase.channel(`mto-room-${code}`, {
-      config: { presence: { key: `${role}-${Math.random().toString(36).slice(2, 8)}` } },
+    const transport = openRoomTransport(code, clientIdRef.current, {
+      onStatus: (connected, nextVia) => {
+        setVia(nextVia);
+        if (!connected) {
+          setStatus('error');
+          setError('roomConnectError');
+          return;
+        }
+        setStatus((prev) => (prev === 'connecting' || prev === 'error' ? 'waiting' : prev));
+      },
+      onPresence: (members: PresenceMember[]) => {
+        if (!isHost) return;
+        const mine = clientIdRef.current;
+        const presentIds = new Set(
+          members.filter((m) => m.clientId && m.clientId !== mine).map((m) => m.clientId)
+        );
+        if (presentIds.size === 0 && members.every((m) => m.clientId === mine || !m.clientId)) {
+          // لا تمسح الضيوف الذين انضمّوا عبر البثّ قبل اكتمال حضور Supabase
+          return;
+        }
+        let next = lobbyRef.current;
+        for (const seat of next) {
+          if (seat.seat === HOST_SEAT || seat.isAI || !seat.clientId) continue;
+          const here = presentIds.has(seat.clientId);
+          if (seat.present !== here) next = setPresent(next, seat.clientId, here);
+        }
+        if (next !== lobbyRef.current) {
+          syncLobby(next);
+          broadcastRoster(next);
+        }
+      },
+      onEvent: (wire) => {
+        if (wire.event === 'hello') {
+          if (!isHost) return;
+          const p = wire.payload as HelloPayload;
+          if (!p?.clientId) return;
+          const claimed = claimSeat(lobbyRef.current, p.clientId, p.name);
+          syncLobby(claimed.lobby);
+          transport.send('assign', {
+            clientId: p.clientId,
+            seat: claimed.seat,
+            name: p.name,
+            reason: claimed.reason,
+          } satisfies AssignPayload);
+          broadcastRoster(claimed.lobby);
+          if (claimed.seat !== null) tryStart();
+          return;
+        }
+
+        if (wire.event === 'bye') {
+          if (!isHost) return;
+          const id = (wire.payload as { clientId?: string })?.clientId;
+          if (!id) return;
+          const next = setPresent(lobbyRef.current, id, false);
+          syncLobby(next);
+          broadcastRoster(next);
+          return;
+        }
+
+        if (wire.event === 'config') {
+          if (isHost) return;
+          const p = wire.payload as ConfigPayload;
+          if (p?.playerCount) {
+            playerCountRef.current = normalizePlayerCount(p.playerCount);
+            setPlayerCount(playerCountRef.current);
+          }
+          if (p?.turnSeconds) setActiveSeconds(p.turnSeconds);
+          return;
+        }
+
+        if (wire.event === 'assign') {
+          if (isHost) return;
+          const p = wire.payload as AssignPayload;
+          if (p?.clientId !== clientIdRef.current) return;
+          if (p.seat === null) {
+            setStatus('error');
+            setError('roomFull');
+            return;
+          }
+          mySeatRef.current = p.seat;
+          setMySeat(p.seat);
+          const stashed = pendingViews.current.get(p.seat);
+          if (stashed) {
+            pendingViews.current.delete(p.seat);
+            applyView(stashed);
+          }
+          transport.track({
+            role: 'guest',
+            name: myNameRef.current,
+            clientId: clientIdRef.current,
+            seat: p.seat,
+          });
+          return;
+        }
+
+        if (wire.event === 'roster') {
+          const p = wire.payload as RosterPayload;
+          if (!p?.seats?.length) return;
+          if (!isHost) {
+            syncLobby(p.seats);
+            playerCountRef.current = normalizePlayerCount(p.playerCount);
+            setPlayerCount(playerCountRef.current);
+          }
+          return;
+        }
+
+        if (wire.event === 'state') {
+          if (isHost) return;
+          const p = wire.payload as StatePayload;
+          if (!p?.state) return;
+          if (mySeatRef.current < 0) {
+            if (typeof p.forSeat === 'number') pendingViews.current.set(p.forSeat, p);
+            return;
+          }
+          if (typeof p.forSeat === 'number' && p.forSeat !== mySeatRef.current) {
+            pendingViews.current.set(p.forSeat, p);
+            return;
+          }
+          applyView(p);
+          return;
+        }
+
+        if (wire.event === 'action') {
+          if (!isHost) return;
+          const p = wire.payload as ActionPayload;
+          const current = fullRef.current;
+          if (!p?.action || !current || current.phase === 'ended') return;
+          const who = occupantByClient(lobbyRef.current, p.clientId);
+          if (!who || current.current !== who.seat || who.isAI) return;
+          publish(applyGameAction(current, p.action));
+          return;
+        }
+
+        if (wire.event === 'restart') {
+          if (!isHost) return;
+          startMatch();
+          return;
+        }
+
+        if (wire.event === 'fill-ai') {
+          if (!isHost) return;
+          fillAiRef.current = true;
+          const filled = fillEmptyWithAi(lobbyRef.current);
+          syncLobby(filled);
+          broadcastRoster(filled);
+          tryStart();
+        }
+      },
     });
-    channelRef.current = channel;
 
-    channel.on('presence', { event: 'sync' }, () => {
-      const members = Object.values(channel.presenceState()).flat() as {
-        role?: RoomRole;
-        name?: string;
-      }[];
-      const other = members.find((m) => m.role && m.role !== role);
-      setOpponentPresent(Boolean(other));
-      if (other?.name) {
-        opponentNameRef.current = other.name;
-        setOpponentName(other.name);
+    transportRef.current = transport;
+    transport.track({
+      role,
+      name: myNameRef.current,
+      clientId: clientIdRef.current,
+      seat: isHost ? HOST_SEAT : mySeatRef.current,
+    });
+    if (isHost) {
+      if (lobbyRef.current.length === 0) {
+        syncLobby(
+          makeLobby(playerCountRef.current, {
+            clientId: clientIdRef.current,
+            name: myNameRef.current,
+          })
+        );
       }
-      if (!other) setStatus((s) => (s === 'playing' ? 'waiting' : s));
-    });
-
-    // الضيف يعلن حضوره؛ والمضيف يبدأ المباراة أو يعيد إرسال الحالة عند إعادة الاتصال
-    channel.on('broadcast', { event: 'hello' }, ({ payload }) => {
-      const name = (payload as { name?: string })?.name;
-      if (name) {
-        opponentNameRef.current = name;
-        setOpponentName(name);
-      }
-      if (!isHost) return;
-      if (fullRef.current) {
-        const current = fullRef.current;
-        // مزامنة الاسم في الحالة الجارية ثم إعادة البثّ للضيف العائد
-        if (name) current.players[GUEST_SEAT].name = name;
-        publish(current);
-        setStatus('playing');
-      } else {
-        startMatch();
-      }
-    });
-
-    // الضيف يستقبل الحالة من المضيف
-    channel.on('broadcast', { event: 'state' }, ({ payload }) => {
-      if (isHost) return;
-      const p = payload as {
-        state?: GameState;
-        remainingMs?: number;
-        turnSeconds?: number;
-        ended?: boolean;
-      };
-      if (!p?.state) return;
-      setState(p.state);
-      setStatus('playing');
-      if (p.turnSeconds) setActiveSeconds(p.turnSeconds);
-      if (p.ended) setTurnDeadline(null);
-      else if (typeof p.remainingMs === 'number') setTurnDeadline(Date.now() + p.remainingMs);
-    });
-
-    // المضيف يستقبل حركات الضيف ويحكم عليها
-    channel.on('broadcast', { event: 'action' }, ({ payload }) => {
-      if (!isHost) return;
-      const action = (payload as { action?: GameAction })?.action;
-      const current = fullRef.current;
-      if (!action || !current) return;
-      // الضيف لا يلعب إلا في دوره — الحَكَم هو المضيف
-      if (current.current !== GUEST_SEAT || current.phase === 'ended') return;
-      publish(applyGameAction(current, action));
-    });
-
-    channel.on('broadcast', { event: 'restart' }, () => {
-      if (!isHost) return;
-      startMatch();
-    });
-
-    channel.subscribe((s) => {
-      if (s === 'SUBSCRIBED') {
-        channel.track({ role, name: myName });
-        setStatus((prev) => (prev === 'connecting' ? 'waiting' : prev));
-        if (!isHost) channel.send({ type: 'broadcast', event: 'hello', payload: { name: myName } });
-      } else if (s === 'CHANNEL_ERROR' || s === 'TIMED_OUT') {
-        setStatus('error');
-        setError('roomConnectError');
-      }
-    });
+      broadcastRoster(lobbyRef.current);
+    } else {
+      transport.send('hello', {
+        clientId: clientIdRef.current,
+        name: myNameRef.current,
+      } satisfies HelloPayload);
+    }
 
     return () => {
-      channel.unsubscribe();
-      supabase.removeChannel(channel);
-      channelRef.current = null;
+      transport.send('bye', { clientId: clientIdRef.current });
+      transport.close();
+      transportRef.current = null;
+      fullRef.current = null;
+      pendingViews.current.clear();
     };
-  }, [usable, code, role, isHost, myName, publish, startMatch]);
+    // الغرفة مربوطة بالرمز والدور فقط
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [code, role, isHost]);
+
+  useEffect(() => {
+    if (isHost || !code || status === 'playing' || status === 'error' || status === 'unavailable') {
+      return;
+    }
+    const tick = () => {
+      transportRef.current?.send('hello', {
+        clientId: clientIdRef.current,
+        name: myNameRef.current,
+      } satisfies HelloPayload);
+    };
+    tick();
+    const id = window.setInterval(tick, 1600);
+    return () => window.clearInterval(id);
+  }, [isHost, code, status]);
+
+  useEffect(() => {
+    if (!isHost || status === 'playing' || status === 'error' || status === 'unavailable') return;
+    const id = window.setInterval(() => {
+      if (lobbyRef.current.length) broadcastRoster(lobbyRef.current);
+    }, 2000);
+    return () => window.clearInterval(id);
+  }, [isHost, status, broadcastRoster]);
 
   const sendAction = useCallback(
     (action: GameAction) => {
@@ -220,46 +430,77 @@ export function useRoom({
         if (!current || current.current !== HOST_SEAT || current.phase === 'ended') return;
         publish(applyGameAction(current, action));
       } else {
-        channelRef.current?.send({ type: 'broadcast', event: 'action', payload: { action } });
+        transportRef.current?.send('action', {
+          action,
+          clientId: clientIdRef.current,
+        } satisfies ActionPayload);
       }
     },
     [isHost, publish]
   );
 
-  /**
-   * انتهاء المهلة: المضيف وحده ينهي الدور — فهو الحَكَم، ولو فعلها الطرفان
-   * لأُنهي دوران في وقت واحد.
-   */
   useEffect(() => {
     if (!isHost || turnDeadline === null) return;
     const delay = Math.max(0, turnDeadline - Date.now());
+    const expectedTurn = lastTurnRef.current;
     const timer = window.setTimeout(() => {
       const current = fullRef.current;
       if (!current || current.phase === 'ended') return;
-      publish(
-        applyGameAction(
-          current,
-          current.phase === 'respond' ? { type: 'ACCEPT_DRAW' } : { type: 'END_TURN' }
-        )
-      );
+      if (current.turn !== expectedTurn) return;
+      publish(applyAutoPlay(current));
     }, delay);
     return () => window.clearTimeout(timer);
   }, [isHost, turnDeadline, publish]);
 
+  /** الخصم الآلي في الخانات الفارغة — المضيف وحده يشغّله */
+  useEffect(() => {
+    if (!isHost || !state || state.phase === 'ended') return;
+    if (!state.players[state.current]?.isAI) return;
+    const expectedTurn = state.turn;
+    const timer = window.setTimeout(() => {
+      const current = fullRef.current;
+      if (!current || current.phase === 'ended') return;
+      if (current.turn !== expectedTurn) return;
+      if (!current.players[current.current]?.isAI) return;
+      publish(applyAutoPlay(current));
+    }, 480);
+    return () => window.clearTimeout(timer);
+  }, [isHost, state, publish]);
+
   const newMatch = useCallback(() => {
     if (isHost) startMatch();
-    else channelRef.current?.send({ type: 'broadcast', event: 'restart', payload: {} });
+    else transportRef.current?.send('restart', {});
   }, [isHost, startMatch]);
+
+  const fillEmpty = useCallback(() => {
+    if (!isHost) return;
+    fillAiRef.current = true;
+    const filled = fillEmptyWithAi(lobbyRef.current);
+    syncLobby(filled);
+    broadcastRoster(filled);
+    tryStart();
+  }, [isHost, syncLobby, broadcastRoster, tryStart]);
+
+  const seats = publicSeats(lobby.length ? lobby : lobbyRef.current, mySeat);
+  const others = seats.filter((s) => !s.isMe && !s.isAI);
+  const opponentName =
+    others.find((s) => s.name)?.name ?? (others.length ? null : null);
+  const opponentPresent = others.length === 0 ? false : others.every((s) => s.present);
 
   return {
     status,
     state,
     mySeat,
+    playerCount,
+    seats,
     opponentName,
     opponentPresent,
     error,
+    via,
+    crossDevice: CROSS_DEVICE_READY,
     sendAction,
     newMatch,
+    fillEmptyWithAi: fillEmpty,
     turnDeadline,
     turnSeconds: isHost ? turnSeconds : activeSeconds,
   };

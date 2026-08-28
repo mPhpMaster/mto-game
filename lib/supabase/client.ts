@@ -26,3 +26,6 @@ export const MULTIPLAYER_READY = Boolean(
     (process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY)
 );
+
+/** اللعب عبر الأجهزة يحتاج Supabase. تبويبات نفس المتصفّح تعمل بـ BroadcastChannel بلا مفاتيح. */
+export const CROSS_DEVICE_READY = MULTIPLAYER_READY;

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import {
   ABILITY_NAME,
   ABILITY_TEXT,
@@ -20,14 +21,24 @@ import { ELEMENT_HEX, numberLabel } from './CardView';
 export default function CardDetail({
   card,
   reason,
+  trapPeek,
   onClose,
 }: {
   card: CardDef;
   reason?: string;
+  trapPeek?: boolean;
   onClose: () => void;
 }) {
   const { t, L } = useLocale();
   const color = ELEMENT_HEX[card.element];
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [onClose]);
 
   return (
     <div
@@ -40,6 +51,8 @@ export default function CardDetail({
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-label={L(card.name)}
+        data-card-detail=""
+        data-trap-peek={trapPeek ? '1' : undefined}
       >
         <div
           className="p-4"

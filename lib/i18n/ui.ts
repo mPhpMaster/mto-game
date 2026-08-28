@@ -13,8 +13,8 @@ export const UI = {
 
   // --- الصفحة الرئيسية ---
   tagline: {
-    ar: 'لعبة كروت استراتيجية 1 ضد 1 — مطابقة عناصر وأرقام، طاقة متصاعدة، هجمات مشتركة، ووحش أعظم يحسم المباراة.',
-    en: 'A 1v1 strategy card game — match elements and numbers, rising energy, combo attacks, and a Titan that ends the match.',
+    ar: 'لعبة كروت استراتيجية — 1 ضد 1 أو 1 ضد 1 ضد 1. مطابقة عناصر وأرقام، طاقة متصاعدة، هجمات مشتركة، ووحش أعظم يحسم المباراة.',
+    en: 'A strategy card game — 1v1 or 1v1v1. Match elements and numbers, rising energy, combo attacks, and a Titan that ends the match.',
   },
   learnFirst: { ar: '🎓 تعلّم اللعب أولاً', en: '🎓 Learn to play first' },
   startMatch: { ar: 'ابدأ المباراة', en: 'Start a match' },
@@ -40,6 +40,34 @@ export const UI = {
     ar: 'تتناوبان على نفس الشاشة، وستارة تخفي اليد عند تسليم الجهاز.',
     en: 'Take turns on the same screen, with a curtain hiding the hand when you hand the device over.',
   },
+  ffa3Title: { ar: '⚔️ 1 ضد 1 ضد 1', en: '⚔️ 1v1v1' },
+  ffa3Intro: {
+    ar: 'ثلاثة لاعبين في مباراة واحدة — كلٌّ ضد الاثنين الآخرين. آخر واقف يفوز.',
+    en: 'Three players in one match — each against the other two. Last one standing wins.',
+  },
+  ffa3VsAi: { ar: 'أنت ضد خصمين آليين', en: 'You vs two AI opponents' },
+  ffa3VsAiDesc: {
+    ar: 'خانة واحدة لك وخانتان للخصم الآلي. تختار المستوى كما في 1 ضد 1.',
+    en: 'One seat for you, two for the AI. Pick a difficulty just like in 1v1.',
+  },
+  ffa3Hotseat: { ar: 'ثلاثة لاعبين على جهاز واحد', en: 'Three players, one device' },
+  ffa3HotseatDesc: {
+    ar: 'تمرّرون الجهاز بينكم. الستارة تخفي اليد عند كل تسليم.',
+    en: 'Pass the device around. The curtain hides each hand at handover.',
+  },
+  ffa3Online: { ar: '🌐 1 ضد 1 ضد 1 أونلاين', en: '🌐 Online 1v1v1' },
+  ffa3OnlineDesc: {
+    ar: 'ثلاثة لاعبين من ثلاثة أجهزة — غرفة برمز، وكلٌّ يرى يده فقط.',
+    en: 'Three players on three devices — a room code, and each sees only their own hand.',
+  },
+  playerThreeName: { ar: 'اللاعب الثالث', en: 'Player Three' },
+  attackFaceNamed: { ar: '⚔ هجوم مباشر على {name}', en: '⚔ Attack {name} directly' },
+  pickEitherOpponent: {
+    ar: '· اختر وحشاً من أي خصم، أو اضغط هجوماً مباشراً على من خلت ساحته',
+    en: '· pick a monster from either opponent, or attack a player whose field is empty',
+  },
+  eliminatedTag: { ar: 'أُقصي', en: 'Eliminated' },
+  remainingPlayers: { ar: 'المتبقّون: {n}', en: 'Remaining: {n}' },
   installTitle: { ar: '📱 ثبّتها على جوالك', en: '📱 Install it on your phone' },
   downloadApk: { ar: '🤖 حمّل تطبيق أندرويد', en: '🤖 Download the Android app' },
   downloadApkDesc: {
@@ -54,8 +82,8 @@ export const UI = {
   browseCards: { ar: 'تصفّح الكروت', en: 'Browse cards' },
   history: { ar: 'السجل', en: 'History' },
   footerNote: {
-    ar: 'النسخة الأولية: مواجهات 1 ضد 1 ضد خصم آلي.',
-    en: 'Early build: 1v1 duels against an AI opponent.',
+    ar: 'النسخة الأولية: مواجهات 1 ضد 1 و1 ضد 1 ضد 1 — ضد الآلي، على جهاز واحد، أو أونلاين برمز غرفة.',
+    en: 'Early build: 1v1 and 1v1v1 — vs AI, on one device, or online with a room code.',
   },
 
   // --- قواعد الصفحة الرئيسية ---
@@ -122,6 +150,15 @@ export const UI = {
   trapsLabel: { ar: 'فخاخ:', en: 'Traps:' },
   faceDown: { ar: 'مقلوب', en: 'Face-down' },
   faceDownTrap: { ar: 'فخ مقلوب', en: 'Face-down trap' },
+  peekTrap: { ar: 'اطّلع على فخك', en: 'Peek at your trap' },
+  peekTrapHint: {
+    ar: 'اضغط لترى فخك المجهّز. يبقى مقلوباً أمام الخصم.',
+    en: 'Click to see your set trap. It stays face-down to the opponent.',
+  },
+  ownTrapPeek: {
+    ar: 'فخك المجهّز — اضغط للإغلاق حتى لا يبقى مكشوفاً.',
+    en: 'Your set trap — click to close so it does not stay revealed.',
+  },
   yourHand: { ar: 'يدك ({n})', en: 'Your hand ({n})' },
   greenPlayable: { ar: 'الأخضر = قابل للعب الآن', en: 'Green = playable now' },
   finishTargeting: { ar: 'أكمل اختيار الهدف أولاً', en: 'Finish choosing a target first' },
@@ -250,12 +287,18 @@ export const UI = {
 
   // --- جهاز واحد ---
   hotseatTitle: { ar: '🤝 لاعبان على جهاز واحد', en: '🤝 Two players, one device' },
+  hotseatTitle3: { ar: '🤝 ثلاثة لاعبين على جهاز واحد', en: '🤝 Three players, one device' },
   hotseatIntro: {
     ar: 'تلعبان بالتناوب على نفس الشاشة. بين كل دور وآخر تظهر ستارة تخفي اليد حتى يستلم اللاعب التالي الجهاز — فلا يرى أحدكما كروت الآخر.',
     en: 'Take turns on the same screen. Between turns a curtain hides the hand until the next player takes the device — so neither of you sees the other’s cards.',
   },
+  hotseatIntro3: {
+    ar: 'ثلاثة لاعبين بالتناوب على نفس الشاشة. بين كل دور وآخر تظهر ستارة تخفي اليد حتى يستلم التالي الجهاز.',
+    en: 'Three players take turns on the same screen. Between turns a curtain hides the hand until the next player takes the device.',
+  },
   playerOneName: { ar: 'اللاعب الأول', en: 'Player One' },
   playerTwoName: { ar: 'اللاعب الثاني', en: 'Player Two' },
+  playerThreeNameHotseat: { ar: 'اللاعب الثالث', en: 'Player Three' },
   playerNameLabel: { ar: 'اسم {which}', en: '{which} name' },
   startGame: { ar: 'ابدأوا المباراة', en: 'Start the match' },
   hotseatCoin: {
@@ -265,27 +308,60 @@ export const UI = {
 
   // --- أونلاين ---
   onlineLobbyTitle: { ar: '🌐 العب مع صديقك أونلاين', en: '🌐 Play online with a friend' },
+  onlineLobbyTitle3: { ar: '🌐 1 ضد 1 ضد 1 أونلاين', en: '🌐 Online 1v1v1' },
+  onlineModeDuel: { ar: '1 ضد 1', en: '1v1' },
+  onlineModeFfa3: { ar: '1 ضد 1 ضد 1', en: '1v1v1' },
   yourName: { ar: 'اسمك', en: 'Your name' },
   yourNamePlaceholder: { ar: 'اكتب اسمك', en: 'Enter your name' },
   createRoom: { ar: 'أنشئ غرفة واحصل على رمز', en: 'Create a room and get a code' },
+  createRoom3: { ar: 'أنشئ غرفة لثلاثة لاعبين', en: 'Create a room for three players' },
   orJoin: { ar: 'أو انضم لغرفة صديقك', en: 'Or join your friend’s room' },
   roomCode: { ar: 'رمز الغرفة', en: 'Room code' },
   join: { ar: 'انضمّ', en: 'Join' },
   codeLength: { ar: 'الرمز يتكوّن من {n} خانات', en: 'The code is {n} characters' },
   onlineDisabled: { ar: 'اللعب أونلاين غير مفعّل.', en: 'Online play is not enabled.' },
   needsSupabase: { ar: 'يحتاج إعدادات Supabase. يمكنكما اللعب الآن على', en: 'It needs Supabase configuration. You can still play on' },
+  localTabsHint: {
+    ar: 'تبويبات نفس المتصفّح تعمل الآن بلا إعدادات. للعب من أجهزة مختلفة أضف مفاتيح Supabase العامة (NEXT_PUBLIC_SUPABASE_URL و ANON/PUBLISHABLE KEY).',
+    en: 'Same-browser tabs work now with no extra setup. To play across devices, add the public Supabase keys (NEXT_PUBLIC_SUPABASE_URL and the anon/publishable key).',
+  },
+  crossDeviceOn: {
+    ar: 'اللعب عبر الأجهزة مفعّل عبر Supabase Realtime.',
+    en: 'Cross-device play is enabled via Supabase Realtime.',
+  },
   oneDevice: { ar: 'جهاز واحد', en: 'one device' },
   hostNote: {
     ar: 'المضيف هو من يدير المباراة، فيجب أن يبقى على الصفحة حتى تنتهي. ولا يرى أيٌّ منكما كروت الآخر: يُرسَل لكل لاعب ما يخصّه فقط.',
     en: 'The host runs the match and must stay on the page until it ends. Neither of you sees the other’s cards: each player receives only what concerns them.',
   },
+  hostNote3: {
+    ar: 'ثلاثة مقاعد. تنتظر الغرفة ثلاثة بشر، أو يملأ المضيف الفراغ بالخصم الآلي. المضيف يحكم المباراة ويجب أن يبقى على الصفحة. كل لاعب يرى يده فقط.',
+    en: 'Three seats. The room waits for three humans, or the host fills empties with AI. The host referees and must stay on the page. Each player sees only their own hand.',
+  },
   roomReady: { ar: 'غرفتك جاهزة', en: 'Your room is ready' },
   joining: { ar: 'جارٍ الدخول…', en: 'Joining…' },
   giveCode: { ar: 'أعطِ صديقك هذا الرمز:', en: 'Give your friend this code:' },
+  giveCode3: { ar: 'أعطِ الرمز للاعبَين الآخرين:', en: 'Give this code to the other two players:' },
   copyInvite: { ar: '📋 انسخ رابط الدعوة', en: '📋 Copy the invite link' },
   copied: { ar: '✓ نُسخ الرابط', en: '✓ Link copied' },
   waitingFriend: { ar: 'بانتظار انضمام صديقك…', en: 'Waiting for your friend to join…' },
   waitingHost: { ar: 'بانتظار أن يبدأ المضيف…', en: 'Waiting for the host to start…' },
+  waitingPlayers: {
+    ar: 'بانتظار اللاعبين… {here} من {need} متصلون',
+    en: 'Waiting for players… {here} of {need} connected',
+  },
+  seatLabel: { ar: 'المقعد {n}', en: 'Seat {n}' },
+  seatEmpty: { ar: 'فارغ', en: 'Empty' },
+  fillWithAi: { ar: 'املأ الفراغ بالخصم الآلي', en: 'Fill empty seats with AI' },
+  fillWithAiHint: {
+    ar: 'اختياري — المسار الأساسي ثلاثة بشر. المقاعد الفارغة تصبح خصماً آلياً وتبدأ المباراة.',
+    en: 'Optional — the main path is three humans. Empty seats become AI and the match starts.',
+  },
+  youAreSeat: { ar: 'أنت المقعد {n}', en: 'You are seat {n}' },
+  opponentsAre: { ar: 'الخصوم: {names}', en: 'Opponents: {names}' },
+  roomFull: { ar: 'الغرفة ممتلئة', en: 'This room is full' },
+  viaLocal: { ar: 'مزامنة محلية بين التبويبات', en: 'Local tab sync' },
+  viaRealtime: { ar: 'مزامنة عبر الشبكة', en: 'Network sync' },
   roomLifetime: {
     ar: 'تبقى المباراة قائمة ما دام المضيف على الصفحة. إن أغلقها انتهت الغرفة.',
     en: 'The match lives as long as the host stays on the page. If they close it, the room ends.',
@@ -307,6 +383,7 @@ export const UI = {
   player: { ar: 'لاعب', en: 'Player' },
   you: { ar: 'أنت', en: 'You' },
   aiOpponent: { ar: 'الخصم الآلي', en: 'AI opponent' },
+  aiOpponentN: { ar: 'الخصم الآلي {n}', en: 'AI opponent {n}' },
   coach: { ar: 'المدرّب', en: 'Coach' },
 
   // --- الكروت ---
@@ -370,12 +447,48 @@ export const UI = {
   // --- مهلة الجولة ---
   turnLength: { ar: 'مدّة الجولة', en: 'Turn length' },
   turnLengthHint: {
-    ar: 'إن انتهت المهلة يُنهى الدور تلقائياً. أقلّ مدّة {min} ثانية.',
-    en: 'When time runs out the turn ends automatically. Minimum {min} seconds.',
+    ar: 'إن انتهت المهلة يلعب الكمبيوتر عنك ثم يُنهي الدور. أقلّ مدّة {min} ثانية.',
+    en: 'When time runs out the computer plays for you, then ends the turn. Minimum {min} seconds.',
   },
+  autoPlaying: { ar: 'الكمبيوتر يلعب عنك…', en: 'The computer is playing for you…' },
   seconds: { ar: '{n} ث', en: '{n}s' },
   minute: { ar: 'دقيقة', en: '1 min' },
   turnClockTip: { ar: 'مهلة الجولة {n} ثانية', en: 'Turn limit: {n} seconds' },
+
+  // --- دردشة الغرفة ---
+  chatTitle: { ar: 'الدردشة', en: 'Chat' },
+  chatOpen: { ar: 'افتح الدردشة', en: 'Open chat' },
+  chatClose: { ar: 'أغلق الدردشة', en: 'Close chat' },
+  chatPlaceholder: { ar: 'اكتب رسالة…', en: 'Write a message…' },
+  chatSend: { ar: 'إرسال', en: 'Send' },
+  chatEmpty: { ar: 'لا رسائل بعد — قل مرحباً.', en: 'No messages yet — say hello.' },
+  chatRoster: { ar: 'اللاعبون', en: 'Players' },
+  chatWaitingPeers: { ar: 'بانتظار انضمام الآخرين…', en: 'Waiting for others to join…' },
+  chatJoinVoice: { ar: 'انضم للصوت (الميكروفون يبدأ مكتوماً)', en: 'Join voice (mic starts muted)' },
+  chatLeaveVoice: { ar: 'غادر الصوت', en: 'Leave voice' },
+  chatMicOn: { ar: 'الميكروفون مفتوح — اضغط للكتم', en: 'Mic on — tap to mute' },
+  chatMicOff: { ar: 'الميكروفون مكتوم — اضغط للتفعيل', en: 'Mic muted — tap to unmute' },
+  chatDeafenOn: { ar: 'سماعاتك مكتومة — لن تسمع أحداً', en: 'Speakers muted — you won’t hear anyone' },
+  chatDeafenOff: { ar: 'السماعات تعمل — اضغط لكتم كل الأصوات الواردة', en: 'Speakers on — tap to mute all incoming voice' },
+  chatMutePeer: {
+    ar: 'كتم {name} — لن تسمع صوته ولن ترى رسائله',
+    en: 'Mute {name} — you won’t hear their voice or see their messages',
+  },
+  chatUnmutePeer: { ar: 'إلغاء كتم {name}', en: 'Unmute {name}' },
+  chatVoiceOn: { ar: 'في الصوت', en: 'In voice' },
+  chatMicDenied: {
+    ar: 'المتصفّح رفض الميكروفون. اسمح بالوصول ثم أعد المحاولة.',
+    en: 'The browser blocked the microphone. Allow access and try again.',
+  },
+  chatMicError: { ar: 'تعذّر فتح الميكروفون.', en: 'Could not open the microphone.' },
+  chatVoiceUnsupported: { ar: 'الصوت غير مدعوم في هذا المتصفّح.', en: 'Voice is not supported in this browser.' },
+  chatIceFailed: {
+    ar: 'تعذّر اتصال الصوت على هذه الشبكة (قد تحتاج TURN). الدردشة النصية ما زالت تعمل.',
+    en: 'Voice could not connect on this network (TURN may be required). Text chat still works.',
+  },
+  chatConnecting: { ar: 'جارٍ ربط الدردشة…', en: 'Connecting chat…' },
+  chatConnected: { ar: 'الدردشة متصلة', en: 'Chat connected' },
+  chatUnread: { ar: '{n} رسالة جديدة', en: '{n} new messages' },
 
   // --- تفاصيل الكارت والخصائص ---
   cardEffect: { ar: 'ما يفعله الكارت', en: 'What the card does' },

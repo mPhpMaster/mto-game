@@ -46,15 +46,32 @@ for (const l of LOCALES) {
 
 // 3) مباريات كاملة: كل سطر سجل يُعرض في اللغتين بلا معامل ناقص
 const seenKeys = new Set<string>();
-for (let g = 0; g < 40; g++) {
-  let s: GameState = createGame({ seed: 4000 + g, opponentIsAI: true, difficulty: 'hard' });
-  s.players[0].isAI = true;
+const check = (entry: LogEntry) => {
+  seenKeys.add(entry.key);
+  for (const l of LOCALES) {
+    let text: string;
+    try {
+      text = renderMessage(entry.key, entry.params, l);
+    } catch (e) {
+      fail(`«${entry.key}» (${l}) رمت: ${(e as Error).message}`);
+      return;
+    }
+    if (!LOG_MESSAGES[entry.key]) fail(`مفتاح غير معرّف: «${entry.key}».`);
+    if (text.includes('{')) fail(`«${entry.key}» (${l}) بقي فيها معامل: ${text}`);
+  }
+};
 
+function playOut(s0: GameState, maxSteps: number) {
+  let s = s0;
+  s.players[0].isAI = true;
   let steps = 0;
   let guardTurn = -1;
   let guardCount = 0;
-  while (s.phase !== 'ended' && steps < 600) {
-    if (s.turn !== guardTurn) { guardTurn = s.turn; guardCount = 0; }
+  while (s.phase !== 'ended' && steps < maxSteps) {
+    if (s.turn !== guardTurn) {
+      guardTurn = s.turn;
+      guardCount = 0;
+    }
     guardCount++;
     const action = guardCount > 40 ? ({ type: 'END_TURN' } as const) : aiChooseAction(s);
     const before = s;
@@ -65,22 +82,17 @@ for (let g = 0; g < 40; g++) {
       steps++;
     }
   }
-
-  const check = (entry: LogEntry) => {
-    seenKeys.add(entry.key);
-    for (const l of LOCALES) {
-      let text: string;
-      try {
-        text = renderMessage(entry.key, entry.params, l);
-      } catch (e) {
-        fail(`«${entry.key}» (${l}) رمت: ${(e as Error).message}`);
-        return;
-      }
-      if (!LOG_MESSAGES[entry.key]) fail(`مفتاح غير معرّف: «${entry.key}».`);
-      if (text.includes('{')) fail(`«${entry.key}» (${l}) بقي فيها معامل: ${text}`);
-    }
-  };
   for (const entry of s.log) check(entry);
+}
+
+for (let g = 0; g < 40; g++) {
+  playOut(createGame({ seed: 4000 + g, opponentIsAI: true, difficulty: 'hard' }), 600);
+}
+for (let g = 0; g < 8; g++) {
+  playOut(
+    createGame({ seed: 7000 + g, opponentIsAI: true, difficulty: 'hard', playerCount: 3 }),
+    700
+  );
 }
 
 // 4) كل مفتاح معرّف يجب أن يظهر فعلاً (وإلا فهو ميت أو غير مختبَر)

@@ -29,7 +29,7 @@ function auditCards(s: GameState): { total: number; dupes: string[] } {
     for (const m of p.field) bump(m.uid);
     for (const t of p.traps) bump(t.uid);
   }
-  const claimed = s.players[0].fragments.length + s.players[1].fragments.length;
+  const claimed = s.players.reduce((n, p) => n + p.fragments.length, 0);
   return {
     total: seen.size + claimed,
     dupes: [...seen.entries()].filter(([, n]) => n > 1).map(([u, n]) => `${u}×${n}`),

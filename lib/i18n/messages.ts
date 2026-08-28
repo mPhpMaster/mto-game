@@ -14,11 +14,20 @@ export const LOG_MESSAGES: Record<string, Localized> = {
     ar: '🎲 القرعة: يبدأ {first}. تعويضاً لذلك يأخذ {second} كارتاً إضافياً، والبادئ لا يسحب في دوره الأول.',
     en: '🎲 Coin toss — first to play: {first}. Compensation: an extra card for {second}, and no first-turn draw for the starter.',
   },
+  coin_toss_ffa: {
+    ar: '🎲 القرعة الثلاثية: يبدأ {first} ثم {second} ثم {third}. من لا يبدأ يأخذ كارتاً وطاقة إضافية، والبادئ لا يسحب في دوره الأول.',
+    en: '🎲 Three-player coin toss: {first}, then {second}, then {third}. Later players get an extra card and energy; the starter skips the first-turn draw.',
+  },
   deck_reshuffled: { ar: 'نفد السطح — أُعيد خلط المهملات.', en: 'Deck empty — the discard pile was reshuffled.' },
   fatigue: { ar: '{player} يتلقى {damage} ضرر إنهاك (لا كروت متبقية).', en: '{player} takes {damage} fatigue damage (no cards left).' },
   drew: { ar: '{player} سحب {n} كارت.', en: '{player} — drew {n} card(s).' },
   turn_start: { ar: '— دور {player} (طاقة {energy}/{cap}) —', en: '— Turn: {player} (energy {energy}/{cap}) —' },
+  auto_play: {
+    ar: '⏱ انتهى الوقت — الكمبيوتر يلعب عن {player}.',
+    en: '⏱ Time up — the computer is playing for {player}.',
+  },
   turn_lost: { ar: '{player} فقد دوره.', en: '{player} — turn lost.' },
+  eliminated: { ar: '💀 أُقصي {player} من المباراة.', en: '💀 {player} has been eliminated.' },
   pending_draw: { ar: 'عقوبة سحب متراكمة: {n} — كدّس كارت سحب أو اقبل.', en: 'Stacked draw penalty: {n} — stack another draw card or accept.' },
   accept_draw: { ar: '{player} قبِل العقوبة وسحب {n} كروت وفقد دوره.', en: '{player} — accepted the penalty, drew {n} cards, turn lost.' },
 
@@ -42,6 +51,10 @@ export const LOG_MESSAGES: Record<string, Localized> = {
   purged: { ar: 'تطهير: دُمّر فخ لدى {player}.', en: 'Purge: destroyed a trap controlled by {player}.' },
   skip_next: { ar: '{player} سيفقد دوره القادم.', en: '{player} — next turn will be lost.' },
   reverse: { ar: 'انعكاس: {foe} يفقد دوره و{player} يسحب كارتاً.', en: 'Reverse: {foe} loses their turn and {player} draws a card.' },
+  reverse_dir: {
+    ar: 'انعكاس: انقلب اتجاه الدور، و{player} سحب كارتاً.',
+    en: 'Reverse: turn order flipped, and {player} drew a card.',
+  },
   draw_penalty: { ar: 'عقوبة السحب أصبحت {n}.', en: 'The draw penalty is now {n}.' },
 
   // --- الفخاخ ---
@@ -104,6 +117,7 @@ const BUILTIN_NAMES: Record<string, Localized> = {
   '@ai': { ar: 'الخصم الآلي', en: 'AI opponent' },
   '@coach': { ar: 'المدرّب', en: 'Coach' },
   '@opponent': { ar: 'الخصم', en: 'Opponent' },
+  '@ai2': { ar: 'الخصم الآلي ٢', en: 'AI opponent 2' },
 };
 
 export function playerName(value: string, locale: Locale): string {
@@ -111,7 +125,7 @@ export function playerName(value: string, locale: Locale): string {
   return b ? tx(b, locale) : value;
 }
 
-const NAME_PARAMS = new Set(['player', 'first', 'second', 'foe', 'winner', 'loser', 'name']);
+const NAME_PARAMS = new Set(['player', 'first', 'second', 'third', 'foe', 'winner', 'loser', 'name']);
 
 /** أسماء معاملات تحتاج ترجمة بدل إدراجها كما هي */
 function resolveParam(name: string, value: string | number, locale: Locale): string {

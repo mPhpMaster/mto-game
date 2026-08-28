@@ -134,6 +134,43 @@ export default function HomeScreen() {
         </div>
 
         <div className="panel mx-auto mt-4 max-w-2xl rounded-2xl p-4">
+          <div className="mb-1 text-sm font-black">{t('ffa3Title')}</div>
+          <p className="mb-3 text-[11px] leading-snug opacity-65">{t('ffa3Intro')}</p>
+          <Link
+            href="/vs?players=3"
+            className="mb-2 block rounded-xl bg-sky-500/90 p-3 text-start text-black transition hover:scale-[1.02] hover:bg-sky-400"
+          >
+            <div className="text-sm font-black">{t('ffa3Online')}</div>
+            <div className="mt-0.5 text-[11px] leading-snug text-black/70">{t('ffa3OnlineDesc')}</div>
+          </Link>
+          <div className="mb-2 text-[12px] font-bold opacity-80">{t('ffa3VsAi')}</div>
+          <div className="grid gap-2 sm:grid-cols-3">
+            {(Object.keys(DIFFICULTIES) as Difficulty[]).map((id) => {
+              const d = DIFFICULTIES[id];
+              return (
+                <Link
+                  key={`ffa3-${id}`}
+                  href={`/play?players=3&level=${id}`}
+                  className="rounded-xl bg-violet-500/80 p-3 text-start text-black transition hover:scale-[1.03] hover:bg-violet-400"
+                >
+                  <div className="text-sm font-black">
+                    {d.short} {L(d.label)}
+                  </div>
+                  <div className="mt-0.5 text-[11px] leading-snug text-black/70">{t('ffa3VsAiDesc')}</div>
+                </Link>
+              );
+            })}
+          </div>
+          <Link
+            href="/local?players=3"
+            className="mt-2 block rounded-xl bg-white/8 p-3 text-start transition hover:scale-[1.02] hover:bg-white/15"
+          >
+            <div className="text-sm font-black">{t('ffa3Hotseat')}</div>
+            <div className="mt-0.5 text-[11px] leading-snug opacity-65">{t('ffa3HotseatDesc')}</div>
+          </Link>
+        </div>
+
+        <div className="panel mx-auto mt-4 max-w-2xl rounded-2xl p-4">
           <div className="mb-3 text-sm font-black">{t('playFriend')}</div>
           <div className="grid gap-2 sm:grid-cols-2">
             <Link

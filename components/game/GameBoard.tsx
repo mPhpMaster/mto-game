@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
-import { aiChooseAction } from '@/lib/game/ai';
+import { aiChooseAction, stampAutoPlay } from '@/lib/game/ai';
 import {
   ELEMENT_ICON,
   ELEMENT_NAME,
   ELEMENTS,
   FRAGMENT_NAME,
   HAND_KIND_ORDER,
+  HIDDEN_CARD_ID,
   TITAN,
   def,
 } from '@/lib/game/cards';
@@ -34,8 +35,9 @@ import {
   TUTORIAL_STEPS,
   type TutorialFocus,
 } from '@/lib/game/tutorial';
-import type { CardDef, CardInstance, GameAction, GameState, PlayableElement } from '@/lib/game/types';
+import type { CardDef, CardInstance, GameAction, GameState, PlayableElement, Seat, SetTrap } from '@/lib/game/types';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { DEFAULT_TURN_SECONDS } from '@/lib/multiplayer/turnClock';
 import { playSfx, primeAudio } from '@/lib/audio/sfx';
 import { pickSfx } from '@/lib/audio/logSfx';
 import LanguageSwitch from '@/components/LanguageSwitch';
@@ -43,13 +45,12 @@ import SoundToggle from '@/components/SoundToggle';
 import CardDetail from './CardDetail';
 import CardView, { CardBack, ELEMENT_HEX, numberLabel, type CardSize } from './CardView';
 import MonsterView from './MonsterView';
+import TurnClock from './TurnClock';
 
 type Pending =
   | { kind: 'element'; uid: string }
   | { kind: 'target'; uid: string; need: NonNullable<ReturnType<typeof def>['needsTarget']> }
   | null;
-
-const other = (seat: 0 | 1): 0 | 1 => (seat === 0 ? 1 : 0);
 
 /** lg = تخطيط الكمبيوتر (سطران). دونه = الجوال (سطر واحد). */
 const visibleHandLayout = () =>
@@ -93,7 +94,8 @@ function newGame(
   seed: number | undefined,
   tutorial: boolean,
   difficulty: Difficulty,
-  names: { you: string; ai: string; coach: string }
+  names: { you: string; ai: string; coach: string; ai2: string },
+  playerCount: number
 ): GameState {
   return tutorial
     ? createGame({
@@ -111,6 +113,15 @@ function newGame(
         opponentName: names.ai,
         opponentIsAI: true,
         difficulty,
+        playerCount,
+        roster:
+          playerCount >= 3
+            ? [
+                { name: names.you, isAI: false },
+                { name: names.ai, isAI: true },
+                { name: names.ai2, isAI: true },
+              ]
+            : undefined,
       });
 }
 
@@ -119,7 +130,7 @@ export interface GameBoardProps {
   tutorial?: boolean;
   difficulty?: Difficulty;
   /** خانة اللاعب على اللوحة — تتغيّر في اللعب الجماعي */
-  mySeat?: 0 | 1;
+  mySeat?: Seat;
   /**
    * وضع مُدار من الخارج (اللعب الجماعي): الحالة تأتي جاهزة والحركات تُرسَل
    * إلى الحَكَم بدل تطبيقها محلياً.
@@ -128,12 +139,16 @@ export interface GameBoardProps {
   onAction?: (action: GameAction) => void;
   /** تمرير الجهاز بين لاعبَين على نفس الشاشة */
   hotseat?: boolean;
+  /** عدد اللاعبين في مباراة ضد الآلي (2 أو 3) */
+  playerCount?: number;
   /** مُنشئ مباراة مخصّص (أسماء اللاعبين مثلاً) — يُستعمل أيضاً عند «مباراة جديدة» */
   makeGame?: () => GameState;
   /** شريط معلومات إضافي أعلى اللوحة (حالة الغرفة مثلاً) */
   banner?: React.ReactNode;
   /** يستبدل أزرار نافذة النهاية */
   endActions?: React.ReactNode;
+  /** مهلة الجولة بالثواني — عند انتهائها يلعب الكمبيوتر عن اللاعب الحالي */
+  turnSeconds?: number;
 }
 
 export default function GameBoard({
@@ -144,27 +159,32 @@ export default function GameBoard({
   externalState,
   onAction,
   hotseat = false,
+  playerCount = 2,
   makeGame,
   banner,
   endActions,
+  turnSeconds = DEFAULT_TURN_SECONDS,
 }: GameBoardProps) {
   const { t, L, logText, outcomeText, reason, name: pname } = useLocale();
   const [level, setLevel] = useState<Difficulty>(difficulty);
-  const names = { you: '@you', ai: '@ai', coach: '@coach' };
+  const names = { you: '@you', ai: '@ai', coach: '@coach', ai2: '@ai2' };
   const [internalGame, setInternalGame] = useState<GameState>(
-    () => makeGame?.() ?? newGame(seed, tutorial, difficulty, names)
+    () => makeGame?.() ?? newGame(seed, tutorial, difficulty, names, playerCount)
   );
   const controlled = externalState !== undefined;
   const game = controlled ? externalState : internalGame;
   const setGame = setInternalGame;
 
   // في تمرير الجهاز تتبع الخانة صاحبَ الدور، وفي اللعب الجماعي تكون ثابتة
-  const ME: 0 | 1 = hotseat ? game.current : (mySeat ?? 0);
-  const FOE: 0 | 1 = other(ME);
+  const ME: Seat = hotseat ? game.current : (mySeat ?? 0);
+  const foeSeats: Seat[] = game.players.map((_, i) => i).filter((i) => i !== ME);
+  const FOE: Seat = foeSeats[0] ?? (ME === 0 ? 1 : 0);
   const [step, setStep] = useState(0);
   const [showHelp, setShowHelp] = useState(false);
-  /** كارت مفتوح شرحه (ضغط مطوّل أو ضغطة على كارت لا يمكن لعبه) */
-  const [detail, setDetail] = useState<{ card: CardDef; reason?: string } | null>(null);
+  /** كارت مفتوح شرحه (ضغط مطوّل أو ضغطة على كارت لا يمكن لعبه أو اطّلاع على فخ) */
+  const [detail, setDetail] = useState<{ card: CardDef; reason?: string; peekUid?: string } | null>(
+    null
+  );
   const [attackers, setAttackers] = useState<string[]>([]);
   const [pending, setPending] = useState<Pending>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -187,6 +207,13 @@ export default function GameBoard({
   const lastSfxIndex = useRef(0);
 
   const aiSteps = useRef<{ turn: number; n: number }>({ turn: -1, n: 0 });
+  const [autoPlaying, setAutoPlaying] = useState(false);
+  const autoPlayingRef = useRef(false);
+  const autoPlayTurnRef = useRef<number | null>(null);
+  const [turnDeadline, setTurnDeadline] = useState<number | null>(null);
+  const deadlineTurnRef = useRef(-1);
+  const gameRef = useRef(game);
+  gameRef.current = game;
   const savedRef = useRef(false);
   const logEnd = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
@@ -194,6 +221,20 @@ export default function GameBoard({
   const me = game.players[ME];
   const foe = game.players[FOE];
   const myTurn = game.current === ME && game.phase !== 'ended';
+  const canAct = myTurn && !autoPlaying;
+  const turnLimit = Number(turnSeconds) > 0 ? Number(turnSeconds) : DEFAULT_TURN_SECONDS;
+  const clockOn =
+    !tutorial &&
+    !controlled &&
+    !autoPlaying &&
+    game.phase !== 'ended' &&
+    !game.players[game.current]?.isAI &&
+    !(hotseat && readyTurn !== game.turn);
+  const clockEpochKey = clockOn ? `${game.seed}:${game.turn}:${game.current}` : '';
+
+  useEffect(() => {
+    if (showCurtain) setDetail(null);
+  }, [showCurtain]);
 
   const flash = useCallback((msg: string) => {
     playSfx('error');
@@ -216,6 +257,7 @@ export default function GameBoard({
 
   const dispatch = useCallback(
     (action: GameAction) => {
+      if (autoPlayingRef.current) return;
       setAttackers([]);
       setPending(null);
       // الوضع المُدار من الخارج: الحَكَم هو من يطبّق الحركة، لا هذه الشاشة
@@ -230,18 +272,32 @@ export default function GameBoard({
     [controlled, onAction, game, setGame, tutorial, advanceLesson]
   );
 
-  // ---------- حلقة الخصم الآلي ----------
+  // ---------- حلقة الخصم الآلي + اللعب التلقائي عند انتهاء المهلة ----------
   useEffect(() => {
-    // لا خصم آلي في اللعب الجماعي ولا في تمرير الجهاز
-    if (controlled || hotseat) return;
-    if (game.phase === 'ended') return;
-    if (!game.players[game.current].isAI) return;
+    if (controlled) return;
+    if (game.phase === 'ended') {
+      if (autoPlaying) {
+        autoPlayingRef.current = false;
+        setAutoPlaying(false);
+      }
+      return;
+    }
+
+    if (autoPlaying && autoPlayTurnRef.current !== game.turn) {
+      autoPlayingRef.current = false;
+      setAutoPlaying(false);
+    }
+
+    const seatIsAI = game.players[game.current].isAI;
+    const thisTurnAuto = autoPlayingRef.current && autoPlayTurnRef.current === game.turn;
+    if (hotseat && !thisTurnAuto) return;
+    if (!seatIsAI && !thisTurnAuto) return;
 
     if (aiSteps.current.turn !== game.turn) aiSteps.current = { turn: game.turn, n: 0 };
 
     const timer = window.setTimeout(() => {
       // في التعليم لا يهاجم المدرّب — يمرّر دوره ليبقى الدرس متوقّعاً
-      if (tutorial) {
+      if (tutorial && seatIsAI && !thisTurnAuto) {
         const action =
           game.phase === 'respond'
             ? ({ type: 'ACCEPT_DRAW' } as const)
@@ -252,16 +308,61 @@ export default function GameBoard({
         return;
       }
       setGame((g) => {
-        if (g.phase === 'ended' || !g.players[g.current].isAI) return g;
+        if (g.phase === 'ended') return g;
+        const playingAI = g.players[g.current].isAI;
+        const playingAuto = autoPlayingRef.current && autoPlayTurnRef.current === g.turn;
+        if (!playingAI && !playingAuto) return g;
         aiSteps.current.n += 1;
-        const action =
-          aiSteps.current.n > 40 ? ({ type: 'END_TURN' } as const) : aiChooseAction(g);
+        const force =
+          g.phase === 'respond'
+            ? ({ type: 'ACCEPT_DRAW' } as const)
+            : ({ type: 'END_TURN' } as const);
+        const action = aiSteps.current.n > 40 ? force : aiChooseAction(g);
         return applyGameAction(g, action);
       });
     }, game.phase === 'respond' ? 500 : 900);
 
     return () => window.clearTimeout(timer);
-  }, [game, tutorial, advanceLesson, controlled, hotseat, setGame]);
+  }, [game, tutorial, advanceLesson, controlled, hotseat, setGame, autoPlaying]);
+
+  // ---------- مهلة الجولة: عند الصفر يلعب الكمبيوتر عن اللاعب البشري ----------
+  useEffect(() => {
+    if (!clockOn) {
+      setTurnDeadline(null);
+      deadlineTurnRef.current = -1;
+      return;
+    }
+    const expectedTurn = game.turn;
+    deadlineTurnRef.current = expectedTurn;
+    setTurnDeadline(Date.now() + turnLimit * 1000);
+    const timer = window.setTimeout(() => {
+      const g = gameRef.current;
+      if (g.phase === 'ended' || g.players[g.current].isAI) return;
+      if (g.turn !== expectedTurn) return;
+      if (autoPlayingRef.current) return;
+      autoPlayingRef.current = true;
+      autoPlayTurnRef.current = g.turn;
+      setAutoPlaying(true);
+      setPending(null);
+      setAttackers([]);
+      setGame((prev) => {
+        if (prev.phase === 'ended' || prev.players[prev.current].isAI) {
+          autoPlayingRef.current = false;
+          autoPlayTurnRef.current = null;
+          queueMicrotask(() => setAutoPlaying(false));
+          return prev;
+        }
+        if (prev.turn !== expectedTurn) {
+          autoPlayingRef.current = false;
+          autoPlayTurnRef.current = null;
+          queueMicrotask(() => setAutoPlaying(false));
+          return prev;
+        }
+        return stampAutoPlay(prev);
+      });
+    }, turnLimit * 1000);
+    return () => window.clearTimeout(timer);
+  }, [clockOn, clockEpochKey, turnLimit, game.turn, setGame]);
 
   // ---------- حفظ نتيجة المباراة ----------
   useEffect(() => {
@@ -345,11 +446,16 @@ export default function GameBoard({
     };
 
     if (battle.type === 'strike') {
-      const targetEl =
+      const faceSel =
         battle.target === 'face'
-          ? root.querySelector(battle.entry.side === ME ? '[data-face="foe"]' : '[data-face="me"]')
-          : root.querySelector(`[data-uid="${battle.target}"]`) ??
-            root.querySelector(battle.entry.side === ME ? '[data-field="foe"]' : '[data-field="me"]');
+          ? `[data-face="p${
+              battle.targetSeat ?? (battle.entry.side === ME ? FOE : ME)
+            }"]`
+          : null;
+      const targetEl = faceSel
+        ? root.querySelector(faceSel)
+        : root.querySelector(`[data-uid="${battle.target}"]`) ??
+          root.querySelector(`[data-field="p${battle.targetSeat ?? FOE}"]`);
       const dest = center(targetEl);
       if (!dest) return;
       const next: Record<string, { dx: number; dy: number }> = {};
@@ -365,13 +471,12 @@ export default function GameBoard({
     const fromEl =
       battle.entry.side === ME
         ? root.querySelector('[data-hand]')
-        : root.querySelector('[data-field="foe"]');
-    const sideField = battle.entry.side === ME ? 'me' : 'foe';
+        : root.querySelector(`[data-field="p${battle.entry.side}"]`);
     const toEl =
       battle.dest === 'flow'
         ? root.querySelector('[data-flow]')
-        : root.querySelector(`[data-field="${sideField}"] [data-uid]:last-of-type`) ??
-          root.querySelector(`[data-field="${sideField}"]`);
+        : root.querySelector(`[data-field="p${battle.entry.side}"] [data-uid]:last-of-type`) ??
+          root.querySelector(`[data-field="p${battle.entry.side}"]`);
     const from = center(fromEl) ?? { x: window.innerWidth / 2, y: window.innerHeight - 80 };
     const to = center(toEl) ?? from;
     setFly({ left: from.x - 43, top: from.y - 61, tx: to.x - from.x, ty: to.y - from.y });
@@ -380,10 +485,10 @@ export default function GameBoard({
   // ---------- مساعدات ----------
   const playableUids = useMemo(() => {
     const set = new Set<string>();
-    if (!myTurn) return set;
+    if (!canAct) return set;
     for (const c of me.hand) if (canPlayCard(game, ME, c.uid).ok) set.add(c.uid);
     return set;
-  }, [game, me.hand, myTurn, ME]);
+  }, [game, me.hand, canAct, ME]);
 
   /**
    * ترتيب اليد على ثلاثة مستويات: القابل للعب أوّلاً، ثم داخل كل مجموعة حسب
@@ -471,7 +576,7 @@ export default function GameBoard({
 
   const titanCheck = canSummonTitan(game, ME);
   const canRescueDraw =
-    myTurn && game.phase === 'main' && !me.extraDrawUsed && !hasAnyPlayable(game, ME);
+    canAct && game.phase === 'main' && !me.extraDrawUsed && !hasAnyPlayable(game, ME);
 
   const discardMonsters = useMemo(
     () => game.discard.filter((c) => def(c.defId).kind === 'monster'),
@@ -483,8 +588,15 @@ export default function GameBoard({
     const card = def(game.players[ME].hand.find((c) => c.uid === uid)!.defId);
     const check = canPlayCard(game, ME, uid);
     // الكارت الممنوع: افتح شرحه بدل إطلاق رسالة خطأ تختفي
-    if (!myTurn || !check.ok) {
-      setDetail({ card, reason: myTurn ? reason(check.reason) || t('cannotPlay') : t('waitYourTurn') });
+    if (!canAct || !check.ok) {
+      setDetail({
+        card,
+        reason: autoPlaying
+          ? t('autoPlaying')
+          : canAct
+            ? reason(check.reason) || t('cannotPlay')
+            : t('waitYourTurn'),
+      });
       return;
     }
     const d = card;
@@ -500,7 +612,7 @@ export default function GameBoard({
   }
 
   function toggleAttacker(uid: string) {
-    if (!myTurn || game.phase !== 'main') return;
+    if (!canAct || game.phase !== 'main') return;
     if (me.attackLocked) return flash(t('netLocked'));
     const m = me.field.find((x) => x.uid === uid)!;
     if (m.sick) return flash(t('monsterSick'));
@@ -510,16 +622,44 @@ export default function GameBoard({
     );
   }
 
-  function launchAttack(target: string | 'face') {
+  function launchAttack(target: string | 'face', targetSeat?: Seat) {
     if (!attackers.length) return flash(t('pickAttacker'));
     const res = evaluateAttack(game, ME, attackers);
     if (!res.ok) return flash(reason(res.reason) || t('invalidAttack'));
-    if (target === 'face' && foe.field.length > 0)
-      return flash(t('clearFoeFirst'));
-    dispatch({ type: 'ATTACK', attackers, target });
+    if (target === 'face') {
+      const seat = targetSeat ?? (foeSeats.length === 1 ? foeSeats[0] : undefined);
+      if (seat === undefined) return flash(t('pickEitherOpponent'));
+      if (game.players[seat].field.length > 0) return flash(t('clearFoeFirst'));
+      dispatch({ type: 'ATTACK', attackers, target: 'face', targetSeat: seat });
+      return;
+    }
+    dispatch({ type: 'ATTACK', attackers, target, targetSeat });
+  }
+
+  function peekOwnTrap(slot: SetTrap) {
+    if (slot.defId === HIDDEN_CARD_ID) return;
+    const card = def(slot.defId);
+    setDetail((cur) =>
+      cur?.peekUid === slot.uid ? null : { card, reason: t('ownTrapPeek'), peekUid: slot.uid }
+    );
   }
 
   const targeting = pending?.kind === 'target' ? pending.need : null;
+  const comboHint = !comboPreview
+    ? null
+    : comboPreview.ok
+      ? `${
+          attackers.length > 1
+            ? t('comboPreview', { damage: comboPreview.damage })
+            : t('attackPreview', { damage: comboPreview.damage })
+        } ${
+          foeSeats.some((seat) => game.players[seat].field.length > 0)
+            ? foeSeats.length > 1
+              ? t('pickEitherOpponent')
+              : t('pickFoeMonster')
+            : t('pressDirect')
+        }`
+      : reason(comboPreview.reason);
 
   /** backdrop-filter على .panel يحبس z-index — ارفع الإطار كلّه فوق الجيران أثناء الاندفاع */
   const fieldIsStriking = (field: GameState['players'][0]['field']) =>
@@ -549,9 +689,13 @@ export default function GameBoard({
     setSaveState('idle');
     setAttackers([]);
     setPending(null);
+    setDetail(null);
+    autoPlayingRef.current = false;
+    autoPlayTurnRef.current = null;
+    setAutoPlaying(false);
     setStep(0);
     setLevel(nextLevel);
-    setGame(makeGame?.() ?? newGame(undefined, tutorial, nextLevel, names));
+    setGame(makeGame?.() ?? newGame(undefined, tutorial, nextLevel, names, playerCount));
   }
 
   function renderHandCard(c: CardInstance, size: CardSize) {
@@ -560,14 +704,14 @@ export default function GameBoard({
     const isFresh = freshUids.includes(c.uid);
     const livePlayable = !pending && playableUids.has(c.uid);
     return (
-      <div key={c.uid} data-fresh={isFresh ? '1' : '0'} className="shrink-0">
+      <div key={c.uid} data-fresh={isFresh ? '1' : '0'} data-card-id={d.id} className="shrink-0">
         <CardView
           card={d}
           size={size}
           fresh={isFresh}
           playable={livePlayable}
           // المصغّر دائماً خافت؛ وأثناء اختيار الهدف تُجمّد اليد كلّها
-          dimmed={size === 'xs' || Boolean(pending) || (myTurn && !playableUids.has(c.uid))}
+          dimmed={size === 'xs' || Boolean(pending) || autoPlaying || (canAct && !playableUids.has(c.uid))}
           onClick={pending ? undefined : () => onHandCard(c.uid)}
           onLongPress={() =>
             setDetail({
@@ -587,7 +731,7 @@ export default function GameBoard({
 
   // ---------- العرض ----------
   return (
-    <div ref={boardRef} className="flex min-h-screen max-w-full flex-col overflow-x-clip lg:flex-row">
+    <div ref={boardRef} data-players={game.players.length} className="flex min-h-screen max-w-full flex-col overflow-x-clip lg:flex-row">
       <main className="flex min-w-0 flex-1 flex-col gap-2 p-2 sm:p-3">
         {/* شريط علوي */}
         <header className="panel flex flex-wrap items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs">
@@ -617,15 +761,21 @@ export default function GameBoard({
               className={`rounded-md px-2 py-1 font-bold ${
                 myTurn ? 'bg-emerald-500/25 text-emerald-200' : 'bg-white/10 opacity-70'
               }`}
+              data-clock={clockOn ? 'on' : 'off'}
             >
               {game.phase === 'ended'
                 ? t('ended')
-                : myTurn
-                  ? hotseat
-                    ? t('playerTurn', { name: pname(me.name) })
-                    : t('yourTurn')
-                  : t('playerTurn', { name: pname(foe.name) })}
+                : autoPlaying
+                  ? t('autoPlaying')
+                  : myTurn
+                    ? hotseat
+                      ? t('playerTurn', { name: pname(me.name) })
+                      : t('yourTurn')
+                    : t('playerTurn', { name: pname(game.players[game.current].name) })}
             </span>
+            {!controlled && clockOn && (
+              <TurnClock deadline={turnDeadline} seconds={turnLimit} isMyTurn={myTurn} />
+            )}
             <SoundToggle />
             <LanguageSwitch compact />
             <button
@@ -651,6 +801,17 @@ export default function GameBoard({
         </header>
 
         {banner}
+
+        {autoPlaying && (
+          <div
+            className="rounded-xl border border-amber-400/40 bg-amber-400/15 px-3 py-2 text-center text-sm font-black text-amber-100"
+            role="status"
+            aria-live="polite"
+            data-autoplay="1"
+          >
+            {t('autoPlaying')}
+          </div>
+        )}
 
         {/* شريط المدرّب */}
         {lesson && (
@@ -703,54 +864,98 @@ export default function GameBoard({
           </section>
         )}
 
-        {/* الخصم */}
-        <section className={`panel rounded-xl p-2 ${focusRing('foeField')} ${strikePanelClass(foe.field)}`}>
-          <PlayerStrip
-            state={foe}
-            align="start"
-            face="foe"
-            impact={
-              battle?.type === 'strike' && battle.target === 'face' && battle.entry.side === ME
-                ? battle.damage
-                : 0
-            }
-          />
-          <div data-field="foe" className={`relative mt-2 flex min-h-[92px] flex-wrap items-start gap-2 ${fieldIsStriking(foe.field) ? 'z-30 overflow-visible' : ''}`}>
-            {foe.field.length === 0 && (
-              <EmptySlot text={t('noFoeMonsters')} />
-            )}
-            {foe.field.map((m) => (
-              <div key={m.uid} data-uid={m.uid} className={monsterWrapClass(m.uid)}>
-                <MonsterView
-                  monster={m}
-                  strike={strikeDelta[m.uid] ?? null}
-                  hit={battle?.type === 'strike' && battle.target === m.uid}
-                  targetable={
-                    (attackers.length > 0 && myTurn) || targeting === 'enemy_monster'
+        {/* الخصوم — واحد في 1 ضد 1، واثنان جنباً إلى جنب في 1 ضد 1 ضد 1 */}
+        <div
+          data-foes={foeSeats.length}
+          className={
+            foeSeats.length > 1
+              ? 'grid min-w-0 gap-2 sm:grid-cols-2'
+              : 'min-w-0'
+          }
+        >
+          {foeSeats.map((seat) => {
+            const foeP = game.players[seat];
+            const isCurrent = game.current === seat;
+            const canHitFace =
+              attackers.length > 0 && canAct && foeP.field.length === 0 && !foeP.eliminated;
+            return (
+              <section
+                key={seat}
+                data-seat={seat}
+                className={`panel min-w-0 rounded-xl p-2 ${
+                  seat === FOE ? focusRing('foeField') : ''
+                } ${strikePanelClass(foeP.field)} ${
+                  foeP.eliminated ? 'opacity-55' : ''
+                } ${isCurrent ? 'ring-1 ring-amber-300/50' : ''}`}
+              >
+                <PlayerStrip
+                  state={foeP}
+                  align="start"
+                  face={`p${seat}`}
+                  current={isCurrent}
+                  impact={
+                    battle?.type === 'strike' &&
+                    battle.target === 'face' &&
+                    (battle.targetSeat === seat ||
+                      (battle.targetSeat === undefined && battle.entry.side === ME && seat === FOE))
+                      ? battle.damage
+                      : 0
                   }
-                  onClick={
-                    targeting === 'enemy_monster'
-                      ? () => pickTarget(m.uid)
-                      : attackers.length > 0 && myTurn
-                        ? () => launchAttack(m.uid)
-                        : undefined
-                  }
+                  onFaceClick={canHitFace ? () => launchAttack('face', seat) : undefined}
                 />
-                {battle?.type === 'strike' && battle.target === m.uid && battle.damage > 0 && (
-                  <span className="damage-pop pointer-events-none absolute start-1/2 top-0 z-40 text-lg font-black text-rose-300 drop-shadow">
-                    −{battle.damage}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-          <TrapRow
-            traps={foe.traps}
-            hidden
-            selectable={targeting === 'enemy_trap'}
-            onPick={pickTarget}
-          />
-        </section>
+                <div
+                  data-field={`p${seat}`}
+                  className={`relative mt-2 flex min-h-[92px] flex-wrap items-start gap-2 ${
+                    fieldIsStriking(foeP.field) ? 'z-30 overflow-visible' : ''
+                  }`}
+                >
+                  {foeP.field.length === 0 && (
+                    <EmptySlot
+                      text={
+                        foeP.eliminated
+                          ? t('eliminatedTag')
+                          : canHitFace
+                            ? t('attackFaceNamed', { name: pname(foeP.name) })
+                            : t('noFoeMonsters')
+                      }
+                      onClick={canHitFace ? () => launchAttack('face', seat) : undefined}
+                    />
+                  )}
+                  {foeP.field.map((m) => (
+                    <div key={m.uid} data-uid={m.uid} className={monsterWrapClass(m.uid)}>
+                      <MonsterView
+                        monster={m}
+                        strike={strikeDelta[m.uid] ?? null}
+                        hit={battle?.type === 'strike' && battle.target === m.uid}
+                        targetable={
+                          (attackers.length > 0 && canAct) || targeting === 'enemy_monster'
+                        }
+                        onClick={
+                          targeting === 'enemy_monster'
+                            ? () => pickTarget(m.uid)
+                            : attackers.length > 0 && canAct
+                              ? () => launchAttack(m.uid, seat)
+                              : undefined
+                        }
+                      />
+                      {battle?.type === 'strike' && battle.target === m.uid && battle.damage > 0 && (
+                        <span className="damage-pop pointer-events-none absolute start-1/2 top-0 z-40 text-lg font-black text-rose-300 drop-shadow">
+                          −{battle.damage}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <TrapRow
+                  traps={foeP.traps}
+                  hidden
+                  selectable={targeting === 'enemy_trap'}
+                  onPick={pickTarget}
+                />
+              </section>
+            );
+          })}
+        </div>
 
         {/* الوسط: طابور التدفق */}
         <section
@@ -794,15 +999,15 @@ export default function GameBoard({
 
         {/* أنت */}
         <section className={`panel rounded-xl p-2 ${focusRing('myField')} ${strikePanelClass(me.field)}`}>
-          <TrapRow traps={me.traps} />
-          <div data-field="me" className={`relative mt-2 flex min-h-[92px] flex-wrap items-start gap-2 ${fieldIsStriking(me.field) ? 'z-30 overflow-visible' : ''}`}>
+          <TrapRow traps={me.traps} peekable={!pending} onPeek={peekOwnTrap} />
+          <div data-field={`p${ME}`} className={`relative mt-2 flex min-h-[92px] flex-wrap items-start gap-2 ${fieldIsStriking(me.field) ? 'z-30 overflow-visible' : ''}`}>
             {me.field.length === 0 && <EmptySlot text={t('summonHint', { n: RULES.MAX_FIELD })} />}
             {me.field.map((m) => (
               <div key={m.uid} data-uid={m.uid} className={monsterWrapClass(m.uid)}>
                 <MonsterView
                   monster={m}
                   selected={attackers.includes(m.uid)}
-                  ready={myTurn && !m.sick && !m.exhausted && !me.attackLocked}
+                  ready={canAct && !m.sick && !m.exhausted && !me.attackLocked}
                   strike={strikeDelta[m.uid] ?? null}
                   hit={battle?.type === 'strike' && battle.target === m.uid}
                   onClick={
@@ -823,9 +1028,13 @@ export default function GameBoard({
             <PlayerStrip
               state={me}
               align="end"
-              face="me"
+              face={`p${ME}`}
+              current={myTurn}
               impact={
-                battle?.type === 'strike' && battle.target === 'face' && battle.entry.side !== ME
+                battle?.type === 'strike' &&
+                battle.target === 'face' &&
+                (battle.targetSeat === ME ||
+                  (battle.targetSeat === undefined && battle.entry.side !== ME))
                   ? battle.damage
                   : 0
               }
@@ -843,23 +1052,39 @@ export default function GameBoard({
                 {t('mustDraw', { n: game.pendingDraw })}
               </span>
               <button
+                disabled={autoPlaying}
                 onClick={() => dispatch({ type: 'ACCEPT_DRAW' })}
-                className="rounded-lg bg-rose-500/80 px-3 py-1.5 font-bold hover:bg-rose-500"
+                className="rounded-lg bg-rose-500/80 px-3 py-1.5 font-bold enabled:hover:bg-rose-500 disabled:opacity-35"
               >
                 {t('acceptPenalty')}
               </button>
             </>
           ) : (
             <>
+              {foeSeats.length <= 1 ? (
+                <button
+                  disabled={!attackers.length || game.players[FOE]?.field.length > 0 || autoPlaying}
+                  onClick={() => launchAttack('face', FOE)}
+                  className="rounded-lg bg-orange-500/85 px-3 py-1.5 font-bold enabled:hover:bg-orange-500 disabled:opacity-35"
+                >
+                  {t('attackFace')}
+                </button>
+              ) : (
+                foeSeats
+                  .filter((seat) => !game.players[seat].eliminated && game.players[seat].field.length === 0)
+                  .map((seat) => (
+                    <button
+                      key={seat}
+                      disabled={!attackers.length || autoPlaying}
+                      onClick={() => launchAttack('face', seat)}
+                      className="rounded-lg bg-orange-500/85 px-3 py-1.5 font-bold enabled:hover:bg-orange-500 disabled:opacity-35"
+                    >
+                      {t('attackFaceNamed', { name: pname(game.players[seat].name) })}
+                    </button>
+                  ))
+              )}
               <button
-                disabled={!attackers.length || foe.field.length > 0}
-                onClick={() => launchAttack('face')}
-                className="rounded-lg bg-orange-500/85 px-3 py-1.5 font-bold enabled:hover:bg-orange-500 disabled:opacity-35"
-              >
-                {t('attackFace')}
-              </button>
-              <button
-                disabled={!attackers.length}
+                disabled={!attackers.length || autoPlaying}
                 onClick={() => setAttackers([])}
                 className="rounded-lg bg-white/10 px-3 py-1.5 enabled:hover:bg-white/20 disabled:opacity-35"
               >
@@ -874,7 +1099,7 @@ export default function GameBoard({
                 {t('drawCard')}
               </button>
               <button
-                disabled={!titanCheck.ok}
+                disabled={!titanCheck.ok || autoPlaying}
                 onClick={() => dispatch({ type: 'SUMMON_TITAN' })}
                 title={reason(titanCheck.reason)}
                 className={`rounded-lg px-3 py-1.5 font-black disabled:opacity-35 ${
@@ -886,7 +1111,7 @@ export default function GameBoard({
                 {t('summonTitan', { titan: L(TITAN.name) })}
               </button>
               <button
-                disabled={!myTurn || game.phase !== 'main'}
+                disabled={!canAct || game.phase !== 'main'}
                 onClick={() => dispatch({ type: 'END_TURN' })}
                 className="ms-auto rounded-lg bg-emerald-500/85 px-4 py-1.5 font-bold enabled:hover:bg-emerald-500 disabled:opacity-35"
               >
@@ -895,19 +1120,13 @@ export default function GameBoard({
             </>
           )}
 
-          {comboPreview && (
+          {comboPreview && comboHint && (
             <span
               className={`w-full rounded-lg px-2 py-1 ${
                 comboPreview.ok ? 'bg-emerald-500/15 text-emerald-200' : 'bg-rose-500/15 text-rose-200'
               }`}
             >
-              {comboPreview.ok
-                ? `${
-                    attackers.length > 1
-                      ? t('comboPreview', { damage: comboPreview.damage })
-                      : t('attackPreview', { damage: comboPreview.damage })
-                  } ${foe.field.length ? t('pickFoeMonster') : t('pressDirect')}`
-                : reason(comboPreview.reason)}
+              {comboHint}
             </span>
           )}
         </section>
@@ -1003,7 +1222,7 @@ export default function GameBoard({
                       ? 'bg-orange-500/12 text-orange-100'
                       : l.side === ME
                         ? 'bg-emerald-500/10'
-                        : l.side === FOE
+                        : l.side !== null
                           ? 'bg-sky-500/10'
                           : 'bg-white/5 opacity-70'
               }`}
@@ -1183,14 +1402,14 @@ export default function GameBoard({
             <p className="mt-2 text-sm opacity-70">
               {t('handHidden')}
             </p>
-            <div className="mt-4 flex justify-center gap-4 text-xs opacity-60">
+            <div className="mt-4 flex flex-wrap justify-center gap-3 text-xs opacity-60">
               <span>{t('turnLabel', { n: game.turn })}</span>
-              <span>
-                ❤ {pname(me.name)}: {me.hp}
-              </span>
-              <span>
-                ❤ {pname(foe.name)}: {foe.hp}
-              </span>
+              {game.players.map((p) => (
+                <span key={p.id}>
+                  ❤ {pname(p.name)}: {p.hp}
+                  {p.eliminated ? ` (${t('eliminatedTag')})` : ''}
+                </span>
+              ))}
             </div>
             <button
               onClick={() => setReadyTurn(game.turn)}
@@ -1203,7 +1422,12 @@ export default function GameBoard({
       )}
 
       {detail && (
-        <CardDetail card={detail.card} reason={detail.reason} onClose={() => setDetail(null)} />
+        <CardDetail
+          card={detail.card}
+          reason={detail.reason}
+          trapPeek={Boolean(detail.peekUid)}
+          onClose={() => setDetail(null)}
+        />
       )}
 
       {/* مرجع سريع */}
@@ -1300,20 +1524,45 @@ function PlayerStrip({
   align,
   face,
   impact = 0,
+  current = false,
+  onFaceClick,
 }: {
   state: GameState['players'][0];
   align: 'start' | 'end';
-  face: 'me' | 'foe';
+  face: string;
   impact?: number;
+  current?: boolean;
+  onFaceClick?: () => void;
 }) {
   const { t: tr, L, name: pn } = useLocale();
-  const hpPct = Math.round((state.hp / state.maxHp) * 100);
+  const hpPct = Math.round((state.hp / Math.max(1, state.maxHp)) * 100);
   return (
     <div
       data-face={face}
-      className={`relative flex flex-wrap items-center gap-2 text-xs ${align === 'end' ? 'justify-end' : ''}`}
+      data-current={current ? '1' : undefined}
+      role={onFaceClick ? 'button' : undefined}
+      tabIndex={onFaceClick ? 0 : undefined}
+      onClick={onFaceClick}
+      onKeyDown={
+        onFaceClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onFaceClick();
+              }
+            }
+          : undefined
+      }
+      className={`relative flex flex-wrap items-center gap-2 text-xs ${align === 'end' ? 'justify-end' : ''} ${
+        onFaceClick ? 'cursor-pointer rounded-lg ring-2 ring-orange-400/80' : ''
+      }`}
     >
       <span className="font-black">{pn(state.name)}</span>
+      {state.eliminated && (
+        <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-bold opacity-70">
+          {tr('eliminatedTag')}
+        </span>
+      )}
 
       <div className="flex items-center gap-1">
         <span className="text-emerald-300">❤</span>
@@ -1376,31 +1625,55 @@ function TrapRow({
   traps,
   hidden,
   selectable,
+  peekable,
   onPick,
+  onPeek,
 }: {
   traps: GameState['players'][0]['traps'];
   hidden?: boolean;
   selectable?: boolean;
+  peekable?: boolean;
   onPick?: (uid: string) => void;
+  onPeek?: (slot: SetTrap) => void;
 }) {
-  const { t: tr, L } = useLocale();
+  const { t: tr } = useLocale();
   if (traps.length === 0) return null;
   return (
     <div className="mt-2 flex items-center gap-2">
       <span className="text-[10px] opacity-50">{tr('trapsLabel')}</span>
-      {traps.map((slot) => (
-        <button
-          key={slot.uid}
-          disabled={!selectable}
-          onClick={() => onPick?.(slot.uid)}
-          className={`rounded-md border border-fuchsia-400/40 bg-fuchsia-500/15 px-2 py-1 text-[10px] ${
-            selectable ? 'cursor-pointer ring-2 ring-rose-400 glow-pulse' : ''
-          }`}
-          title={hidden ? tr('faceDownTrap') : L(def(slot.defId).text)}
-        >
-          🕸️ {hidden ? tr('faceDown') : L(def(slot.defId).name)}
-        </button>
-      ))}
+      {traps.map((slot) => {
+        const canPeek = Boolean(peekable && !hidden && slot.defId !== HIDDEN_CARD_ID);
+        const clickable = Boolean(selectable || canPeek);
+        const label = hidden
+          ? tr('faceDownTrap')
+          : canPeek
+            ? tr('peekTrapHint')
+            : tr('faceDownTrap');
+        return (
+          <button
+            key={slot.uid}
+            type="button"
+            disabled={!clickable}
+            data-trap={hidden ? 'foe' : 'own'}
+            data-trap-uid={slot.uid}
+            onClick={() => {
+              if (selectable) onPick?.(slot.uid);
+              else if (canPeek) onPeek?.(slot);
+            }}
+            className={`rounded-md bg-transparent p-0 disabled:opacity-100 ${
+              selectable
+                ? 'cursor-pointer ring-2 ring-rose-400 glow-pulse'
+                : canPeek
+                  ? 'cursor-pointer ring-1 ring-fuchsia-300/70 hover:ring-2 hover:ring-fuchsia-200 focus-visible:ring-2 focus-visible:ring-fuchsia-200'
+                  : 'cursor-default opacity-90'
+            }`}
+            title={label}
+            aria-label={label}
+          >
+            <CardBack size="xs" label={tr('faceDown')} />
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -1439,9 +1712,26 @@ function HandSplit({ title }: { title: string }) {
   );
 }
 
-function EmptySlot({ text }: { text: string }) {
+function EmptySlot({ text, onClick }: { text: string; onClick?: () => void }) {
   return (
-    <div className="grid h-[92px] flex-1 place-items-center rounded-xl border border-dashed border-white/12 text-[11px] opacity-40">
+    <div
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={
+        onClick
+          ? (e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                onClick();
+              }
+            }
+          : undefined
+      }
+      className={`grid h-[92px] flex-1 place-items-center rounded-xl border border-dashed border-white/12 text-[11px] opacity-40 ${
+        onClick ? 'cursor-pointer opacity-90 ring-2 ring-orange-400/70' : ''
+      }`}
+    >
       {text}
     </div>
   );
