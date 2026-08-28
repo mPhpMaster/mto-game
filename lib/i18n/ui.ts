@@ -55,6 +55,11 @@ export const UI = {
     ar: 'تمرّرون الجهاز بينكم. الستارة تخفي اليد عند كل تسليم.',
     en: 'Pass the device around. The curtain hides each hand at handover.',
   },
+  ffa3Online: { ar: '🌐 1 ضد 1 ضد 1 أونلاين', en: '🌐 Online 1v1v1' },
+  ffa3OnlineDesc: {
+    ar: 'ثلاثة لاعبين من ثلاثة أجهزة — غرفة برمز، وكلٌّ يرى يده فقط.',
+    en: 'Three players on three devices — a room code, and each sees only their own hand.',
+  },
   playerThreeName: { ar: 'اللاعب الثالث', en: 'Player Three' },
   attackFaceNamed: { ar: '⚔ هجوم مباشر على {name}', en: '⚔ Attack {name} directly' },
   pickEitherOpponent: {
@@ -77,8 +82,8 @@ export const UI = {
   browseCards: { ar: 'تصفّح الكروت', en: 'Browse cards' },
   history: { ar: 'السجل', en: 'History' },
   footerNote: {
-    ar: 'النسخة الأولية: مواجهات 1 ضد 1 و1 ضد 1 ضد 1 ضد خصم آلي أو على جهاز واحد.',
-    en: 'Early build: 1v1 and 1v1v1 duels against AI or on one device.',
+    ar: 'النسخة الأولية: مواجهات 1 ضد 1 و1 ضد 1 ضد 1 — ضد الآلي، على جهاز واحد، أو أونلاين برمز غرفة.',
+    en: 'Early build: 1v1 and 1v1v1 — vs AI, on one device, or online with a room code.',
   },
 
   // --- قواعد الصفحة الرئيسية ---
@@ -303,27 +308,60 @@ export const UI = {
 
   // --- أونلاين ---
   onlineLobbyTitle: { ar: '🌐 العب مع صديقك أونلاين', en: '🌐 Play online with a friend' },
+  onlineLobbyTitle3: { ar: '🌐 1 ضد 1 ضد 1 أونلاين', en: '🌐 Online 1v1v1' },
+  onlineModeDuel: { ar: '1 ضد 1', en: '1v1' },
+  onlineModeFfa3: { ar: '1 ضد 1 ضد 1', en: '1v1v1' },
   yourName: { ar: 'اسمك', en: 'Your name' },
   yourNamePlaceholder: { ar: 'اكتب اسمك', en: 'Enter your name' },
   createRoom: { ar: 'أنشئ غرفة واحصل على رمز', en: 'Create a room and get a code' },
+  createRoom3: { ar: 'أنشئ غرفة لثلاثة لاعبين', en: 'Create a room for three players' },
   orJoin: { ar: 'أو انضم لغرفة صديقك', en: 'Or join your friend’s room' },
   roomCode: { ar: 'رمز الغرفة', en: 'Room code' },
   join: { ar: 'انضمّ', en: 'Join' },
   codeLength: { ar: 'الرمز يتكوّن من {n} خانات', en: 'The code is {n} characters' },
   onlineDisabled: { ar: 'اللعب أونلاين غير مفعّل.', en: 'Online play is not enabled.' },
   needsSupabase: { ar: 'يحتاج إعدادات Supabase. يمكنكما اللعب الآن على', en: 'It needs Supabase configuration. You can still play on' },
+  localTabsHint: {
+    ar: 'تبويبات نفس المتصفّح تعمل الآن بلا إعدادات. للعب من أجهزة مختلفة أضف مفاتيح Supabase العامة (NEXT_PUBLIC_SUPABASE_URL و ANON/PUBLISHABLE KEY).',
+    en: 'Same-browser tabs work now with no extra setup. To play across devices, add the public Supabase keys (NEXT_PUBLIC_SUPABASE_URL and the anon/publishable key).',
+  },
+  crossDeviceOn: {
+    ar: 'اللعب عبر الأجهزة مفعّل عبر Supabase Realtime.',
+    en: 'Cross-device play is enabled via Supabase Realtime.',
+  },
   oneDevice: { ar: 'جهاز واحد', en: 'one device' },
   hostNote: {
     ar: 'المضيف هو من يدير المباراة، فيجب أن يبقى على الصفحة حتى تنتهي. ولا يرى أيٌّ منكما كروت الآخر: يُرسَل لكل لاعب ما يخصّه فقط.',
     en: 'The host runs the match and must stay on the page until it ends. Neither of you sees the other’s cards: each player receives only what concerns them.',
   },
+  hostNote3: {
+    ar: 'ثلاثة مقاعد. تنتظر الغرفة ثلاثة بشر، أو يملأ المضيف الفراغ بالخصم الآلي. المضيف يحكم المباراة ويجب أن يبقى على الصفحة. كل لاعب يرى يده فقط.',
+    en: 'Three seats. The room waits for three humans, or the host fills empties with AI. The host referees and must stay on the page. Each player sees only their own hand.',
+  },
   roomReady: { ar: 'غرفتك جاهزة', en: 'Your room is ready' },
   joining: { ar: 'جارٍ الدخول…', en: 'Joining…' },
   giveCode: { ar: 'أعطِ صديقك هذا الرمز:', en: 'Give your friend this code:' },
+  giveCode3: { ar: 'أعطِ الرمز للاعبَين الآخرين:', en: 'Give this code to the other two players:' },
   copyInvite: { ar: '📋 انسخ رابط الدعوة', en: '📋 Copy the invite link' },
   copied: { ar: '✓ نُسخ الرابط', en: '✓ Link copied' },
   waitingFriend: { ar: 'بانتظار انضمام صديقك…', en: 'Waiting for your friend to join…' },
   waitingHost: { ar: 'بانتظار أن يبدأ المضيف…', en: 'Waiting for the host to start…' },
+  waitingPlayers: {
+    ar: 'بانتظار اللاعبين… {here} من {need} متصلون',
+    en: 'Waiting for players… {here} of {need} connected',
+  },
+  seatLabel: { ar: 'المقعد {n}', en: 'Seat {n}' },
+  seatEmpty: { ar: 'فارغ', en: 'Empty' },
+  fillWithAi: { ar: 'املأ الفراغ بالخصم الآلي', en: 'Fill empty seats with AI' },
+  fillWithAiHint: {
+    ar: 'اختياري — المسار الأساسي ثلاثة بشر. المقاعد الفارغة تصبح خصماً آلياً وتبدأ المباراة.',
+    en: 'Optional — the main path is three humans. Empty seats become AI and the match starts.',
+  },
+  youAreSeat: { ar: 'أنت المقعد {n}', en: 'You are seat {n}' },
+  opponentsAre: { ar: 'الخصوم: {names}', en: 'Opponents: {names}' },
+  roomFull: { ar: 'الغرفة ممتلئة', en: 'This room is full' },
+  viaLocal: { ar: 'مزامنة محلية بين التبويبات', en: 'Local tab sync' },
+  viaRealtime: { ar: 'مزامنة عبر الشبكة', en: 'Network sync' },
   roomLifetime: {
     ar: 'تبقى المباراة قائمة ما دام المضيف على الصفحة. إن أغلقها انتهت الغرفة.',
     en: 'The match lives as long as the host stays on the page. If they close it, the room ends.',

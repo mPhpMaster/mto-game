@@ -17,6 +17,8 @@ export default async function RoomPage({ params, searchParams }: PageProps<'/vs/
   const myName = (rawName ?? '').trim().slice(0, 16) || (isHost ? 'المضيف' : 'الضيف');
 
   const rawSecs = Array.isArray(sp.secs) ? sp.secs[0] : sp.secs;
+  const rawPlayers = Array.isArray(sp.players) ? sp.players[0] : sp.players;
+  const playerCount = rawPlayers === '3' ? 3 : 2;
 
   return (
     <OnlineGame
@@ -24,6 +26,7 @@ export default async function RoomPage({ params, searchParams }: PageProps<'/vs/
       role={isHost ? 'host' : 'guest'}
       myName={myName}
       turnSeconds={parseTurnSeconds(rawSecs)}
+      playerCount={playerCount}
     />
   );
 }

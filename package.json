@@ -25,7 +25,8 @@
     "check:abilities": "tsx scripts/abilities-check.ts",
     "check:autoplay": "tsx scripts/autoplay-check.ts",
     "check:ffa3": "tsx scripts/ffa3-check.ts",
-    "check:chat": "tsx scripts/chat-check.ts"
+    "check:chat": "tsx scripts/chat-check.ts",
+    "check:online": "tsx scripts/online-room-check.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",
