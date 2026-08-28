@@ -23,9 +23,17 @@ export function numberLabel(d: CardDef): string {
   return String(d.number);
 }
 
+export type CardSize = 'xs' | 'sm' | 'md';
+
+const BOX: Record<CardSize, string> = {
+  xs: 'w-[52px] h-[76px] rounded-lg p-0.5',
+  sm: 'w-[86px] h-[122px] rounded-xl p-1.5',
+  md: 'w-[116px] h-[166px] rounded-xl p-2',
+};
+
 interface Props {
   card: CardDef;
-  size?: 'sm' | 'md';
+  size?: CardSize;
   playable?: boolean;
   dimmed?: boolean;
   selected?: boolean;
@@ -52,13 +60,14 @@ export default function CardView({
 }: Props) {
   const { t, L } = useLocale();
   const color = ELEMENT_HEX[card.element];
-  const small = size === 'sm';
+  const tiny = size === 'xs';
+  const small = size === 'sm' || tiny;
   const label = title ?? `${L(card.name)} — ${L(card.text)}`;
 
   const className = [
-    'card-face relative shrink-0 rounded-xl text-right transition-all duration-150',
-    small ? 'w-[86px] h-[122px] p-1.5' : 'w-[116px] h-[166px] p-2',
-    onClick ? 'cursor-pointer hover:-translate-y-1.5' : 'cursor-default',
+    'card-face relative shrink-0 text-right transition-all duration-150',
+    BOX[size],
+    onClick ? (tiny ? 'cursor-pointer hover:-translate-y-0.5' : 'cursor-pointer hover:-translate-y-1.5') : 'cursor-default',
     // الكارت غير القابل للعب يخفت لكن **يبقى ملوّناً**: اللون هو العنصر،
     // وإخفاؤه يمنع اللاعب من التخطيط لدوره القادم. grayscale كان يمحوه.
     dimmed ? 'opacity-75 saturate-[0.85]' : '',
@@ -82,7 +91,7 @@ export default function CardView({
       <div className="flex shrink-0 items-center justify-between gap-1">
         <span
           className={`grid shrink-0 place-items-center rounded-full font-black text-black ${
-            small ? 'size-5 text-[10px]' : 'size-6 text-xs'
+            tiny ? 'size-3.5 text-[8px]' : small ? 'size-5 text-[10px]' : 'size-6 text-xs'
           }`}
           style={{ background: color }}
           title={t('costTip')}
@@ -90,20 +99,20 @@ export default function CardView({
           {card.cost}
         </span>
 
-        {/* شارة العنصر — تبقى واضحة حتى على الكارت الخافت */}
+        {/* شارة العنصر — على الكارت المصغّر يبقى رمز العنصر أوضح من القفل */}
         <span
           className={`grid shrink-0 place-items-center rounded-full bg-black/60 ${
-            small ? 'size-[18px] text-[10px]' : 'size-[21px] text-xs'
+            tiny ? 'size-[14px] text-[8px]' : small ? 'size-[18px] text-[10px]' : 'size-[21px] text-xs'
           }`}
           style={{ boxShadow: `0 0 0 1.5px ${color}` }}
           title={L(ELEMENT_NAME[card.element])}
         >
-          {dimmed ? '🔒' : ELEMENT_ICON[card.element]}
+          {dimmed && !tiny ? '🔒' : ELEMENT_ICON[card.element]}
         </span>
 
         <span
-          className={`shrink-0 rounded-md bg-black/50 px-1.5 font-black tabular-nums ${
-            small ? 'text-[11px]' : 'text-sm'
+          className={`shrink-0 rounded-md bg-black/50 font-black tabular-nums ${
+            tiny ? 'px-0.5 text-[8px]' : small ? 'px-1.5 text-[11px]' : 'px-1.5 text-sm'
           }`}
           style={{ color }}
           title={t('numberTip')}
@@ -115,32 +124,40 @@ export default function CardView({
       {/* رسم الكارت */}
       <CardArt
         card={card}
-        className={small ? 'mt-0.5 h-[32px] w-full shrink-0' : 'mt-1 h-[46px] w-full shrink-0'}
+        className={
+          tiny
+            ? 'mt-0.5 h-[22px] w-full shrink-0'
+            : small
+              ? 'mt-0.5 h-[32px] w-full shrink-0'
+              : 'mt-1 h-[46px] w-full shrink-0'
+        }
       />
 
       {/* الاسم */}
       <div
-        className={`shrink-0 text-center font-bold leading-tight ${
-          small ? 'mt-0.5 text-[10px]' : 'mt-1 text-[12px]'
+        className={`shrink-0 truncate text-center font-bold leading-tight ${
+          tiny ? 'mt-0.5 text-[7px]' : small ? 'mt-0.5 text-[10px]' : 'mt-1 text-[12px]'
         }`}
       >
         {L(card.name)}
       </div>
 
-      {/* النوع/العنصر */}
-      <div
-        className={`shrink-0 text-center leading-tight opacity-70 ${
-          small ? 'text-[8px]' : 'text-[9px]'
-        }`}
-      >
-        {L(KIND_NAME[card.kind])} · {L(ELEMENT_NAME[card.element])}
-        {card.stage === 2 ? ` · ${t('evolvedTag')}` : ''}
-      </div>
+      {/* النوع/العنصر — يُحذف على المصغّر حتى يبقى الكارت قابلاً للتعرّف لا للقراءة */}
+      {!tiny && (
+        <div
+          className={`shrink-0 text-center leading-tight opacity-70 ${
+            small ? 'text-[8px]' : 'text-[9px]'
+          }`}
+        >
+          {L(KIND_NAME[card.kind])} · {L(ELEMENT_NAME[card.element])}
+          {card.stage === 2 ? ` · ${t('evolvedTag')}` : ''}
+        </div>
+      )}
 
       {/* الكتلة السفلى: mt-auto تدفعها للأسفل دون أن تركب على ما فوقها */}
       {card.kind === 'monster' ? (
-        <div className="mt-auto shrink-0 pt-1">
-          {card.ability && card.ability !== 'none' && (
+        <div className="mt-auto shrink-0 pt-0.5">
+          {!tiny && card.ability && card.ability !== 'none' && (
             <div
               className={`mb-0.5 truncate rounded bg-black/45 px-1 text-center ${
                 small ? 'text-[8px]' : 'text-[9px]'
@@ -150,10 +167,14 @@ export default function CardView({
               {L(ABILITY_NAME[card.ability])}
             </div>
           )}
-          <div className={`flex justify-between font-black ${small ? 'text-[10px]' : 'text-xs'}`}>
-            <span className="text-orange-300">⚔ {card.atk}</span>
-            <span className="text-emerald-300">❤ {card.hp}</span>
+          <div className={`flex justify-between font-black ${tiny ? 'text-[7px]' : small ? 'text-[10px]' : 'text-xs'}`}>
+            <span className="text-orange-300">⚔{tiny ? '' : ' '}{card.atk}</span>
+            <span className="text-emerald-300">❤{tiny ? '' : ' '}{card.hp}</span>
           </div>
+        </div>
+      ) : tiny ? (
+        <div className="mt-auto truncate text-center text-[6px] leading-tight opacity-80">
+          {L(KIND_NAME[card.kind])}
         </div>
       ) : (
         <div

@@ -83,6 +83,7 @@ export const GUIDE: GuideSection[] = [
       { ar: 'مرة واحدة في الدور فقط. والوحوش المشاركة كلّها تصبح مُنهكة.', en: 'Once per turn only. Every participating monster becomes exhausted.' },
       { ar: 'الوحش المكتوب عليه «جديد» لا يشارك — إلا إن كان يحمل «اندفاع».', en: 'A monster marked “New” cannot join — unless it has **Rush**.' },
       { ar: 'كارت «تضخيم» يضاعف الهجوم المشترك القادم في نفس الدور.', en: 'The **Amplify** spell doubles your next combo attack that turn.' },
+      { ar: 'سقف الساحة 6 وحوش — فالتشكيلة الكبيرة للدمج لم تعد تُقطَع عند الرابع.', en: 'The field holds 6 monsters — a wide combo line is no longer cut off at four.' },
     ],
     secret: {
       ar: 'السرّ الأكبر في اللعبة: الضربة الواحدة المجمّعة تتجاوز وحش الخصم الحارس بضربة قاضية، بينما الضربات المنفصلة تتكسّر عليه. وأخطر تركيبة: «تضخيم» + ثلاثة وحوش من عنصر واحد = ضرر يقارب 32، أي أكثر من حياة الخصم كاملة. اجمع وحوشك بصمت دورين، ثم اضرب مرة واحدة.',

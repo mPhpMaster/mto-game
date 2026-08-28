@@ -1,6 +1,6 @@
 'use client';
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { aiChooseAction } from '@/lib/game/ai';
 import {
@@ -33,14 +33,14 @@ import {
   TUTORIAL_STEPS,
   type TutorialFocus,
 } from '@/lib/game/tutorial';
-import type { CardDef, GameAction, GameState, PlayableElement } from '@/lib/game/types';
+import type { CardDef, CardInstance, GameAction, GameState, PlayableElement } from '@/lib/game/types';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { playSfx, primeAudio } from '@/lib/audio/sfx';
 import { pickSfx } from '@/lib/audio/logSfx';
 import LanguageSwitch from '@/components/LanguageSwitch';
 import SoundToggle from '@/components/SoundToggle';
 import CardDetail from './CardDetail';
-import CardView, { CardBack, ELEMENT_HEX, numberLabel } from './CardView';
+import CardView, { CardBack, ELEMENT_HEX, numberLabel, type CardSize } from './CardView';
 import MonsterView from './MonsterView';
 
 type Pending =
@@ -49,6 +49,39 @@ type Pending =
   | null;
 
 const other = (seat: 0 | 1): 0 | 1 => (seat === 0 ? 1 : 0);
+
+const LOG_PREF_KEY = 'mto-match-log';
+let logPref: boolean | null = null;
+const logPrefListeners = new Set<() => void>();
+
+function readLogPref(): boolean {
+  if (logPref !== null) return logPref;
+  try {
+    const stored = window.localStorage.getItem(LOG_PREF_KEY);
+    if (stored === 'on') logPref = true;
+    else if (stored === 'off') logPref = false;
+    // بلا تفضيل محفوظ: الشاشات العريضة كانت تعرض السجل دائماً، والجوال يخفيه
+    else logPref = window.matchMedia('(min-width: 1024px)').matches;
+  } catch {
+    logPref = false;
+  }
+  return logPref;
+}
+
+function writeLogPref(on: boolean): void {
+  logPref = on;
+  try {
+    window.localStorage.setItem(LOG_PREF_KEY, on ? 'on' : 'off');
+  } catch {
+    /* التخزين قد يكون معطّلاً — الإعداد يبقى لهذه الجلسة */
+  }
+  for (const listener of logPrefListeners) listener();
+}
+
+function subscribeLogPref(listener: () => void): () => void {
+  logPrefListeners.add(listener);
+  return () => logPrefListeners.delete(listener);
+}
 
 /** أسماء اللاعبين تُلتقط بلغة الواجهة وقت الإنشاء لأنها تُخزَّن في الحالة */
 function newGame(
@@ -130,7 +163,7 @@ export default function GameBoard({
   const [attackers, setAttackers] = useState<string[]>([]);
   const [pending, setPending] = useState<Pending>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [showLog, setShowLog] = useState(false);
+  const showLog = useSyncExternalStore(subscribeLogPref, readLogPref, () => false);
   const [saveState, setSaveState] = useState<
     'idle' | 'saving' | 'saved' | 'skipped' | 'error'
   >('idle');
@@ -304,14 +337,20 @@ export default function GameBoard({
       .map((x) => x.c);
   }, [game, me.hand, ME]);
 
-  /**
-   * حدّ الفصل بين ما يمكن لعبه وما لا يمكن: اليد مرتّبة بالقابل للعب أوّلاً،
-   * فعدد القابلة في المقدّمة هو موضع الفاصل. نُظهره في دورك فقط ودون اختيار
-   * هدف، وحين توجد المجموعتان معاً — وإلا فلا معنى لفاصل.
-   */
-  const handSplitAt =
-    myTurn && !pending ? orderedHand.filter((c) => playableUids.has(c.uid)).length : -1;
-  const showHandSplit = handSplitAt > 0 && handSplitAt < orderedHand.length;
+  /** فصل ثابت عن الدور: الكروت القانونية أعلى، والموقوفة أسفل — بلا قفز عند تبدّل الدور */
+  const legalUids = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of me.hand) if (canPlayCard(game, ME, c.uid, true).ok) set.add(c.uid);
+    return set;
+  }, [game, me.hand, ME]);
+  const playableHand = useMemo(
+    () => orderedHand.filter((c) => legalUids.has(c.uid)),
+    [orderedHand, legalUids]
+  );
+  const parkedHand = useMemo(
+    () => orderedHand.filter((c) => !legalUids.has(c.uid)),
+    [orderedHand, legalUids]
+  );
 
   /**
    * الكروت التي وصلت اليد للتوّ — تُبرَز ويُمرَّر الشريط إليها.
@@ -329,6 +368,7 @@ export default function GameBoard({
   }
 
   const handScroller = useRef<HTMLDivElement>(null);
+  const handArea = useRef<HTMLDivElement>(null);
   const freshKey = freshUids.join(',');
 
   /**
@@ -345,7 +385,7 @@ export default function GameBoard({
   // تمرير الشريط إلى أول كارت جديد، ثم إطفاء الإبراز
   useEffect(() => {
     if (!freshUids.length) return;
-    const node = handScroller.current?.querySelector<HTMLElement>('[data-fresh="1"]');
+    const node = handArea.current?.querySelector<HTMLElement>('[data-fresh="1"]');
     node?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     const timer = window.setTimeout(() => setFreshUids([]), 2200);
     return () => window.clearTimeout(timer);
@@ -426,10 +466,41 @@ export default function GameBoard({
     setGame(makeGame?.() ?? newGame(undefined, tutorial, nextLevel, names));
   }
 
+  function renderHandCard(c: CardInstance, size: CardSize) {
+    const d = def(c.defId);
+    const check = canPlayCard(game, ME, c.uid);
+    const isFresh = freshUids.includes(c.uid);
+    const livePlayable = !pending && playableUids.has(c.uid);
+    return (
+      <div key={c.uid} data-fresh={isFresh ? '1' : '0'} className="shrink-0">
+        <CardView
+          card={d}
+          size={size}
+          fresh={isFresh}
+          playable={livePlayable}
+          // المصغّر دائماً خافت؛ وأثناء اختيار الهدف تُجمّد اليد كلّها
+          dimmed={size === 'xs' || Boolean(pending) || (myTurn && !playableUids.has(c.uid))}
+          onClick={pending ? undefined : () => onHandCard(c.uid)}
+          onLongPress={() =>
+            setDetail({
+              card: d,
+              reason: check.ok ? undefined : reason(check.reason) || t('cannotPlay'),
+            })
+          }
+          title={
+            check.ok
+              ? `${L(d.name)} — ${L(d.text)}`
+              : `${L(d.name)} — ${L(d.text)}\n⛔ ${reason(check.reason)}`
+          }
+        />
+      </div>
+    );
+  }
+
   // ---------- العرض ----------
   return (
-    <div className="flex min-h-screen flex-col lg:flex-row">
-      <main className="flex flex-1 flex-col gap-2 p-2 sm:p-3">
+    <div className="flex min-h-screen max-w-full flex-col overflow-x-hidden lg:flex-row">
+      <main className="flex min-w-0 flex-1 flex-col gap-2 p-2 sm:p-3">
         {/* شريط علوي */}
         <header className="panel flex flex-wrap items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs">
           <div className="flex items-center gap-3">
@@ -477,10 +548,16 @@ export default function GameBoard({
               {t('howToPlay')}
             </button>
             <button
-              onClick={() => setShowLog((v) => !v)}
-              className="rounded-md bg-white/10 px-2 py-1 lg:hidden"
+              type="button"
+              onClick={() => writeLogPref(!showLog)}
+              aria-pressed={showLog}
+              title={showLog ? t('hideLog') : t('showLog')}
+              aria-label={showLog ? t('hideLog') : t('showLog')}
+              className={`rounded-md px-2 py-1 font-bold ${
+                showLog ? 'bg-emerald-500/25 text-emerald-200' : 'bg-white/10 hover:bg-white/20'
+              }`}
             >
-              {t('history')}
+              📜 {showLog ? t('hideLog') : t('showLog')}
             </button>
           </div>
         </header>
@@ -614,7 +691,7 @@ export default function GameBoard({
         <section className={`panel rounded-xl p-2 ${focusRing('myField')}`}>
           <TrapRow traps={me.traps} />
           <div className="mt-2 flex min-h-[92px] flex-wrap items-start gap-2">
-            {me.field.length === 0 && <EmptySlot text={t('summonHint')} />}
+            {me.field.length === 0 && <EmptySlot text={t('summonHint', { n: RULES.MAX_FIELD })} />}
             {me.field.map((m) => (
               <MonsterView
                 key={m.uid}
@@ -713,73 +790,54 @@ export default function GameBoard({
           )}
         </section>
 
-        {/* اليد */}
-        <section className={`panel rounded-xl p-2 ${focusRing('hand')}`}>
+        {/* اليد: سطران مستقلّان يتمرّران أفقياً حتى لا تتّسع الصفحة مع عقوبة سحب كبيرة */}
+        <section className={`panel min-w-0 overflow-hidden rounded-xl p-2 ${focusRing('hand')}`}>
           <div className="mb-1 flex items-center justify-between text-[11px] opacity-70">
             <span>{t('yourHand', { n: me.hand.length })}</span>
             <span className="truncate">
               {pending ? t('finishTargeting') : `${t('sortedHint')} · ${t('holdForDetails')}`}
             </span>
           </div>
-          <div ref={handScroller} className="thin-scroll flex gap-2 overflow-x-auto pb-2 pt-1">
-            {orderedHand.map((c, i) => {
-              const d = def(c.defId);
-              const check = canPlayCard(game, ME, c.uid);
-              const isFresh = freshUids.includes(c.uid);
-              // فاصل مرئي قبل أوّل كارت لا يمكن لعبه — يفصل المجموعتين
-              const divider = showHandSplit && i === handSplitAt && (
-                <div
-                  key="hand-split"
-                  aria-hidden
-                  className="mx-1 flex shrink-0 flex-col items-center justify-center self-stretch"
-                  title={t('cannotPlay')}
-                >
-                  <div className="w-0 flex-1 border-l border-dashed border-white/25" />
-                  <span className="my-1 text-base leading-none opacity-40">🔒</span>
-                  <div className="w-0 flex-1 border-l border-dashed border-white/25" />
+          <div ref={handArea} className="flex min-w-0 flex-col gap-1.5">
+            {(playableHand.length > 0 || me.hand.length === 0) && (
+              <div
+                ref={handScroller}
+                className="thin-scroll flex w-full min-w-0 gap-2 overflow-x-auto overscroll-x-contain pb-1 pt-1"
+              >
+                {playableHand.map((c) => renderHandCard(c, 'md'))}
+                {me.hand.length === 0 && (
+                  <div className="p-4 text-xs opacity-60">{t('emptyHand')}</div>
+                )}
+              </div>
+            )}
+            {parkedHand.length > 0 && (
+              <div className="min-w-0 rounded-lg bg-black/25 px-1 py-1">
+                <div className="mb-0.5 px-1 text-[10px] font-bold opacity-45">
+                  🔒 {t('unplayableRow')} · {parkedHand.length}
                 </div>
-              );
-              return (
-                <Fragment key={c.uid}>
-                {divider}
-                <div data-fresh={isFresh ? '1' : '0'} className="shrink-0">
-                  <CardView
-                    card={d}
-                    fresh={isFresh}
-                    playable={!pending && playableUids.has(c.uid)}
-                    // أثناء اختيار الهدف تُجمّد اليد حتى لا يستبدل ضغطٌ عابر الكارت الجاري لعبه
-                    dimmed={Boolean(pending) || (myTurn && !playableUids.has(c.uid))}
-                    onClick={pending ? undefined : () => onHandCard(c.uid)}
-                    onLongPress={() =>
-                      setDetail({
-                        card: d,
-                        reason: check.ok ? undefined : reason(check.reason) || t('cannotPlay'),
-                      })
-                    }
-                    title={
-                      check.ok
-                        ? `${L(d.name)} — ${L(d.text)}`
-                        : `${L(d.name)} — ${L(d.text)}\n⛔ ${reason(check.reason)}`
-                    }
-                  />
+                <div className="thin-scroll flex w-full min-w-0 items-end gap-1 overflow-x-auto overscroll-x-contain pb-0.5">
+                  {parkedHand.map((c) => renderHandCard(c, 'xs'))}
                 </div>
-                </Fragment>
-              );
-            })}
-            {me.hand.length === 0 && (
-              <div className="p-4 text-xs opacity-60">{t('emptyHand')}</div>
+              </div>
             )}
           </div>
         </section>
       </main>
 
-      {/* السجل */}
-      <aside
-        className={`panel m-2 w-full shrink-0 rounded-xl p-2 lg:m-3 lg:w-72 ${
-          showLog ? '' : 'hidden lg:block'
-        }`}
-      >
-        <div className="mb-2 text-xs font-bold opacity-80">{t('logTitle')}</div>
+      {showLog && (
+      <aside className="panel m-2 w-full shrink-0 rounded-xl p-2 lg:m-3 lg:w-72">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="text-xs font-bold opacity-80">{t('logTitle')}</div>
+          <button
+            type="button"
+            onClick={() => writeLogPref(false)}
+            className="rounded-md bg-white/10 px-2 py-0.5 text-[11px] font-bold hover:bg-white/20"
+            title={t('hideLog')}
+            aria-label={t('hideLog')}
+          >
+            {t('hideLog')}
+          </button>
+        </div>
         <div className="thin-scroll h-[60vh] space-y-1 overflow-y-auto pe-1 text-[11px] leading-snug lg:h-[calc(100vh-6rem)]">
           {game.log.map((l, i) => (
             <div
@@ -804,6 +862,7 @@ export default function GameBoard({
           <div ref={logEnd} />
         </div>
       </aside>
+      )}
 
       {/* اختيار العنصر للكارت البري */}
       {pending?.kind === 'element' && (
@@ -1009,9 +1068,7 @@ export default function GameBoard({
               القوية تصبح متاحة تدريجياً.
             </HelpRow>
             <HelpRow icon="🐾" title={t('help3')}>
-              الوحش المكتوب عليه «جديد» لا يهاجم في دور استدعائه إلا بخاصية «اندفاع». للهجوم:
-              اضغط وحشك (سيظهر الضرر المتوقّع) ثم اضغط وحش الخصم. الهجوم المباشر على اللاعب
-              متاح فقط حين تخلو ساحته من الوحوش.
+              {t('help3Body', { field: RULES.MAX_FIELD })}
             </HelpRow>
             <HelpRow icon="💥" title={t('help4')}>
               حدّد وحشين أو أكثر يشتركان في العنصر أو الرقم (أو أحدهما بخاصية «رابط») لتضربهما
