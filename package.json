@@ -23,7 +23,8 @@
     "check:curve": "tsx scripts/curve-check.ts",
     "check:opening": "tsx scripts/opening-check.ts",
     "check:abilities": "tsx scripts/abilities-check.ts",
-    "check:autoplay": "tsx scripts/autoplay-check.ts"
+    "check:autoplay": "tsx scripts/autoplay-check.ts",
+    "check:ffa3": "tsx scripts/ffa3-check.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",

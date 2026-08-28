@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { applyAutoPlay } from '@/lib/game/ai';
+import { applyGameAction, createGame } from '@/lib/game/engine';
 import { redactFor } from '@/lib/game/redact';
 import type { GameAction, GameState } from '@/lib/game/types';
 import { MULTIPLAYER_READY, getBrowserSupabase } from '@/lib/supabase/client';
