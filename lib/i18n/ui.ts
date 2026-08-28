@@ -124,7 +124,8 @@ export const UI = {
   greenPlayable: { ar: 'الأخضر = قابل للعب الآن', en: 'Green = playable now' },
   finishTargeting: { ar: 'أكمل اختيار الهدف أولاً', en: 'Finish choosing a target first' },
   emptyHand: { ar: 'يدك فارغة.', en: 'Your hand is empty.' },
-  sortedHint: { ar: 'مُرتّبة: القابل للعب أولاً', en: 'Sorted: playable first' },
+  sortedHint: { ar: 'القابل للعب أعلى — والباقي صغير أسفل', en: 'Playable on top — the rest small below' },
+  unplayableRow: { ar: 'غير قابلة للعب', en: 'Not playable' },
 
   // --- الأوامر ---
   attackFace: { ar: '⚔ هجوم مباشر', en: '⚔ Attack directly' },
