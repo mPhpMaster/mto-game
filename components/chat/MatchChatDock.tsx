@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { isMobileChatSurface, isNativeApp } from '@/lib/chat/platform';
+import { openMicrophoneSettings } from '@/lib/chat/micPermission';
 import { useMatchChat } from '@/lib/chat/useMatchChat';
 
 export default function MatchChatDock({
@@ -179,7 +180,18 @@ export default function MatchChatDock({
               </button>
             )}
             {chat.voiceStatus === 'denied' && (
-              <p className="mt-1 text-[11px] text-amber-200">{micDeniedHint}</p>
+              <div className="mt-1 space-y-1">
+                <p className="text-[11px] text-amber-200">{micDeniedHint}</p>
+                {isNativeApp() && (
+                  <button
+                    type="button"
+                    onClick={() => void openMicrophoneSettings()}
+                    className="w-full rounded-lg bg-amber-500/20 px-2 py-1.5 text-[11px] font-bold text-amber-100 hover:bg-amber-500/30"
+                  >
+                    {t('chatOpenMicSettings')}
+                  </button>
+                )}
+              </div>
             )}
             {chat.voiceStatus === 'error' && (
               <p className="mt-1 text-[11px] text-amber-200">{t('chatMicError')}</p>

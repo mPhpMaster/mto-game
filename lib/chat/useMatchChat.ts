@@ -20,6 +20,7 @@ import type {
   VoiceSignal,
   VoiceStatus,
 } from './types';
+import { ensureMicrophonePermission } from './micPermission';
 import {
   ICE_SERVERS,
   captureMic,
@@ -408,6 +409,12 @@ export function useMatchChat({ code, myName, mySeat }: UseMatchChatOptions): Mat
     setVoiceStatus('requesting');
     try {
       await unlockAudioPlayback();
+      const permitted = await ensureMicrophonePermission();
+      if (!permitted) {
+        setVoiceStatus('denied');
+        voiceOnRef.current = false;
+        return;
+      }
       const stream = await captureMic();
       const startMuted = readMicMuted();
       setStreamMuted(stream, startMuted);

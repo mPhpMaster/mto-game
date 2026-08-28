@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.mto.monsterclash",
+      "sha256_cert_fingerprints": [
+        "08:BA:62:C4:4C:57:B8:89:CD:8E:86:C6:64:61:0D:2A:59:F5:B8:47:45:CE:A1:C5:36:4B:EC:04:78:50:6B:47"
+      ]
+    }
+  }
+]

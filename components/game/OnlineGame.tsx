@@ -6,6 +6,7 @@ import { useRoom, type PublicSeat, type RoomRole } from '@/lib/multiplayer/useRo
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { DEFAULT_TURN_SECONDS } from '@/lib/multiplayer/turnClock';
 import MatchChatDock from '@/components/chat/MatchChatDock';
+import OpenInAppButton from '@/components/OpenInAppButton';
 import GameBoard from './GameBoard';
 import TurnClock from './TurnClock';
 
@@ -86,10 +87,13 @@ export default function OnlineGame({
                 setCopied(true);
                 window.setTimeout(() => setCopied(false), 2000);
               }}
-              className="mb-4 w-full rounded-lg bg-white/12 px-4 py-2 text-sm font-bold hover:bg-white/20"
+              className="mb-3 w-full rounded-lg bg-white/12 px-4 py-2 text-sm font-bold hover:bg-white/20"
             >
               {copied ? t('copied') : t('copyInvite')}
             </button>
+            <div className="mb-4">
+              <OpenInAppButton path={`/vs/${code}`} />
+            </div>
           </>
         ) : (
           <p className="mb-4 text-sm opacity-75">
