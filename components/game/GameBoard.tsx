@@ -646,6 +646,21 @@ export default function GameBoard({
   }
 
   const targeting = pending?.kind === 'target' ? pending.need : null;
+  const comboHint = !comboPreview
+    ? null
+    : comboPreview.ok
+      ? `${
+          attackers.length > 1
+            ? t('comboPreview', { damage: comboPreview.damage })
+            : t('attackPreview', { damage: comboPreview.damage })
+        } ${
+          foeSeats.some((seat) => game.players[seat].field.length > 0)
+            ? foeSeats.length > 1
+              ? t('pickEitherOpponent')
+              : t('pickFoeMonster')
+            : t('pressDirect')
+        }`
+      : reason(comboPreview.reason);
 
   /** backdrop-filter على .panel يحبس z-index — ارفع الإطار كلّه فوق الجيران أثناء الاندفاع */
   const fieldIsStriking = (field: GameState['players'][0]['field']) =>
@@ -1105,25 +1120,13 @@ export default function GameBoard({
             </>
           )}
 
-          {comboPreview && (
+          {comboPreview && comboHint && (
             <span
               className={`w-full rounded-lg px-2 py-1 ${
                 comboPreview.ok ? 'bg-emerald-500/15 text-emerald-200' : 'bg-rose-500/15 text-rose-200'
               }`}
             >
-              {comboPreview.ok
-                ? `${
-                    attackers.length > 1
-                      ? t('comboPreview', { damage: comboPreview.damage })
-                      : t('attackPreview', { damage: comboPreview.damage })
-                  } ${
-                    foeSeats.some((seat) => game.players[seat].field.length > 0)
-                      ? foeSeats.length > 1
-                        ? t('pickEitherOpponent')
-                        : t('pickFoeMonster')
-                      : t('pressDirect')
-                  }`}
-                : reason(comboPreview.reason)}
+              {comboHint}
             </span>
           )}
         </section>
