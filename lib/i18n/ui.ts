@@ -344,6 +344,7 @@ export const UI = {
   giveCode3: { ar: 'أعطِ الرمز للاعبَين الآخرين:', en: 'Give this code to the other two players:' },
   copyInvite: { ar: '📋 انسخ رابط الدعوة', en: '📋 Copy the invite link' },
   copied: { ar: '✓ نُسخ الرابط', en: '✓ Link copied' },
+  openInApp: { ar: '📱 افتح في التطبيق', en: '📱 Open in app' },
   waitingFriend: { ar: 'بانتظار انضمام صديقك…', en: 'Waiting for your friend to join…' },
   waitingHost: { ar: 'بانتظار أن يبدأ المضيف…', en: 'Waiting for the host to start…' },
   waitingPlayers: {
@@ -481,8 +482,12 @@ export const UI = {
     en: 'The browser blocked the microphone. Allow access and try again.',
   },
   chatMicDeniedNative: {
-    ar: 'التطبيق رفض الميكروفون. اسمح بالوصول من إعدادات التطبيق ثم أعد المحاولة.',
-    en: 'The app blocked the microphone. Allow it in app settings and try again.',
+    ar: 'التطبيق يحتاج إذن الميكروفون للصوت. اسمح من النافذة أو من إعدادات التطبيق ثم أعد المحاولة.',
+    en: 'The app needs microphone access for voice chat. Allow it in the prompt or app settings, then try again.',
+  },
+  chatOpenMicSettings: {
+    ar: 'فتح إعدادات التطبيق',
+    en: 'Open app settings',
   },
   chatMicError: { ar: 'تعذّر فتح الميكروفون.', en: 'Could not open the microphone.' },
   chatVoiceUnsupported: { ar: 'الصوت غير مدعوم في هذا المتصفّح.', en: 'Voice is not supported in this browser.' },
