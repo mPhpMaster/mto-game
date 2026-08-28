@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { aiChooseAction } from '@/lib/game/ai';
 import {
@@ -49,6 +49,39 @@ type Pending =
   | null;
 
 const other = (seat: 0 | 1): 0 | 1 => (seat === 0 ? 1 : 0);
+
+const LOG_PREF_KEY = 'mto-match-log';
+let logPref: boolean | null = null;
+const logPrefListeners = new Set<() => void>();
+
+function readLogPref(): boolean {
+  if (logPref !== null) return logPref;
+  try {
+    const stored = window.localStorage.getItem(LOG_PREF_KEY);
+    if (stored === 'on') logPref = true;
+    else if (stored === 'off') logPref = false;
+    // بلا تفضيل محفوظ: الشاشات العريضة كانت تعرض السجل دائماً، والجوال يخفيه
+    else logPref = window.matchMedia('(min-width: 1024px)').matches;
+  } catch {
+    logPref = false;
+  }
+  return logPref;
+}
+
+function writeLogPref(on: boolean): void {
+  logPref = on;
+  try {
+    window.localStorage.setItem(LOG_PREF_KEY, on ? 'on' : 'off');
+  } catch {
+    /* التخزين قد يكون معطّلاً — الإعداد يبقى لهذه الجلسة */
+  }
+  for (const listener of logPrefListeners) listener();
+}
+
+function subscribeLogPref(listener: () => void): () => void {
+  logPrefListeners.add(listener);
+  return () => logPrefListeners.delete(listener);
+}
 
 /** أسماء اللاعبين تُلتقط بلغة الواجهة وقت الإنشاء لأنها تُخزَّن في الحالة */
 function newGame(
@@ -130,7 +163,7 @@ export default function GameBoard({
   const [attackers, setAttackers] = useState<string[]>([]);
   const [pending, setPending] = useState<Pending>(null);
   const [toast, setToast] = useState<string | null>(null);
-  const [showLog, setShowLog] = useState(false);
+  const showLog = useSyncExternalStore(subscribeLogPref, readLogPref, () => false);
   const [saveState, setSaveState] = useState<
     'idle' | 'saving' | 'saved' | 'skipped' | 'error'
   >('idle');
@@ -515,10 +548,16 @@ export default function GameBoard({
               {t('howToPlay')}
             </button>
             <button
-              onClick={() => setShowLog((v) => !v)}
-              className="rounded-md bg-white/10 px-2 py-1 lg:hidden"
+              type="button"
+              onClick={() => writeLogPref(!showLog)}
+              aria-pressed={showLog}
+              title={showLog ? t('hideLog') : t('showLog')}
+              aria-label={showLog ? t('hideLog') : t('showLog')}
+              className={`rounded-md px-2 py-1 font-bold ${
+                showLog ? 'bg-emerald-500/25 text-emerald-200' : 'bg-white/10 hover:bg-white/20'
+              }`}
             >
-              {t('history')}
+              📜 {showLog ? t('hideLog') : t('showLog')}
             </button>
           </div>
         </header>
@@ -785,13 +824,20 @@ export default function GameBoard({
         </section>
       </main>
 
-      {/* السجل */}
-      <aside
-        className={`panel m-2 w-full shrink-0 rounded-xl p-2 lg:m-3 lg:w-72 ${
-          showLog ? '' : 'hidden lg:block'
-        }`}
-      >
-        <div className="mb-2 text-xs font-bold opacity-80">{t('logTitle')}</div>
+      {showLog && (
+      <aside className="panel m-2 w-full shrink-0 rounded-xl p-2 lg:m-3 lg:w-72">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <div className="text-xs font-bold opacity-80">{t('logTitle')}</div>
+          <button
+            type="button"
+            onClick={() => writeLogPref(false)}
+            className="rounded-md bg-white/10 px-2 py-0.5 text-[11px] font-bold hover:bg-white/20"
+            title={t('hideLog')}
+            aria-label={t('hideLog')}
+          >
+            {t('hideLog')}
+          </button>
+        </div>
         <div className="thin-scroll h-[60vh] space-y-1 overflow-y-auto pe-1 text-[11px] leading-snug lg:h-[calc(100vh-6rem)]">
           {game.log.map((l, i) => (
             <div
@@ -816,6 +862,7 @@ export default function GameBoard({
           <div ref={logEnd} />
         </div>
       </aside>
+      )}
 
       {/* اختيار العنصر للكارت البري */}
       {pending?.kind === 'element' && (

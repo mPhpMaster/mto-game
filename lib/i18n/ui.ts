@@ -110,6 +110,8 @@ export const UI = {
   playerTurn: { ar: 'دور {name}', en: '{name}’s turn' },
   howToPlay: { ar: '؟ كيف ألعب', en: '? How to play' },
   logTitle: { ar: 'سجل المباراة', en: 'Match log' },
+  showLog: { ar: 'إظهار السجل', en: 'Show log' },
+  hideLog: { ar: 'إخفاء السجل', en: 'Hide log' },
   deckPile: { ar: 'السطح', en: 'Deck' },
   flowPile: { ar: 'طابور التدفق', en: 'Flow pile' },
   activeElement: { ar: 'العنصر الفعّال', en: 'Active element' },
