@@ -11,9 +11,21 @@ interface Props {
   ready?: boolean;
   targetable?: boolean;
   onClick?: () => void;
+  /** انزلاق نحو الهدف ثم عودة */
+  strike?: { dx: number; dy: number } | null;
+  /** وميض الاصطدام على المدافع */
+  hit?: boolean;
 }
 
-export default function MonsterView({ monster, selected, ready, targetable, onClick }: Props) {
+export default function MonsterView({
+  monster,
+  selected,
+  ready,
+  targetable,
+  onClick,
+  strike,
+  hit,
+}: Props) {
   const { t, L } = useLocale();
   const d = def(monster.defId);
   const color = ELEMENT_HEX[d.element];
@@ -35,16 +47,25 @@ export default function MonsterView({ monster, selected, ready, targetable, onCl
       title={label}
       aria-label={label}
       className={[
-        'pop-in relative w-[104px] rounded-xl p-2 text-right transition-all',
+        'relative w-[104px] rounded-xl p-2 text-right',
+        strike || hit ? '' : 'transition-all',
+        strike ? 'strike-lunge' : hit ? 'hit-impact' : 'pop-in',
         onClick ? 'cursor-pointer hover:-translate-y-1' : 'cursor-default',
         selected ? 'ring-2 ring-white -translate-y-1' : '',
         ready && !selected ? 'ring-1 ring-emerald-400/70' : '',
         targetable ? 'ring-2 ring-rose-400 glow-pulse' : '',
-        monster.exhausted || monster.sick ? 'opacity-60' : '',
+        !strike && (monster.exhausted || monster.sick) ? 'opacity-60' : '',
       ].join(' ')}
       style={{
         background: `linear-gradient(160deg, ${color}44 0%, rgba(10,12,24,0.95) 70%)`,
         border: `1px solid ${color}70`,
+        ...(strike
+          ? ({
+              '--dx': `${strike.dx}px`,
+              '--dy': `${strike.dy}px`,
+              '--rot': strike.dx > 0 ? '8deg' : '-8deg',
+            } as React.CSSProperties)
+          : {}),
       }}
     >
       <div className="flex items-center justify-between">

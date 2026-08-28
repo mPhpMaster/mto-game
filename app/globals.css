@@ -132,3 +132,63 @@ body {
 .glow-pulse {
   animation: glow-pulse 1.6s ease-in-out infinite;
 }
+
+/* المهاجم يندفع نحو الهدف ثم يعود — حتى يُرى الضرب لا أن يختفي في السجل */
+@keyframes strike-lunge {
+  0% { transform: translate(0, 0) scale(1) rotate(0); }
+  42% { transform: translate(var(--dx, 0), var(--dy, 0)) scale(1.08) rotate(var(--rot, -6deg)); }
+  55% { transform: translate(calc(var(--dx, 0) * 0.88), calc(var(--dy, 0) * 0.88)) scale(1.14); }
+  100% { transform: translate(0, 0) scale(1) rotate(0); }
+}
+.strike-lunge {
+  animation: strike-lunge 0.58s cubic-bezier(0.2, 0.85, 0.25, 1) both;
+  z-index: 30;
+  position: relative;
+}
+
+@keyframes hit-impact {
+  0%, 100% { filter: none; transform: translateX(0); }
+  20% { filter: brightness(2.2) saturate(0.35); transform: translateX(-6px) scale(0.96); }
+  45% { filter: brightness(1.4); transform: translateX(5px) scale(1.04); }
+  70% { transform: translateX(-3px); }
+}
+.hit-impact {
+  animation: hit-impact 0.42s ease-out both;
+  z-index: 20;
+  position: relative;
+}
+
+@keyframes damage-pop {
+  0% { opacity: 0; transform: translate(-50%, 8px) scale(0.6); }
+  25% { opacity: 1; transform: translate(-50%, -8px) scale(1.15); }
+  100% { opacity: 0; transform: translate(-50%, -36px) scale(0.9); }
+}
+.damage-pop {
+  animation: damage-pop 0.9s ease-out both;
+}
+
+@keyframes battle-caption {
+  0% { opacity: 0; transform: translateY(-8px) scale(0.96); }
+  12% { opacity: 1; transform: none; }
+  78% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-4px); }
+}
+.battle-caption {
+  animation: battle-caption 1.35s ease-out both;
+}
+
+@keyframes play-fly {
+  0% { opacity: 0.95; transform: translate(0, 0) scale(0.72) rotate(-10deg); }
+  62% { opacity: 1; transform: translate(var(--tx, 0), var(--ty, 0)) scale(1.05) rotate(3deg); }
+  100% { opacity: 0; transform: translate(var(--tx, 0), var(--ty, 0)) scale(0.4) rotate(0deg); }
+}
+.play-fly {
+  animation: play-fly 0.58s cubic-bezier(0.22, 0.9, 0.3, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .strike-lunge,
+  .play-fly {
+    animation: hit-impact 0.3s ease-out both;
+  }
+}
