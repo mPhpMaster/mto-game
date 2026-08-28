@@ -3,6 +3,7 @@
  *   npx tsx scripts/chat-check.ts
  */
 import { CHAT_MAX_LEN, filterMutedText, sanitizeChatText } from '../lib/chat/text';
+import { isMobileChatSurface, isNativeApp } from '../lib/chat/platform';
 
 let failures = 0;
 const fail = (m: string) => {
@@ -41,6 +42,12 @@ else ok('كتم نص الخصم يُخفي رسائله ويبقي رسائلك'
 const keepOwn = filterMutedText(msgs, new Set(['me']), 'me');
 if (keepOwn.length !== 3) fail('كتم نفسك لا يجب أن يخفي رسائلك في السجل');
 else ok('رسائلك تظهر حتى لو الكتم يشمل معرّفك بالخطأ');
+
+if (isNativeApp()) fail('isNativeApp يجب أن يكون false خارج المتصفّح');
+else ok('كشف التطبيق الأصلي آمن على الخادم');
+
+if (isMobileChatSurface()) fail('isMobileChatSurface يجب أن يكون false خارج المتصفّح');
+else ok('كشف واجهة الجوال آمن على الخادم');
 
 console.log(failures === 0 ? '✓ دردشة الغرفة: التنظيف والكتم.' : `✗ ${failures} مشكلة في الدردشة.`);
 process.exit(failures > 0 ? 1 : 0);

@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { isMobileChatSurface, isNativeApp } from '@/lib/chat/platform';
 import { useMatchChat } from '@/lib/chat/useMatchChat';
 
 export default function MatchChatDock({
@@ -54,6 +55,8 @@ export default function MatchChatDock({
 
   const micBusy = chat.voiceStatus === 'requesting';
   const micOn = chat.voiceEnabled && !chat.micMuted;
+  const mobile = isMobileChatSurface();
+  const micDeniedHint = isNativeApp() ? t('chatMicDeniedNative') : t('chatMicDenied');
   const timeFmt = (ts: number) =>
     new Intl.DateTimeFormat(locale === 'ar' ? 'ar' : 'en', {
       hour: '2-digit',
@@ -61,10 +64,17 @@ export default function MatchChatDock({
     }).format(ts);
 
   return (
-    <div className="pointer-events-none fixed end-3 bottom-3 z-[45] flex flex-col items-end gap-2">
+    <div
+      className="pointer-events-none fixed end-3 z-[45] flex flex-col items-end gap-2"
+      style={{ bottom: mobile ? 'calc(env(safe-area-inset-bottom, 0px) + 0.75rem)' : '0.75rem' }}
+    >
       {open && (
         <section
-          className="pointer-events-auto panel flex max-h-[min(70vh,32rem)] w-[min(calc(100vw-1.5rem),22rem)] flex-col overflow-hidden rounded-2xl shadow-2xl motion-safe:pop-in"
+          className={`pointer-events-auto panel flex flex-col overflow-hidden rounded-2xl shadow-2xl motion-safe:pop-in ${
+            mobile
+              ? 'max-h-[min(72dvh,34rem)] w-[min(calc(100vw-1.5rem),24rem)]'
+              : 'max-h-[min(70vh,32rem)] w-[min(calc(100vw-1.5rem),22rem)]'
+          }`}
           role="dialog"
           aria-labelledby={titleId}
           aria-modal="false"
@@ -97,6 +107,7 @@ export default function MatchChatDock({
                   {t('you')} · {myName}
                 </span>
                 <IconBtn
+                  compact={mobile}
                   pressed={micOn}
                   disabled={micBusy || chat.voiceStatus === 'unsupported'}
                   onClick={chat.toggleMic}
@@ -105,7 +116,7 @@ export default function MatchChatDock({
                   }
                   title={
                     chat.voiceStatus === 'denied'
-                      ? t('chatMicDenied')
+                      ? micDeniedHint
                       : chat.voiceStatus === 'unsupported'
                         ? t('chatVoiceUnsupported')
                         : micOn
@@ -116,6 +127,7 @@ export default function MatchChatDock({
                   <span className={micOn ? '' : 'opacity-40 line-through'}>🎤</span>
                 </IconBtn>
                 <IconBtn
+                  compact={mobile}
                   pressed={chat.deafened}
                   onClick={chat.toggleDeafen}
                   label={chat.deafened ? t('chatDeafenOn') : t('chatDeafenOff')}
@@ -123,7 +135,7 @@ export default function MatchChatDock({
                   {chat.deafened ? '🔇' : '🔈'}
                 </IconBtn>
                 {chat.voiceEnabled && (
-                  <IconBtn onClick={chat.leaveVoice} label={t('chatLeaveVoice')}>
+                  <IconBtn compact={mobile} onClick={chat.leaveVoice} label={t('chatLeaveVoice')}>
                     ✕
                   </IconBtn>
                 )}
@@ -145,6 +157,7 @@ export default function MatchChatDock({
                       </span>
                     )}
                     <IconBtn
+                      compact={mobile}
                       pressed={muted}
                       onClick={() => chat.toggleMutePeer(p.peerId)}
                       label={muted ? t('chatUnmutePeer', { name: p.name }) : t('chatMutePeer', { name: p.name })}
@@ -166,7 +179,7 @@ export default function MatchChatDock({
               </button>
             )}
             {chat.voiceStatus === 'denied' && (
-              <p className="mt-1 text-[11px] text-amber-200">{t('chatMicDenied')}</p>
+              <p className="mt-1 text-[11px] text-amber-200">{micDeniedHint}</p>
             )}
             {chat.voiceStatus === 'error' && (
               <p className="mt-1 text-[11px] text-amber-200">{t('chatMicError')}</p>
@@ -241,7 +254,9 @@ export default function MatchChatDock({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="pointer-events-auto relative flex size-12 items-center justify-center rounded-full bg-emerald-500 text-xl font-black text-black shadow-lg hover:bg-emerald-400"
+        className={`pointer-events-auto relative flex items-center justify-center rounded-full bg-emerald-500 font-black text-black shadow-lg hover:bg-emerald-400 ${
+          mobile ? 'size-14 text-2xl' : 'size-12 text-xl'
+        }`}
         aria-expanded={open}
         aria-controls={open ? titleId : undefined}
         aria-label={open ? t('chatClose') : unread ? t('chatUnread', { n: unread }) : t('chatOpen')}
@@ -264,6 +279,7 @@ function IconBtn({
   title,
   pressed,
   disabled,
+  compact = false,
 }: {
   children: ReactNode;
   onClick: () => void;
@@ -271,6 +287,7 @@ function IconBtn({
   title?: string;
   pressed?: boolean;
   disabled?: boolean;
+  compact?: boolean;
 }) {
   return (
     <button
@@ -280,9 +297,9 @@ function IconBtn({
       aria-label={label}
       aria-pressed={pressed}
       title={title ?? label}
-      className={`grid size-7 shrink-0 place-items-center rounded-md text-sm hover:bg-white/15 disabled:opacity-40 ${
-        pressed ? 'bg-white/20' : 'bg-white/8'
-      }`}
+      className={`grid shrink-0 place-items-center rounded-md text-sm hover:bg-white/15 disabled:opacity-40 ${
+        compact ? 'size-9' : 'size-7'
+      } ${pressed ? 'bg-white/20' : 'bg-white/8'}`}
     >
       {children}
     </button>

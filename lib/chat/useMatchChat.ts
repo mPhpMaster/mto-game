@@ -24,8 +24,10 @@ import {
   ICE_SERVERS,
   captureMic,
   isOfferInitiator,
+  playRemoteAudio,
   setStreamMuted,
   stopStream,
+  unlockAudioPlayback,
   voiceSupported,
 } from './voice';
 
@@ -105,6 +107,7 @@ export function useMatchChat({ code, myName, mySeat }: UseMatchChatOptions): Mat
 
   const applyAllRemoteAudio = useCallback(() => {
     for (const id of remotesRef.current.keys()) applyRemoteAudioState(id);
+    for (const remote of remotesRef.current.values()) void playRemoteAudio(remote.el);
   }, [applyRemoteAudioState]);
 
   const dropRemote = useCallback((peerId: string) => {
@@ -148,9 +151,7 @@ export function useMatchChat({ code, myName, mySeat }: UseMatchChatOptions): Mat
       remote.stream = stream;
       remote.el.srcObject = stream;
       applyRemoteAudioState(peerId);
-      void remote.el.play().catch(() => {
-        /* سيحاول المستخدم لاحقاً بزر الصوت */
-      });
+      void playRemoteAudio(remote.el);
     },
     [applyRemoteAudioState]
   );
@@ -406,6 +407,7 @@ export function useMatchChat({ code, myName, mySeat }: UseMatchChatOptions): Mat
     joiningRef.current = true;
     setVoiceStatus('requesting');
     try {
+      await unlockAudioPlayback();
       const stream = await captureMic();
       const startMuted = readMicMuted();
       setStreamMuted(stream, startMuted);
