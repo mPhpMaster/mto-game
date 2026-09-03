@@ -217,6 +217,10 @@ export function useRoom({
   useEffect(() => {
     if (!code) return;
 
+    // نسخة محلّية للتنظيف: المرجع لا يُعاد إسناده أبداً، لكن قراءته في دالة
+    // التنظيف تقرأ ما استقرّ عليه وقت الإغلاق لا وقت التركيب.
+    const views = pendingViews.current;
+
     const transport = openRoomTransport(code, clientIdRef.current, {
       onStatus: (connected, nextVia) => {
         setVia(nextVia);
@@ -396,7 +400,7 @@ export function useRoom({
       transport.close();
       transportRef.current = null;
       fullRef.current = null;
-      pendingViews.current.clear();
+      views.clear();
     };
     // الغرفة مربوطة بالرمز والدور فقط
     // eslint-disable-next-line react-hooks/exhaustive-deps

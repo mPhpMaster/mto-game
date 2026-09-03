@@ -37,8 +37,9 @@ export async function POST(request: Request) {
   // فشل أحدهما لا يمنع الآخر.
   const authed = await getAuthSupabase();
   const { data: { user } = { user: null } } = (await authed?.auth.getUser()) ?? { data: { user: null } };
+  let profileError: string | null = null;
   if (authed && user) {
-    await recordMatch(authed, {
+    const { error: rpcError } = await recordMatch(authed, {
       // مباراة الآلي مقعد واحد فلا صفوف تُضَمّ، ومعرّف عشوائي هو الصحيح:
       // الاشتقاق من البذرة كان سيجعل إعادة لعب البذرة نفسها «تقريراً مكرّراً».
       matchId: randomUUID(),
@@ -55,6 +56,9 @@ export async function POST(request: Request) {
       opponents: [],
       stats: m.stats ?? { cards: {}, titans: 0, trapsSet: 0 },
     });
+    // لا يُفشِل الطلب — السجلّ العام يُكتب على أي حال — لكن الصمت التامّ كان
+    // يجعل فشل السياسات والصلاحيات يظهر نجاحاً، فلا يبقى شيء يُختبَر به.
+    if (rpcError) profileError = rpcError.message;
   }
 
   const { error } = await supabase.from(MATCHES_TABLE).insert({
@@ -69,9 +73,9 @@ export async function POST(request: Request) {
   });
 
   if (error) {
-    return NextResponse.json({ saved: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ saved: false, error: error.message, profileError }, { status: 500 });
   }
-  return NextResponse.json({ saved: true });
+  return NextResponse.json({ saved: true, profileError });
 }
 
 export async function GET() {

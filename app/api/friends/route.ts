@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { getAuthSupabase } from '@/lib/supabase/auth-server';
+import { sortedPair } from '@/lib/social/pair';
 import type { FriendEdge, PublicProfile } from '@/lib/social/types';
 
 export const dynamic = 'force-dynamic';
@@ -98,17 +99,16 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  const { data: existing } = await supabase
+  // مصوَّب على الفهرس الفريد (user_lo, user_hi) بدل سرد خمسين صفّاً ثم البحث
+  // فيها: من تجاوز خمسين علاقة كان طلبه المعاكس قد يقع خارج الصفحة فيُرفض بلا سبب.
+  const [lo, hi] = sortedPair(user.id, toUserId);
+  const { data: row } = await supabase
     .from('friendships')
     .select('id, requester_id, addressee_id, status')
-    .or(`requester_id.eq.${toUserId},addressee_id.eq.${toUserId}`)
-    .limit(50);
+    .eq('user_lo', lo)
+    .eq('user_hi', hi)
+    .maybeSingle();
 
-  const row = (existing ?? []).find(
-    (r) =>
-      (r.requester_id === user.id && r.addressee_id === toUserId) ||
-      (r.requester_id === toUserId && r.addressee_id === user.id)
-  );
   if (!row) return NextResponse.json({ error: 'conflict' }, { status: 409 });
   if (row.status === 'accepted') return NextResponse.json({ status: 'accepted' });
 

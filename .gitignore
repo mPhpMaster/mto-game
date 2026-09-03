@@ -46,6 +46,9 @@ next-env.d.ts
 # القالب وحده يُرفع — لا أسرار فيه، والـREADME يحيل إليه
 !.env.example
 
+# حالة CLI محلّية تتغيّر مع كل `supabase link` — لا مكان لها في المستودع
+/supabase/.temp/
+
 # Capacitor / Android
 /android/.gradle
 /android/build

@@ -521,7 +521,7 @@ export default function GameBoard({
     const from = center(fromEl) ?? { x: window.innerWidth / 2, y: window.innerHeight - 80 };
     const to = center(toEl) ?? from;
     setFly({ left: from.x - 43, top: from.y - 61, tx: to.x - from.x, ty: to.y - from.y });
-  }, [battle, ME]);
+  }, [battle, ME, FOE]);
 
   // ---------- مساعدات ----------
   const playableUids = useMemo(() => {

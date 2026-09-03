@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { CHAT_MAX_LEN, sanitizeChatText } from '@/lib/chat/text';
 import { getAuthSupabase } from '@/lib/supabase/auth-server';
+import { sortedPair } from '@/lib/social/pair';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +15,10 @@ const ReadInput = z.object({ peerId: z.string().uuid() });
 /** محادثة واحدة: أحدث 50 رسالة بترتيب زمني تصاعدي للعرض */
 export async function GET(request: Request) {
   const peer = new URL(request.url).searchParams.get('peer');
-  if (!peer) return NextResponse.json({ error: 'bad_input' }, { status: 400 });
+  // بلا تحقّق كانت أي سلسلة تُرسَل إلى عمود uuid فيردّ Postgres بخطأ 500 خاماً
+  if (!peer || !z.string().uuid().safeParse(peer).success) {
+    return NextResponse.json({ error: 'bad_input' }, { status: 400 });
+  }
 
   const supabase = await getAuthSupabase();
   if (!supabase) return NextResponse.json({ configured: false, messages: [] }, { status: 202 });
@@ -24,8 +28,7 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'not_authenticated' }, { status: 401 });
 
-  const lo = user.id < peer ? user.id : peer;
-  const hi = user.id < peer ? peer : user.id;
+  const [lo, hi] = sortedPair(user.id, peer);
 
   const { data, error } = await supabase
     .from('direct_messages')

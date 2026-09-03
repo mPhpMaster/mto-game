@@ -38,6 +38,7 @@
     "check:stats": "tsx scripts/stats-check.ts",
     "check:social": "tsx scripts/social-check.ts",
     "check:archetype": "tsx scripts/archetype-check.ts",
+    "check:config": "tsx scripts/config-check.ts",
     "art:scan": "tsx scripts/scan-art.ts",
     "art:prompts": "tsx scripts/art-prompts.ts"
   },

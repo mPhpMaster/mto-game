@@ -76,7 +76,7 @@ console.log('1 ضد 1 ضد 1:\n');
 }
 
 {
-  let s = ffa3(33, 0);
+  const s = ffa3(33, 0);
   s.turnDir = -1;
   const nxt = nextLiving(s, 0);
   if (nxt === 2) ok('الاتجاه المعكوس: بعد 0 يأتي 2');
@@ -84,7 +84,7 @@ console.log('1 ضد 1 ضد 1:\n');
 }
 
 {
-  let s = ffa3(44, 0);
+  const s = ffa3(44, 0);
   // أفرغ الساحات ليُسمح بالهجوم المباشر على الوجه
   for (const p of s.players) p.field = [];
   const MON = 'mon_fire_lahibo_1';

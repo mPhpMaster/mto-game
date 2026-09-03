@@ -24,6 +24,35 @@ const RegisterInput = z.object({
 });
 
 /**
+ * حالة إعداد الخادم. يستعملها المجسّ أدناه وفرعُ الـ202 في `POST`، فلا
+ * ينحرف نصّ عن نصّ حين يتغيّر أحدهما.
+ */
+function serviceConfig() {
+  const hasUrl = Boolean(process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL);
+  if (getServiceSupabase()) return { ready: true, missing: [] as string[] };
+  return {
+    ready: false,
+    reason: hasUrl ? 'missing_service_role_key' : 'supabase_not_configured',
+    missing: hasUrl
+      ? ['SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SECRET_KEY)']
+      : ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SECRET_KEY)'],
+    hint: 'Set it on Vercel, then redeploy - env changes do not apply to an existing deployment.',
+  };
+}
+
+/**
+ * مجسّ للقراءة فقط — لا يُنشئ شيئاً.
+ *
+ * `getServiceSupabase()` يُنادى من هذا الملف وحده في المشروع كلّه، فبدون هذا
+ * المسار كان إنشاء مستخدم حقيقي هو الطريقة الوحيدة لإثبات أن مفتاح الخدمة
+ * وصل إلى النشر. ولا يكشف جديداً: فرع الـ202 في `POST` يعلن المتغيّر الناقص
+ * لأي زائر أصلاً.
+ */
+export async function GET() {
+  return NextResponse.json(serviceConfig());
+}
+
+/**
  * إنشاء الحساب — الموضع الوحيد الذي يحتاج مفتاح الخدمة.
  *
  * `email_confirm: true` يعني ألا نعتمد على مفتاح «تأكيد البريد» في لوحة
@@ -48,18 +77,7 @@ export async function POST(request: Request) {
     // نفس عقد /api/matches: اللعبة تعمل بلا قاعدة بيانات.
     // السبب يسمّي المتغيّر الناقص بالضبط: الرسالة العامة «غير مهيّأة» تظهر في
     // الواجهة، أما من يفتح أدوات المطوّر فيحتاج أن يعرف ما الذي يضبطه.
-    const hasUrl = Boolean(process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL);
-    return NextResponse.json(
-      {
-        ok: false,
-        reason: hasUrl ? 'missing_service_role_key' : 'supabase_not_configured',
-        missing: hasUrl
-          ? ['SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SECRET_KEY)']
-          : ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SECRET_KEY)'],
-        hint: 'Set it on Vercel, then redeploy - env changes do not apply to an existing deployment.',
-      },
-      { status: 202 }
-    );
+    return NextResponse.json({ ok: false, ...serviceConfig() }, { status: 202 });
   }
 
   const norm = normalizeUsername(username);

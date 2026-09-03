@@ -511,3 +511,19 @@ git push mphpmaster <branch>
 npx supabase db push
 vercel deploy --prod
 ```
+
+## خطّ أساس lint
+
+`npm run lint` يخرج بـ**29 مشكلة**، كلّها اعتراضات مُصرِّف React على أنماط
+متعمَّدة عاملة. الرقم مقصود: هبوطه يعني إصلاحاً، وارتفاعه يعني انحداراً.
+
+| العدد | القاعدة | الموضع | لماذا تُترك |
+|---:|---|---|---|
+| 21 | Cannot access refs during render | `lib/chat/useMatchChat.ts` (13) · `GameBoard.tsx:222` | ستّة منها في [useMatchChat.ts:96-101](lib/chat/useMatchChat.ts) هي نمط «مرجع القيمة الأحدث» الذي يحتاجه خطّاف WebRTC ليقرأ آخر اسم/مقعد/كتم داخل مُعالجات لا تُعاد إنشاؤها؛ واثنان في [:71-72](lib/chat/useMatchChat.ts) تهيئةُ مرجع كسولة |
+| 7 | setState synchronously within an effect | `GameBoard.tsx` 244 · 289 · 339 · `MatchChatDock:34` · `QrScannerModal:37` | تزامنُ حالةِ عرضٍ مع حالة المحرّك بعد كل تغيّر دور |
+| 1 | Compilation Skipped: memoization not preserved | [GameBoard.tsx:267](components/game/GameBoard.tsx) | تنازلُ المُصرِّف عن التذكير، لا خطأ في الكود |
+
+**لماذا لا تُصلَح:** كلّها تقع في `GameBoard.tsx` — الملفّ الذي يملك عدّاد
+الدور — وفي خطّاف الصوت. إصلاحها إعادةُ هيكلةٍ بمخاطر ارتداد حقيقية على
+أسخن مسارين في اللعبة، لا تنظيفٌ سطحي. من يُصلحها فليُثبّت
+`npm run check:clock` و`check:chat` و`check:online` قبل وبعد.

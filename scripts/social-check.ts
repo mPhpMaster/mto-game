@@ -9,6 +9,7 @@
 import { CARD_BY_ID } from '../lib/game/cards';
 import { deriveMatchId, sanitizeCards } from '../lib/social/record';
 import { normalizeUsername } from '../lib/auth/username';
+import { sortedPair } from '../lib/social/pair';
 
 let failures = 0;
 const ok = (m: string) => console.log(`  ✓ ${m}`);
@@ -96,6 +97,33 @@ console.log('الطبقة الاجتماعية:\n');
   }
   if (mismatched === 0) ok('البحث يجد الاسم مهما اختلفت صورته الإملائية');
   else bad(`${mismatched} صورة لا تصل إلى صاحبها في البحث`);
+}
+
+// ---------- ترتيب الزوج يطابق least/greatest في القاعدة ----------
+{
+  const A = '0a1b2c3d-4e5f-6071-8293-a4b5c6d7e8f9';
+  const B = 'f9e8d7c6-b5a4-3928-1706-f5e4d3c2b1a0';
+
+  const [lo, hi] = sortedPair(A, B);
+  if (lo === A && hi === B) ok('الترتيب تصاعديّ كما يفعل least/greatest');
+  else bad(`ترتيب خاطئ: ${lo} قبل ${hi}`);
+
+  const swapped = sortedPair(B, A);
+  if (swapped[0] === lo && swapped[1] === hi) ok('الترتيب متماثل مهما كان ترتيب الوسيطين');
+  else bad('عكس الوسيطين غيّر النتيجة — الطرفان سيقرآن محادثتين مختلفتين');
+
+  // Postgres يخزّن uuid بحروف صغيرة، وحروف ASCII الكبيرة تسبق الصغيرة —
+  // فبلا تصغير يعطي عميلٌ يرسل الحروف كبيرةً ترتيباً معاكساً وصفراً من الصفوف
+  const [uLo, uHi] = sortedPair(A.toUpperCase(), B.toUpperCase());
+  if (uLo === lo && uHi === hi) ok('الحروف الكبيرة تعطي الترتيب نفسه بعد التصغير');
+  else bad(`الحروف الكبيرة غيّرت الترتيب: ${uLo}/${uHi}`);
+
+  if (uLo === uLo.toLowerCase() && uHi === uHi.toLowerCase()) ok('الخرج صغير الحروف دائماً');
+  else bad('الخرج ليس صغير الحروف فلن يطابق عمود uuid');
+
+  const same = sortedPair(A, A);
+  if (same[0] === A && same[1] === A) ok('المعرّف مع نفسه لا يرمي');
+  else bad('المعرّف مع نفسه أعطى نتيجة غريبة');
 }
 
 console.log(

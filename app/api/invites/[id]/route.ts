@@ -19,19 +19,29 @@ export async function PATCH(request: Request, ctx: { params: Promise<{ id: strin
   const supabase = await getAuthSupabase();
   if (!supabase) return NextResponse.json({ configured: false }, { status: 202 });
 
-  const { data, error } = await supabase
-    .from('game_invites')
-    .update({ status: parsed.data.status })
-    .eq('id', id)
-    .select('id, room_code, player_count, turn_seconds, expires_at, status')
+  const accepting = parsed.data.status === 'accepted';
+  const base = supabase.from('game_invites').update({ status: parsed.data.status }).eq('id', id);
+  // شرط الصلاحية داخل الـupdate نفسه فتضمنه قاعدة البيانات: كان الصفّ يُقلَب
+  // إلى accepted أوّلاً ثم يُفحَص الوقت في JavaScript، فتُستهلك الدعوة المنتهية
+  // فعلاً قبل أن يُعاد 410. والرفض والإلغاء يبقيان مسموحين بعد الانتهاء.
+  const { data, error } = await (accepting ? base.gt('expires_at', new Date().toISOString()) : base)
+    .select('id, room_code, player_count, turn_seconds, status')
     .maybeSingle();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  if (!data) return NextResponse.json({ error: 'not_allowed' }, { status: 403 });
 
-  // الصلاحية تُفحص عند القراءة لا بمهمّة دورية
-  if (parsed.data.status === 'accepted' && new Date(data.expires_at) < new Date()) {
-    return NextResponse.json({ error: 'expired' }, { status: 410 });
+  if (!data) {
+    // لا صفّ: إمّا انتهت الصلاحية وإمّا لست طرفاً فيها. القراءة تحكمها
+    // invites_select_mine، فرجوعُ صفّ هنا يعني أن الحقّ ثابت والمانع هو الوقت.
+    if (accepting) {
+      const { data: exists } = await supabase
+        .from('game_invites')
+        .select('id')
+        .eq('id', id)
+        .maybeSingle();
+      if (exists) return NextResponse.json({ error: 'expired' }, { status: 410 });
+    }
+    return NextResponse.json({ error: 'not_allowed' }, { status: 403 });
   }
 
   return NextResponse.json({
