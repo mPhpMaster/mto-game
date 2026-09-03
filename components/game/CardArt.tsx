@@ -1,5 +1,6 @@
 import type { CardDef, Element } from '@/lib/game/types';
 import { type Archetype, archetypeOf } from '@/lib/game/archetypes';
+import { artPathOf } from '@/lib/game/artManifest';
 
 /**
  * فنّ الكروت — رسوم SVG تُولَّد من تعريف الكارت نفسه.
@@ -997,6 +998,28 @@ function FragmentArt({ card, ink }: { card: CardDef; ink: Ink }) {
 // ===================== المكوّن =====================
 
 export default function CardArt({ card, className }: { card: CardDef; className?: string }) {
+  /**
+   * الرسم المُصوَّر يسبق المولّد حين يوجد. البيان مُولَّد عند البناء
+   * (`npm run art:scan`) فلا يومض البديل قبل الصورة ولا يظهر مربّع مكسور.
+   *
+   * `object-cover`: النصوص تطلب صورة مربّعة والنافذة أعرض من مربّع، فالقصّ
+   * من الأعلى والأسفل مقصود — والوحش في وسط الإطار فلا يقطع القصُّ منه طرفاً.
+   */
+  const art = artPathOf(card.id);
+  if (art) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- ملفّ محلّي بمقاس ثابت، لا يحتاج مُحسّن الصور
+      <img
+        src={art}
+        alt={`رسم ${card.name.ar}`}
+        className={`${className ?? ''} object-cover`}
+        loading="lazy"
+        decoding="async"
+        draggable={false}
+      />
+    );
+  }
+
   const pal = PALETTE[card.element];
   const seed = hash(card.species ?? card.id);
   const ink: Ink = { ...pal, evolved: card.stage === 2, seed };
