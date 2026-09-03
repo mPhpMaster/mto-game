@@ -25,10 +25,26 @@ export function numberLabel(d: CardDef): string {
 
 export type CardSize = 'xs' | 'sm' | 'md';
 
+/**
+ * الكارت طبقتان: إطار خارجي بتدرّج معدني، وسطح داخلي يحمل المحتوى.
+ * الطبقتان ضروريتان للحافة المجسّمة — حدٌّ بلون واحد يقرأ مسطّحاً مهما ثخُن.
+ */
 const BOX: Record<CardSize, string> = {
-  xs: 'w-[52px] h-[76px] rounded-lg p-0.5',
-  sm: 'w-[86px] h-[122px] rounded-xl p-1.5',
-  md: 'w-[116px] h-[166px] rounded-xl p-2',
+  xs: 'w-[52px] h-[76px] rounded-lg p-[1.5px]',
+  sm: 'w-[86px] h-[122px] rounded-xl p-[2px]',
+  md: 'w-[116px] h-[166px] rounded-xl p-[2.5px]',
+};
+
+const SURFACE: Record<CardSize, string> = {
+  xs: 'rounded-[6px] p-[3px]',
+  sm: 'rounded-[9px] p-1',
+  md: 'rounded-[10px] p-1.5',
+};
+
+const ART_H: Record<CardSize, string> = {
+  xs: 'h-[20px]',
+  sm: 'h-[28px]',
+  md: 'h-[44px]',
 };
 
 interface Props {
@@ -58,11 +74,15 @@ export default function CardView({
   fresh,
   onLongPress,
 }: Props) {
-  const { t, L } = useLocale();
+  const { t, L, locale } = useLocale();
   const color = ELEMENT_HEX[card.element];
   const tiny = size === 'xs';
   const small = size === 'sm' || tiny;
   const label = title ?? `${L(card.name)} — ${L(card.text)}`;
+  // الاسم الآخر يُعرض تحت الأساسي كما في تصميم البطاقة المرجعي. البيانات
+  // ثنائية اللغة أصلاً، فلا يكلّف هذا حرفاً واحداً من الترجمة.
+  const altName = card.name[locale === 'ar' ? 'en' : 'ar'];
+  const evolved = card.kind === 'monster' && card.stage === 2;
 
   const className = [
     'card-face relative shrink-0 text-right transition-all duration-150',
@@ -77,24 +97,46 @@ export default function CardView({
     fresh ? 'card-fresh' : '',
   ].join(' ');
 
+  // فاتح عند الزاوية العليا وغامق عند السفلى، فيقرأ الإطار كحافة لها سماكة
   const style = {
-    background: `linear-gradient(160deg, ${color}38 0%, rgba(10,12,24,0.94) 58%, rgba(6,8,16,0.98) 100%)`,
-    border: `1px solid ${color}66`,
+    background: `linear-gradient(150deg, ${color}e6 0%, ${color}70 24%, rgba(255,255,255,0.24) 46%, ${color}5c 64%, ${color}b8 100%)`,
   };
+
+  /** زاوية مزخرفة — خطّان قصيران يلتقيان، تُحذف على المصغّر فتبقى الحافة نظيفة */
+  const corner = (pos: string, sides: string) => (
+    <span
+      className={`pointer-events-none absolute ${pos} ${sides} ${small ? 'size-1.5' : 'size-2'}`}
+      style={{ borderColor: `${color}b0` }}
+    />
+  );
 
   /**
    * تخطيط عمودي مرن لا مواضع مطلقة: الكتلة السفلى كانت `absolute bottom`
    * فتركب على الاسم حين يطول النص. مع flex يأخذ كل جزء ارتفاعه ولا يتداخل.
    */
   const body = (
-    <div className="flex h-full flex-col">
+    <div
+      className={`relative flex h-full flex-col overflow-hidden ${SURFACE[size]} ${evolved ? 'card-holo' : ''}`}
+      style={{
+        background: `linear-gradient(160deg, ${color}30 0%, rgba(10,12,24,0.95) 55%, rgba(5,7,14,0.99) 100%)`,
+      }}
+    >
+      {!tiny && (
+        <>
+          {corner('left-[2px] top-[2px]', 'border-l border-t')}
+          {corner('right-[2px] top-[2px]', 'border-r border-t')}
+          {corner('bottom-[2px] left-[2px]', 'border-b border-l')}
+          {corner('bottom-[2px] right-[2px]', 'border-b border-r')}
+        </>
+      )}
+
       {/* الرأس: التكلفة · العنصر · الرقم */}
       <div className="flex shrink-0 items-center justify-between gap-1">
         <span
           className={`grid shrink-0 place-items-center rounded-full font-black text-black ${
             tiny ? 'size-3.5 text-[8px]' : small ? 'size-5 text-[10px]' : 'size-6 text-xs'
           }`}
-          style={{ background: color }}
+          style={{ background: color, boxShadow: `0 0 6px -1px ${color}` }}
           title={t('costTip')}
         >
           {card.cost}
@@ -105,7 +147,7 @@ export default function CardView({
           className={`grid shrink-0 place-items-center rounded-full bg-black/60 ${
             tiny ? 'size-[14px] text-[8px]' : small ? 'size-[18px] text-[10px]' : 'size-[21px] text-xs'
           }`}
-          style={{ boxShadow: `0 0 0 1.5px ${color}` }}
+          style={{ boxShadow: `0 0 0 1.5px ${color}, 0 0 8px -2px ${color}` }}
           title={L(ELEMENT_NAME[card.element])}
         >
           {dimmed && !tiny ? '🔒' : ELEMENT_ICON[card.element]}
@@ -122,36 +164,46 @@ export default function CardView({
         </span>
       </div>
 
-      {/* رسم الكارت */}
-      <CardArt
-        card={card}
-        className={
-          tiny
-            ? 'mt-0.5 h-[22px] w-full shrink-0'
-            : small
-              ? 'mt-0.5 h-[32px] w-full shrink-0'
-              : 'mt-1 h-[46px] w-full shrink-0'
-        }
-      />
-
-      {/* الاسم */}
+      {/* نافذة الرسم — إطار غائر يفصل الفنّ عن سطح الكارت */}
       <div
-        className={`shrink-0 truncate text-center font-bold leading-tight ${
-          tiny ? 'mt-0.5 text-[7px]' : small ? 'mt-0.5 text-[10px]' : 'mt-1 text-[12px]'
-        }`}
+        className={`relative mt-0.5 w-full shrink-0 overflow-hidden ${tiny ? 'rounded-sm' : 'rounded'} ${ART_H[size]}`}
+        style={{
+          background: `radial-gradient(120% 110% at 50% 0%, ${color}26 0%, rgba(0,0,0,0.34) 100%)`,
+          boxShadow: `inset 0 0 0 1px ${color}3d`,
+        }}
       >
-        {L(card.name)}
+        <CardArt card={card} className="h-full w-full" />
+      </div>
+
+      {/* الاسم — الأساسي بلغة الواجهة، والآخر تحته كما في التصميم المرجعي */}
+      <div className={`shrink-0 text-center ${size === 'md' ? 'mt-1' : 'mt-0.5'}`}>
+        <div
+          className={`truncate font-bold leading-tight ${
+            tiny ? 'text-[7px]' : small ? 'text-[10px]' : 'text-[12px]'
+          }`}
+        >
+          {L(card.name)}
+        </div>
+        {/* على المقاسين الأصغر يُحذف: سطره كان يقصّ سطراً من نصّ الفخّ والسحر */}
+        {size === 'md' && (
+          <div
+            className="truncate text-[7.5px] uppercase leading-none opacity-55"
+            style={{ letterSpacing: '0.06em' }}
+          >
+            {altName}
+          </div>
+        )}
       </div>
 
       {/* النوع/العنصر — يُحذف على المصغّر حتى يبقى الكارت قابلاً للتعرّف لا للقراءة */}
       {!tiny && (
         <div
           className={`shrink-0 text-center leading-tight opacity-70 ${
-            small ? 'text-[8px]' : 'text-[9px]'
+            small ? 'text-[8px]' : 'mt-0.5 text-[9px]'
           }`}
         >
           {L(KIND_NAME[card.kind])} · {L(ELEMENT_NAME[card.element])}
-          {card.stage === 2 ? ` · ${t('evolvedTag')}` : ''}
+          {evolved ? ` · ${t('evolvedTag')}` : ''}
         </div>
       )}
 
@@ -160,15 +212,20 @@ export default function CardView({
         <div className="mt-auto shrink-0 pt-0.5">
           {!tiny && card.ability && card.ability !== 'none' && (
             <div
-              className={`mb-0.5 truncate rounded bg-black/45 px-1 text-center ${
+              className={`mb-0.5 truncate rounded-sm px-1 text-center font-bold ${
                 small ? 'text-[8px]' : 'text-[9px]'
               }`}
-              style={{ color }}
+              style={{ background: `${color}22`, color, boxShadow: `inset 0 0 0 1px ${color}47` }}
             >
-              {L(ABILITY_NAME[card.ability])}
+              [{L(ABILITY_NAME[card.ability])}]
             </div>
           )}
-          <div className={`flex justify-between font-black ${tiny ? 'text-[7px]' : small ? 'text-[10px]' : 'text-xs'}`}>
+          <div
+            className={`flex justify-between rounded-sm bg-black/55 font-black ${
+              tiny ? 'text-[7px]' : small ? 'px-1 text-[10px]' : 'px-1 text-xs'
+            }`}
+            style={tiny ? undefined : { boxShadow: `inset 0 0 0 1px ${color}33` }}
+          >
             <span className="text-orange-300">⚔{tiny ? '' : ' '}{card.atk}</span>
             <span className="text-emerald-300">❤{tiny ? '' : ' '}{card.hp}</span>
           </div>
@@ -178,10 +235,13 @@ export default function CardView({
           {L(KIND_NAME[card.kind])}
         </div>
       ) : (
+        // 6.5px على المقاس الصغير لا 7.5: بالحجم الأكبر كانت 11 قاعدة من 74
+        // تُقصّ في المنتصف، وقاعدةٌ كاملة صغيرة أنفع من نصف قاعدة أوضح.
         <div
-          className={`mt-auto overflow-hidden rounded bg-black/45 px-1 py-0.5 leading-snug opacity-95 ${
-            small ? 'text-[7.5px] line-clamp-3' : 'text-[8.5px] line-clamp-4'
+          className={`mt-auto overflow-hidden rounded-sm bg-black/45 px-1 py-0.5 leading-snug opacity-95 ${
+            small ? 'text-[6.5px] line-clamp-3' : 'text-[8.5px] line-clamp-4'
           }`}
+          style={{ boxShadow: `inset 0 0 0 1px ${color}2e` }}
         >
           {L(card.text)}
         </div>

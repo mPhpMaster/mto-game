@@ -84,6 +84,26 @@ body {
     0 10px 24px -12px rgba(0, 0, 0, 0.9);
 }
 
+/**
+ * لمعة الكارت المتطوّر — شريط ضوء قطريّ ثابت لا متحرّك.
+ * التطوّر يستحقّ وزناً بصرياً، لكن عشرات الكروت تظهر معاً على الشاشة
+ * فأيّ حركة أو مرشّح هنا يُضرب في عددها. تدرّج واحد بلا رسم إضافي.
+ */
+.card-holo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    115deg,
+    transparent 28%,
+    rgba(255, 255, 255, 0.14) 44%,
+    rgba(190, 220, 255, 0.1) 52%,
+    transparent 64%
+  );
+}
+
 @keyframes pop-in {
   from {
     opacity: 0;
