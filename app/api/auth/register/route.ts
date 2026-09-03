@@ -45,8 +45,21 @@ export async function POST(request: Request) {
 
   const supabase = getServiceSupabase();
   if (!supabase) {
-    // نفس عقد /api/matches: اللعبة تعمل بلا قاعدة بيانات
-    return NextResponse.json({ ok: false, reason: 'supabase_not_configured' }, { status: 202 });
+    // نفس عقد /api/matches: اللعبة تعمل بلا قاعدة بيانات.
+    // السبب يسمّي المتغيّر الناقص بالضبط: الرسالة العامة «غير مهيّأة» تظهر في
+    // الواجهة، أما من يفتح أدوات المطوّر فيحتاج أن يعرف ما الذي يضبطه.
+    const hasUrl = Boolean(process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL);
+    return NextResponse.json(
+      {
+        ok: false,
+        reason: hasUrl ? 'missing_service_role_key' : 'supabase_not_configured',
+        missing: hasUrl
+          ? ['SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SECRET_KEY)']
+          : ['NEXT_PUBLIC_SUPABASE_URL', 'SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SECRET_KEY)'],
+        hint: 'Set it on Vercel, then redeploy - env changes do not apply to an existing deployment.',
+      },
+      { status: 202 }
+    );
   }
 
   const norm = normalizeUsername(username);
