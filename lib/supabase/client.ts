@@ -1,12 +1,17 @@
 'use client';
 
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
+import type { SupabaseClient } from '@supabase/supabase-js';
 
 let cached: SupabaseClient | null | undefined;
 
 /**
- * عميل Supabase للمتصفّح — يُستعمل لقنوات البثّ في اللعب الجماعي فقط.
+ * عميل Supabase للمتصفّح — قنوات البثّ في اللعب الجماعي، وجلسة الحساب.
  * يعود بـ null إذا لم تُضبط متغيّرات البيئة، فتظهر رسالة واضحة بدل الانهيار.
+ *
+ * `createBrowserClient` من @supabase/ssr يحفظ الجلسة في كوكيز يقرأها الخادم
+ * أيضاً — وهذا ما يتيح لمكوّنات الخادم ومسارات /api معرفة صاحب الطلب.
+ * عميل واحد لكل تبويب، فيتقاسم اللعبُ الجماعي والدردشةُ والاجتماعياتُ سوكيتاً واحداً.
  */
 export function getBrowserSupabase(): SupabaseClient | null {
   if (cached !== undefined) return cached;
@@ -17,7 +22,7 @@ export function getBrowserSupabase(): SupabaseClient | null {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ??
     '';
 
-  cached = url && key ? createClient(url, key, { auth: { persistSession: false } }) : null;
+  cached = url && key ? createBrowserClient(url, key) : null;
   return cached;
 }
 

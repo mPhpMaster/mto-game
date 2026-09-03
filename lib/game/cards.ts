@@ -223,6 +223,101 @@ const TRAPS: {
     element: 'psychic', number: 0, cost: 2,
     text: { ar: 'عند هجوم الخصم: يرتد نصف الضرر إلى حياته.', en: 'When the opponent attacks: half the damage reflects to their life.' },
   },
+
+  // ===== الموجة الثانية: 18 تصميماً =====
+  // --- ردّ على الهجوم ---
+  {
+    id: 'trap_thorns', name: { ar: 'شوك', en: 'Thorns' }, effect: 'thorns', timing: 'opponent_attack',
+    element: 'grass', number: 1, cost: 1,
+    text: { ar: 'عند هجوم الخصم: المهاجم يتلقّى ضرراً بنصف هجومه.', en: 'When the opponent attacks: the attacker takes damage equal to half its attack.' },
+  },
+  {
+    id: 'trap_chain', name: { ar: 'قيد', en: 'Shackle' }, effect: 'chain', timing: 'opponent_attack',
+    element: 'dark', number: 3, cost: 2,
+    text: { ar: 'يلغي الهجوم القادم ويُنهك المهاجم.', en: 'Negates the next attack and exhausts the attacker.' },
+  },
+  {
+    id: 'trap_spike_wall', name: { ar: 'جدار شوكي', en: 'Spike Wall' }, effect: 'spike_wall', timing: 'opponent_attack',
+    element: 'grass', number: 6, cost: 2,
+    text: { ar: 'عند هجوم الخصم: 2 ضرر لكل وحوشه.', en: 'When the opponent attacks: 2 damage to every monster they control.' },
+  },
+  {
+    id: 'trap_siphon_strike', name: { ar: 'امتصاص الضربة', en: 'Siphon Strike' }, effect: 'siphon_strike', timing: 'opponent_attack',
+    element: 'water', number: 8, cost: 1,
+    text: { ar: 'عند هجوم الخصم: استعد 4 نقاط حياة.', en: 'When the opponent attacks: restore 4 life.' },
+  },
+  {
+    id: 'trap_disarm', name: { ar: 'نزع السلاح', en: 'Disarm' }, effect: 'disarm', timing: 'opponent_attack',
+    element: 'psychic', number: 5, cost: 2,
+    text: { ar: 'عند هجوم الخصم: المهاجم يفقد 2 هجوم بشكل دائم.', en: 'When the opponent attacks: the attacker permanently loses 2 attack.' },
+  },
+  {
+    id: 'trap_frost', name: { ar: 'صقيع', en: 'Frost' }, effect: 'frost', timing: 'opponent_attack',
+    element: 'water', number: 2, cost: 1,
+    text: { ar: 'عند هجوم الخصم: يفقد كل طاقته المتبقية.', en: 'When the opponent attacks: they lose all their remaining energy.' },
+  },
+  // --- ردّ على الاستدعاء ---
+  {
+    id: 'trap_sinkhole', name: { ar: 'هوّة', en: 'Sinkhole' }, effect: 'sinkhole', timing: 'opponent_summon',
+    element: 'grass', number: 4, cost: 2,
+    text: { ar: 'عند استدعاء الخصم لوحش: يعود إلى يده.', en: 'When the opponent summons a monster: return it to their hand.' },
+  },
+  {
+    id: 'trap_tax', name: { ar: 'إتاوة', en: 'Tithe' }, effect: 'tax', timing: 'opponent_summon',
+    element: 'dark', number: 9, cost: 1,
+    text: { ar: 'عند استدعاء الخصم: اسحب منه 2 طاقة واكسب 1.', en: 'When the opponent summons: drain 2 of their energy and gain 1.' },
+  },
+  {
+    id: 'trap_mimic', name: { ar: 'محاكاة', en: 'Mimic' }, effect: 'mimic', timing: 'opponent_summon',
+    element: 'psychic', number: 1, cost: 1,
+    text: { ar: 'عند استدعاء الخصم: اسحب كرتين.', en: 'When the opponent summons: draw 2 cards.' },
+  },
+  {
+    id: 'trap_weaken', name: { ar: 'إضعاف', en: 'Weaken' }, effect: 'weaken', timing: 'opponent_summon',
+    element: 'dark', number: 6, cost: 1,
+    text: { ar: 'عند استدعاء الخصم: الوحش المُستدعى يفقد 2 هجوم.', en: 'When the opponent summons: the summoned monster loses 2 attack.' },
+  },
+  {
+    id: 'trap_soul_tithe', name: { ar: 'عُشر الروح', en: 'Soul Tithe' }, effect: 'soul_tithe', timing: 'opponent_summon',
+    element: 'fire', number: 5, cost: 2,
+    text: { ar: 'عند استدعاء الخصم: 3 ضرر لحياته مباشرة.', en: 'When the opponent summons: 3 damage directly to their life.' },
+  },
+  // --- بداية دور الخصم ---
+  {
+    id: 'trap_plague', name: { ar: 'طاعون', en: 'Plague' }, effect: 'plague', timing: 'opponent_turn_start',
+    element: 'dark', number: 0, cost: 2,
+    text: { ar: 'في بداية دور الخصم: 2 ضرر لكل وحوشه.', en: "At the start of the opponent's turn: 2 damage to every monster they control." },
+  },
+  {
+    id: 'trap_time_theft', name: { ar: 'سرقة وقت', en: 'Time Theft' }, effect: 'time_theft', timing: 'opponent_turn_start',
+    element: 'psychic', number: 3, cost: 1,
+    text: { ar: 'في بداية دور الخصم: يتخلّص من كارت وتسحب أنت واحداً.', en: "At the start of the opponent's turn: they discard 1 card and you draw 1." },
+  },
+  {
+    id: 'trap_hex', name: { ar: 'سِحر أسود', en: 'Hex' }, effect: 'hex', timing: 'opponent_turn_start',
+    element: 'dark', number: 2, cost: 2,
+    text: { ar: 'في بداية دور الخصم: 4 ضرر لحياته مباشرة.', en: "At the start of the opponent's turn: 4 damage directly to their life." },
+  },
+  {
+    id: 'trap_drought', name: { ar: 'جفاف', en: 'Drought' }, effect: 'drought', timing: 'opponent_turn_start',
+    element: 'fire', number: 7, cost: 1,
+    text: { ar: 'في بداية دور الخصم: يفقد 3 طاقة.', en: "At the start of the opponent's turn: they lose 3 energy." },
+  },
+  {
+    id: 'trap_bramble', name: { ar: 'عوسج', en: 'Bramble' }, effect: 'bramble', timing: 'opponent_turn_start',
+    element: 'grass', number: 9, cost: 2,
+    text: { ar: 'في بداية دور الخصم: 5 ضرر لأقوى وحوشه.', en: "At the start of the opponent's turn: 5 damage to their strongest monster." },
+  },
+  {
+    id: 'trap_regrowth', name: { ar: 'نمو', en: 'Regrowth' }, effect: 'regrowth', timing: 'opponent_turn_start',
+    element: 'grass', number: 3, cost: 1,
+    text: { ar: 'في بداية دور الخصم: استعد 5 حياة واسحب كارتاً.', en: "At the start of the opponent's turn: restore 5 life and draw a card." },
+  },
+  {
+    id: 'trap_fortify', name: { ar: 'تحصين', en: 'Fortify' }, effect: 'fortify', timing: 'opponent_turn_start',
+    element: 'water', number: 6, cost: 2,
+    text: { ar: 'في بداية دور الخصم: كل وحوشك تستعيد كامل حياتها.', en: "At the start of the opponent's turn: all your monsters heal to full." },
+  },
 ];
 
 const SPELLS: {
@@ -244,6 +339,26 @@ const SPELLS: {
   { id: 'spell_amplify', name: { ar: 'تضخيم', en: 'Amplify' }, effect: 'amplify', element: 'dark', number: 7, cost: 3, text: { ar: 'الهجوم المشترك القادم هذا الدور يُضاعف.', en: 'Your next combo attack this turn is doubled.' } },
   { id: 'spell_revive', name: { ar: 'إحياء', en: 'Revive' }, effect: 'revive', element: 'grass', number: 8, cost: 3, text: { ar: 'استدعِ وحشاً من المهملات مجاناً.', en: 'Summon a monster from the discard pile for free.' }, needsTarget: 'discard_monster' },
   { id: 'spell_purge', name: { ar: 'تطهير', en: 'Purge' }, effect: 'purge', element: 'grass', number: 9, cost: 2, text: { ar: 'دمّر أحد فخاخ الخصم المجهّزة.', en: "Destroy one of the opponent's set traps." }, needsTarget: 'enemy_trap' },
+
+  // ===== الموجة الثانية: 18 تصميماً =====
+  { id: 'spell_strike', name: { ar: 'ضربة', en: 'Strike' }, effect: 'strike', element: 'fire', number: 4, cost: 2, text: { ar: '4 ضرر لوحش خصم تختاره.', en: '4 damage to an enemy monster of your choice.' }, needsTarget: 'enemy_monster' },
+  { id: 'spell_bolt', name: { ar: 'صاعقة', en: 'Bolt' }, effect: 'bolt', element: 'electric', number: 6, cost: 2, text: { ar: '3 ضرر مباشر لحياة الخصم.', en: "3 damage directly to the opponent's life." } },
+  { id: 'spell_drain_life', name: { ar: 'نزف', en: 'Life Drain' }, effect: 'drain_life', element: 'dark', number: 3, cost: 3, text: { ar: '3 ضرر لحياة الخصم، واستعد 3 حياة.', en: "3 damage to the opponent's life, and restore 3 of yours." } },
+  { id: 'spell_shield_wall', name: { ar: 'سور', en: 'Shield Wall' }, effect: 'shield_wall', element: 'water', number: 5, cost: 3, text: { ar: 'كل وحوشك تكسب +3 حياة.', en: 'All your monsters gain +3 health.' } },
+  { id: 'spell_rally', name: { ar: 'حشد', en: 'Rally' }, effect: 'rally', element: 'fire', number: 7, cost: 3, text: { ar: 'كل وحوشك تكسب +1 هجوم.', en: 'All your monsters gain +1 attack.' } },
+  { id: 'spell_recall', name: { ar: 'استرجاع', en: 'Recall' }, effect: 'recall', element: 'psychic', number: 8, cost: 1, text: { ar: 'أعِد وحشاً من المهملات إلى يدك.', en: 'Return a monster from the discard pile to your hand.' }, needsTarget: 'discard_monster' },
+  { id: 'spell_foresight', name: { ar: 'بصيرة', en: 'Foresight' }, effect: 'foresight', element: 'psychic', number: 2, cost: 2, text: { ar: 'اسحب كرتين.', en: 'Draw 2 cards.' } },
+  { id: 'spell_mana_well', name: { ar: 'نبع', en: 'Mana Well' }, effect: 'mana_well', element: 'electric', number: 0, cost: 1, text: { ar: 'اكسب 2 طاقة الآن و2 في بداية دورك القادم.', en: 'Gain 2 energy now and 2 at the start of your next turn.' } },
+  { id: 'spell_cleanse', name: { ar: 'تطهير ذاتي', en: 'Cleanse' }, effect: 'cleanse', element: 'water', number: 9, cost: 1, text: { ar: 'أزل التعطيل عنك واسحب كارتاً.', en: 'Clear any lock on you and draw a card.' } },
+  { id: 'spell_overload', name: { ar: 'إفراط', en: 'Overload' }, effect: 'overload', element: 'fire', number: 1, cost: 2, text: { ar: 'وحش تختاره: +5 هجوم و-2 حياة.', en: 'A monster of your choice: +5 attack and -2 health.' }, needsTarget: 'own_monster' },
+  { id: 'spell_mirror_image', name: { ar: 'صورة', en: 'Mirror Image' }, effect: 'mirror_image', element: 'psychic', number: 4, cost: 3, text: { ar: 'استدعِ نسخة أخرى من أضعف وحوشك.', en: 'Summon another copy of your weakest monster.' } },
+  { id: 'spell_banish', name: { ar: 'نفي', en: 'Banish' }, effect: 'banish', element: 'dark', number: 5, cost: 4, text: { ar: 'دمّر وحش خصم تختاره.', en: 'Destroy an enemy monster of your choice.' }, needsTarget: 'enemy_monster' },
+  { id: 'spell_chain_lightning', name: { ar: 'سلسلة برق', en: 'Chain Lightning' }, effect: 'chain_lightning', element: 'electric', number: 8, cost: 3, text: { ar: '2 ضرر لكل وحوش الخصوم و1 لحياة كلٍّ منهم.', en: "2 damage to every opponent's monsters and 1 to each of their life." } },
+  { id: 'spell_titan_call', name: { ar: 'نداء الوحش', en: 'Titan Call' }, effect: 'titan_call', element: 'psychic', number: 0, cost: 3, text: { ar: 'ابحث في السطح عن قطعة وحش أعظم وخذها.', en: 'Search the deck for a Titan fragment and take it.' } },
+  { id: 'spell_graft', name: { ar: 'تطعيم', en: 'Graft' }, effect: 'graft', element: 'grass', number: 7, cost: 2, text: { ar: 'وحش تختاره يستعيد كامل حياته ويكسب +1 هجوم.', en: 'A monster of your choice heals to full and gains +1 attack.' }, needsTarget: 'own_monster' },
+  { id: 'spell_barricade', name: { ar: 'متراس', en: 'Barricade' }, effect: 'barricade', element: 'water', number: 3, cost: 2, text: { ar: 'تكسب حاجزاً يلغي الهجوم القادم عليك.', en: 'Gain a barrier that negates the next attack on you.' } },
+  { id: 'spell_reflect', name: { ar: 'عاكس', en: 'Reflect' }, effect: 'reflect', element: 'psychic', number: 6, cost: 2, text: { ar: 'تكسب مرآة ترتدّ بنصف ضرر الهجوم القادم.', en: 'Gain a mirror that reflects half the damage of the next attack.' } },
+  { id: 'spell_second_wind', name: { ar: 'نفس ثانٍ', en: 'Second Wind' }, effect: 'second_wind', element: 'fire', number: 9, cost: 3, text: { ar: 'كل وحوشك تفقد الإنهاك فتستطيع الهجوم مجدداً.', en: 'All your monsters lose exhaustion and can attack again.' } },
 ];
 
 const ACTION_NAMES: Record<string, Localized> = {
@@ -365,7 +480,7 @@ function buildCatalog(): CardDef[] {
     element: 'wild', number: null, cost: 2, text: ACTION_TEXTS.wild4, copies: 4,
   });
 
-  // ---- الفخاخ: 18 ----
+  // ---- الفخاخ: 54 (27 تصميماً × نسختين) ----
   for (const t of TRAPS) {
     out.push({
       id: t.id, kind: 'trap', name: t.name, element: t.element, number: t.number,
@@ -373,7 +488,7 @@ function buildCatalog(): CardDef[] {
     });
   }
 
-  // ---- السحر: 18 ----
+  // ---- السحر: 54 (27 تصميماً × نسختين) ----
   for (const s of SPELLS) {
     out.push({
       id: s.id, kind: 'spell', name: s.name, element: s.element, number: s.number,

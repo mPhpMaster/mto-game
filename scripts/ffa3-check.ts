@@ -176,7 +176,7 @@ console.log('1 ضد 1 ضد 1:\n');
     const action = aiChooseAction(s);
     s = applyGameAction(s, action);
     steps++;
-    if (s.turn === before.turn && s.log.length === before.log.length && action.type !== 'END_TURN') {
+    if (s.turn === before.turn && s.logSeq === before.logSeq && action.type !== 'END_TURN') {
       s = applyGameAction(s, { type: 'END_TURN' });
       steps++;
     }

@@ -1,6 +1,7 @@
 import LeaderboardScreen from '@/components/LeaderboardScreen';
 import type { MatchRow } from '@/components/MatchList';
 import { MATCHES_TABLE, getSupabase } from '@/lib/supabase/server';
+import { getCurrentAccount } from '@/lib/supabase/auth-server';
 
 export const metadata = { title: 'السجل — مواجهة الوحوش' };
 export const dynamic = 'force-dynamic';
@@ -26,7 +27,16 @@ export default async function LeaderboardPage() {
     }
   }
 
+  // نسبة الفوز الشخصية تأتي من عدّادات الحساب لا من عدّ الصفوف الخمسة
+  // والعشرين المعروضة — تلك عيّنة عامة لا سجلّ لاعب.
+  const account = await getCurrentAccount();
+
   return (
-    <LeaderboardScreen matches={matches} configured={configured} errorMessage={errorMessage} />
+    <LeaderboardScreen
+      matches={matches}
+      configured={configured}
+      errorMessage={errorMessage}
+      account={account}
+    />
   );
 }

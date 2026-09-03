@@ -4,17 +4,23 @@ import Link from 'next/link';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import LanguageSwitch from './LanguageSwitch';
 import MatchList, { type MatchRow } from './MatchList';
+import { levelProgress } from '@/lib/player/level';
+import type { Account } from '@/lib/social/types';
 
 export default function LeaderboardScreen({
   matches,
   configured,
   errorMessage,
+  account = null,
 }: {
   matches: MatchRow[];
   configured: boolean;
   errorMessage: string | null;
+  account?: Account | null;
 }) {
   const { t } = useLocale();
+  const decided = account ? account.wins + account.losses : 0;
+  const winPct = decided ? Math.round((account!.wins / decided) * 100) : 0;
 
   return (
     <div className="mx-auto w-full max-w-3xl px-4 py-8">
@@ -27,6 +33,34 @@ export default function LeaderboardScreen({
           </Link>
         </div>
       </div>
+
+      {account && (
+        <section className="panel mb-4 rounded-2xl p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <span className="rounded bg-amber-400 px-1.5 py-0.5 text-[10px] font-black tabular-nums text-black">
+              {levelProgress(account.wins).level}
+            </span>
+            <h2 className="text-sm font-black">{t('myHistory')}</h2>
+            <Link href="/account" className="ms-auto text-[11px] underline opacity-70">
+              {t('openAccount')}
+            </Link>
+          </div>
+          <div className="flex flex-wrap gap-6 text-sm">
+            <span>
+              {t('wins')} <b className="text-emerald-300">{account.wins}</b>
+            </span>
+            <span>
+              {t('losses')} <b className="text-rose-300">{account.losses}</b>
+            </span>
+            <span className="opacity-70">{t('winRatePct', { pct: winPct })}</span>
+            <span className="opacity-70">
+              {t('matchesPlayed')} {account.matchesPlayed}
+            </span>
+          </div>
+        </section>
+      )}
+
+      {account && <h2 className="mb-2 text-sm font-black opacity-70">{t('globalHistory')}</h2>}
 
       {!configured ? (
         <div className="panel rounded-2xl p-6 text-sm leading-relaxed">

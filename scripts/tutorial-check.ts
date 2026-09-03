@@ -5,7 +5,7 @@
  * يمسك أخطاء مثل: الدرس يطلب لعب كارت لا تكفيه الطاقة، أو شرط لا يتحقّق أبداً.
  *   npm run check:tutorial
  */
-import { def } from '../lib/game/cards';
+import { TOTAL_CARDS, def } from '../lib/game/cards';
 import { applyGameAction, canPlayCard, createGame, evaluateAttack } from '../lib/game/engine';
 import { TUTORIAL_SCRIPT, TUTORIAL_SEED, TUTORIAL_STEPS } from '../lib/game/tutorial';
 import type { GameAction, GameState } from '../lib/game/types';
@@ -132,7 +132,8 @@ for (const p of s.players) {
 }
 const claimed = s.players[0].fragments.length + s.players[1].fragments.length;
 if (seen.size !== count) fail(`تكرار في الكروت: ${count} نسخة مقابل ${seen.size} معرّفاً.`);
-if (seen.size + claimed !== 200) fail(`مجموع الكروت ${seen.size + claimed} بدل 200.`);
+if (seen.size + claimed !== TOTAL_CARDS)
+  fail(`مجموع الكروت ${seen.size + claimed} بدل ${TOTAL_CARDS}.`);
 
 console.log(
   failures === 0

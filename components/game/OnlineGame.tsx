@@ -1,52 +1,39 @@
 'use client';
 
-import { useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import Link from 'next/link';
 import { useRoom, type PublicSeat, type RoomRole } from '@/lib/multiplayer/useRoom';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { DEFAULT_TURN_SECONDS } from '@/lib/multiplayer/turnClock';
-import { isValidPlayerName, normalizePlayerName } from '@/lib/player/name';
-import { usePlayerName } from '@/lib/player/usePlayerName';
 import MatchChatDock from '@/components/chat/MatchChatDock';
 import OpenInAppButton from '@/components/OpenInAppButton';
 import LobbyFriendsPanel from '@/components/game/LobbyFriendsPanel';
-import PlayerNamePrompt from '@/components/game/PlayerNamePrompt';
 import RoomSharePanel from '@/components/game/RoomSharePanel';
+import type { Account } from '@/lib/social/types';
 import GameBoard from './GameBoard';
 import TurnClock from './TurnClock';
 
 export default function OnlineGame({
   code,
   role,
-  myName: initialName,
+  account,
+  myName,
   turnSeconds = DEFAULT_TURN_SECONDS,
   playerCount = 2,
 }: {
   code: string;
   role: RoomRole;
+  account: Account;
   myName: string;
   turnSeconds?: number;
   playerCount?: number;
 }) {
-  const storedName = usePlayerName();
-  const resolvedInitial =
-    isValidPlayerName(initialName) ? normalizePlayerName(initialName) : isValidPlayerName(storedName) ? storedName : '';
-  const [myName, setMyName] = useState(resolvedInitial);
-
-  if (!isValidPlayerName(myName)) {
-    return (
-      <PlayerNamePrompt
-        initialName={initialName || storedName}
-        onConfirm={(n) => setMyName(n)}
-      />
-    );
-  }
-
+  // الاسم يأتي من الحساب: البوّابة في app/vs/[code] ضمنت وجوده قبل الوصول هنا
   return (
     <OnlineGameInner
       code={code}
       role={role}
-      myName={myName}
+      myName={myName || account.displayName}
       turnSeconds={turnSeconds}
       playerCount={playerCount}
     />
@@ -77,6 +64,7 @@ function OnlineGameInner({
   });
   const isHost = role === 'host';
   const ffa3 = room.playerCount >= 3;
+  const opponentNames = room.seats.filter((s) => !s.isMe).map((s) => s.name ?? '').filter(Boolean);
 
   const showChat = room.status !== 'unavailable' && room.status !== 'error';
   const humansHere = room.seats.filter((s) => !s.isAI && s.present).length;
@@ -124,7 +112,14 @@ function OnlineGameInner({
             <div className="my-4">
               <OpenInAppButton path={`/vs/${code}`} />
             </div>
-            <LobbyFriendsPanel roomCode={code} showInvite />
+            <LobbyFriendsPanel
+              roomCode={code}
+              playerCount={room.playerCount}
+              turnSeconds={turnSeconds}
+              seatsTaken={room.seats.filter((s) => s.name || s.isAI).length}
+              hasFreeSeat={room.seats.some((s) => !s.isMe && !s.name && !s.isAI)}
+              matchStarted={Boolean(room.state)}
+            />
           </>
         ) : (
           <p className="mb-4 text-sm opacity-75">
@@ -180,6 +175,8 @@ function OnlineGameInner({
         externalState={room.state}
         onAction={room.sendAction}
         mySeat={room.mySeat}
+        roomCode={code}
+        opponentNames={opponentNames}
         banner={
           <section
             className={`rounded-xl border p-2 text-xs ${

@@ -1,7 +1,11 @@
 import { notFound } from 'next/navigation';
+import AuthGate from '@/components/auth/AuthGate';
 import OnlineGame from '@/components/game/OnlineGame';
 import { isValidRoomCode, normalizeRoomCode } from '@/lib/multiplayer/code';
 import { parseTurnSeconds } from '@/lib/multiplayer/turnClock';
+import { getCurrentAccount } from '@/lib/supabase/auth-server';
+
+export const dynamic = 'force-dynamic';
 
 export const metadata = { title: 'غرفة — مواجهة الوحوش' };
 
@@ -20,11 +24,16 @@ export default async function RoomPage({ params, searchParams }: PageProps<'/vs/
   const rawPlayers = Array.isArray(sp.players) ? sp.players[0] : sp.players;
   const playerCount = rawPlayers === '3' ? 3 : 2;
 
+  // البوّابة تحلّ محلّ المحتوى ولا تُحوّل، فيبقى الرمز في العنوان بعد الدخول
+  const account = await getCurrentAccount();
+  if (!account) return <AuthGate />;
+
   return (
     <OnlineGame
       code={code}
       role={isHost ? 'host' : 'guest'}
-      myName={myName}
+      account={account}
+      myName={myName || account.displayName}
       turnSeconds={parseTurnSeconds(rawSecs)}
       playerCount={playerCount}
     />

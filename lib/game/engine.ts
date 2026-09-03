@@ -31,18 +31,24 @@ export const RULES = {
    */
   DECK_CURVE_SPREAD: 18,
   /**
-   * حسم تكلفة الوحوش في منحنى السطح. الوحوش جوهر اللعب (60% من السطح) لكن
-   * أرخصها بتكلفة 2، بينما هناك 42 بطاقة حركة/فخ بتكلفة 0–1. بلا هذا الحسم
+   * حسم تكلفة الوحوش في منحنى السطح. الوحوش جوهر اللعب (44% من السطح) لكن
+   * أرخصها بتكلفة 2، بينما هناك 66 بطاقة حركة/فخ/سحر بتكلفة 0–1. بلا هذا الحسم
    * يغوص كل وحش تحت تلك الرخيصة فتمتلئ اليد الافتتاحية بالأفخاخ والحركات.
    * الحسم يجعل وحشاً بتكلفة 2 ينافس بطاقة بتكلفة 1 فتتداخل الوحوش مع الرخيص.
-   * 1.0 يوازن بين «وحوش كثيرة» و«ورق تكفيه الطاقة مبكّراً». مضبوطة بـcheck:curve.
+   * رُفع من 1.0 إلى 2.0 مع توسعة السطح إلى 272: عدد البطاقات الرخيصة غير
+   * الوحشية ارتفع من 42 إلى 66، فازداد الضغط الذي وُجد هذا الحسم لمقاومته.
+   * مضبوطة بـcheck:opening وcheck:curve.
    */
-  MONSTER_CURVE_BONUS: 1.0,
+  MONSTER_CURVE_BONUS: 2.0,
   /** أقل عدد وحوش مضمون في اليد الافتتاحية — شبكة أمان لليد التعيسة */
   OPENING_MONSTER_FLOOR: 2,
   /** سقف وحوش الساحة — يكفي لدمج أكبر دون ازدحام اللوحة */
   MAX_FIELD: 6,
-  MAX_TRAPS: 3,
+  /**
+   * رُفع من 3 إلى 4 مع تضاعف عدد الفخاخ في السطح: بسقف 3 تتحوّل الفخاخ
+   * الزائدة في اليد إلى ورق ميت لا يُلعب.
+   */
+  MAX_TRAPS: 4,
   /** أقصى عدد لاعبين في مباراة واحدة (1 ضد 1 ضد 1) */
   MAX_PLAYERS: 3,
   FATIGUE_DAMAGE: 2,
@@ -69,6 +75,7 @@ function log(
   params?: LogParams
 ) {
   s.log.push({ turn: s.turn, side, kind, key, params });
+  s.logSeq += 1;
   if (s.log.length > 200) s.log.splice(0, s.log.length - 200);
 }
 
@@ -270,6 +277,8 @@ export function createGame(opts?: {
     turn: 0,
     current: 0,
     turnDir: 1,
+    clockSeat: null,
+    clockEpoch: 0,
     phase: 'main',
     winner: null,
     winReason: null,
@@ -279,6 +288,7 @@ export function createGame(opts?: {
     pendingDraw: 0,
     players: roster.map((p, i) => newPlayer(`p${i}`, p.name, p.isAI)),
     log: [],
+    logSeq: 0,
     reveal: null,
   };
 
@@ -597,6 +607,145 @@ function triggerTraps(
         log(s, 'trap', ownerIdx, 'trap_relic_break', { fragment: lost });
         break;
       }
+
+      // ===== الموجة الثانية: ردّ على الهجوم =====
+      case 'thorns': {
+        const m = foe.field.find((x) => x.uid === ctx.attackerUid);
+        if (!m) { fired = false; break; }
+        const amount = Math.max(1, Math.floor(m.atk / 2));
+        damageMonster(s, foeIdx, m, amount);
+        log(s, 'trap', ownerIdx, 'trap_thorns', { amount });
+        break;
+      }
+      case 'chain': {
+        const m = foe.field.find((x) => x.uid === ctx.attackerUid);
+        if (!m) { fired = false; break; }
+        // «حاجز» هو آلية إلغاء الهجوم القائمة، فنعيد استخدامها بدل مسار ثانٍ
+        owner.barrier = true;
+        m.exhausted = true;
+        log(s, 'trap', ownerIdx, 'trap_chain', { card: m.defId });
+        break;
+      }
+      case 'spike_wall': {
+        const targets = foe.field.slice();
+        if (!targets.length) { fired = false; break; }
+        for (const m of targets) damageMonster(s, foeIdx, m, 2);
+        log(s, 'trap', ownerIdx, 'trap_spike_wall', { player: foe.name, amount: 2 });
+        break;
+      }
+      case 'siphon_strike': {
+        if (owner.hp >= owner.maxHp) { fired = false; break; }
+        const before = owner.hp;
+        owner.hp = Math.min(owner.maxHp, owner.hp + 4);
+        log(s, 'trap', ownerIdx, 'trap_siphon_strike', { amount: owner.hp - before, hp: owner.hp });
+        break;
+      }
+      case 'disarm': {
+        const m = foe.field.find((x) => x.uid === ctx.attackerUid);
+        if (!m || m.atk <= 0) { fired = false; break; }
+        m.atk = Math.max(0, m.atk - 2);
+        log(s, 'trap', ownerIdx, 'trap_disarm', { card: m.defId, atk: m.atk });
+        break;
+      }
+      case 'frost': {
+        if (foe.energy <= 0) { fired = false; break; }
+        const drained = foe.energy;
+        foe.energy = 0;
+        log(s, 'trap', ownerIdx, 'trap_frost', { player: foe.name, amount: drained });
+        break;
+      }
+
+      // ===== الموجة الثانية: ردّ على الاستدعاء =====
+      case 'sinkhole': {
+        const m = foe.field.find((x) => x.uid === ctx.summonedUid);
+        if (!m) { fired = false; break; }
+        foe.field = foe.field.filter((x) => x.uid !== m.uid);
+        foe.hand.push({ uid: m.uid, defId: m.defId });
+        log(s, 'trap', ownerIdx, 'trap_sinkhole', { card: m.defId, player: foe.name });
+        break;
+      }
+      case 'tax': {
+        if (foe.energy <= 0) { fired = false; break; }
+        const taken = Math.min(2, foe.energy);
+        foe.energy -= taken;
+        owner.bonusEnergy += 1;
+        log(s, 'trap', ownerIdx, 'trap_tax', { player: foe.name, amount: taken });
+        break;
+      }
+      case 'mimic': {
+        const drawn = drawCards(s, ownerIdx, 2, true);
+        if (!drawn) { fired = false; break; }
+        log(s, 'trap', ownerIdx, 'trap_mimic', { n: drawn });
+        break;
+      }
+      case 'weaken': {
+        const m = foe.field.find((x) => x.uid === ctx.summonedUid);
+        if (!m || m.atk <= 0) { fired = false; break; }
+        m.atk = Math.max(0, m.atk - 2);
+        log(s, 'trap', ownerIdx, 'trap_weaken', { card: m.defId, atk: m.atk });
+        break;
+      }
+      case 'soul_tithe': {
+        damagePlayer(s, foeIdx, 3);
+        log(s, 'trap', ownerIdx, 'trap_soul_tithe', { player: foe.name, amount: 3 });
+        break;
+      }
+
+      // ===== الموجة الثانية: بداية دور الخصم =====
+      case 'plague': {
+        const targets = foe.field.slice();
+        if (!targets.length) { fired = false; break; }
+        for (const m of targets) damageMonster(s, foeIdx, m, 2);
+        log(s, 'trap', ownerIdx, 'trap_plague', { player: foe.name, amount: 2 });
+        break;
+      }
+      case 'time_theft': {
+        if (!foe.hand.length) { fired = false; break; }
+        const [idx, rng] = randomInt(s.rng, foe.hand.length);
+        s.rng = rng;
+        s.discard.push(foe.hand.splice(idx, 1)[0]);
+        drawCards(s, ownerIdx, 1, true);
+        log(s, 'trap', ownerIdx, 'trap_time_theft', { player: foe.name });
+        break;
+      }
+      case 'hex': {
+        damagePlayer(s, foeIdx, 4);
+        log(s, 'trap', ownerIdx, 'trap_hex', { player: foe.name, amount: 4 });
+        break;
+      }
+      case 'drought': {
+        if (foe.energy <= 0) { fired = false; break; }
+        const lost = Math.min(3, foe.energy);
+        foe.energy -= lost;
+        log(s, 'trap', ownerIdx, 'trap_drought', { player: foe.name, amount: lost });
+        break;
+      }
+      case 'bramble': {
+        // أقوى وحش: الأعلى هجوماً، وعند التساوي الأعلى حياة
+        const m = foe.field
+          .slice()
+          .sort((a, b) => b.atk - a.atk || b.hp - a.hp)[0];
+        if (!m) { fired = false; break; }
+        damageMonster(s, foeIdx, m, 5);
+        log(s, 'trap', ownerIdx, 'trap_bramble', { card: m.defId, amount: 5 });
+        break;
+      }
+      case 'regrowth': {
+        const healed = Math.min(5, owner.maxHp - owner.hp);
+        const drawn = drawCards(s, ownerIdx, 1, true);
+        if (healed <= 0 && !drawn) { fired = false; break; }
+        owner.hp += healed;
+        log(s, 'trap', ownerIdx, 'trap_regrowth', { amount: healed, hp: owner.hp });
+        break;
+      }
+      case 'fortify': {
+        const hurt = owner.field.filter((m) => m.hp < m.maxHp);
+        if (!hurt.length) { fired = false; break; }
+        for (const m of hurt) m.hp = m.maxHp;
+        log(s, 'trap', ownerIdx, 'trap_fortify', { n: hurt.length });
+        break;
+      }
+
       default:
         fired = false;
     }
@@ -696,6 +845,17 @@ function endGame(s: GameState, winner: Seat, outcome: GameOutcome) {
 
 // ===================== الدور =====================
 
+/**
+ * عدّاد الجولة ملك اللاعب لا ملك رقم الدور. لا يبدأ عدّاد جديد إلا حين ينتقل
+ * الدور إلى لاعب آخر يتصرّف فعلاً — فكارت «تخطي» الذي يعيد الدور إلى صاحبه
+ * بعد دورين محتسَبين لا يمنحه مهلة كاملة جديدة، والدور المُتخطَّى لا يبتلع حقبة.
+ */
+function armClock(s: GameState) {
+  if (s.clockSeat === s.current) return;
+  s.clockSeat = s.current;
+  s.clockEpoch += 1;
+}
+
 function beginTurn(s: GameState) {
   if (s.phase === 'ended') return;
   const idx = s.current;
@@ -743,11 +903,13 @@ function beginTurn(s: GameState) {
   }
 
   if (s.pendingDraw > 0) {
+    armClock(s);
     s.phase = 'respond';
     log(s, 'system', idx, 'pending_draw', { n: s.pendingDraw });
     return;
   }
 
+  armClock(s);
   s.phase = 'main';
   // البادئ لا يسحب في دوره الأول — تعويض إضافي للاعب الثاني
   if (s.turn > 1) drawCards(s, idx, 1);
@@ -875,6 +1037,172 @@ function applySpell(
         s.discard.push(t);
         log(s, 'play', side, 'purged', { player: foe.name });
       }
+      break;
+    }
+
+    // ===== الموجة الثانية =====
+    case 'strike': {
+      const foeIdx = (targetUid ? findMonsterOwner(s, targetUid, foes) : null) ?? defaultFoe;
+      const foe = s.players[foeIdx];
+      const m = foe.field.find((x) => x.uid === targetUid) ?? foe.field[0];
+      if (m) {
+        const dealt = damageMonster(s, foeIdx, m, 4);
+        log(s, 'play', side, 'strike', { card: m.defId, amount: dealt });
+      }
+      break;
+    }
+    case 'bolt': {
+      damagePlayer(s, defaultFoe, 3);
+      log(s, 'play', side, 'bolt', { player: s.players[defaultFoe].name, amount: 3 });
+      break;
+    }
+    case 'drain_life': {
+      damagePlayer(s, defaultFoe, 3);
+      if (isEnded(s)) break;
+      p.hp = Math.min(p.maxHp, p.hp + 3);
+      log(s, 'play', side, 'drain_life', {
+        player: s.players[defaultFoe].name,
+        amount: 3,
+        hp: p.hp,
+      });
+      break;
+    }
+    case 'shield_wall': {
+      // الحياة القصوى ترتفع معها وإلا ضاعت الزيادة عند أول شفاء
+      for (const m of p.field) {
+        m.maxHp += 3;
+        m.hp += 3;
+      }
+      if (p.field.length) log(s, 'play', side, 'shield_wall', { n: p.field.length, amount: 3 });
+      break;
+    }
+    case 'rally': {
+      for (const m of p.field) m.atk += 1;
+      if (p.field.length) log(s, 'play', side, 'rally', { n: p.field.length, amount: 1 });
+      break;
+    }
+    case 'recall': {
+      const idx = targetUid
+        ? s.discard.findIndex((c) => c.uid === targetUid)
+        : s.discard.findIndex((c) => def(c.defId).kind === 'monster');
+      if (idx >= 0) {
+        const inst = s.discard.splice(idx, 1)[0];
+        p.hand.push(inst);
+        log(s, 'play', side, 'recalled', { card: inst.defId });
+      }
+      break;
+    }
+    case 'foresight': {
+      const n = drawCards(s, side, 2, true);
+      log(s, 'play', side, 'foresight', { n });
+      break;
+    }
+    case 'mana_well': {
+      p.energy += 2;
+      p.bonusEnergy += 2;
+      log(s, 'play', side, 'mana_well', { amount: 2, energy: p.energy });
+      break;
+    }
+    case 'cleanse': {
+      p.skipNext = false;
+      p.attackLocked = false;
+      const n = drawCards(s, side, 1, true);
+      log(s, 'play', side, 'cleanse', { player: p.name, n });
+      break;
+    }
+    case 'overload': {
+      const m = p.field.find((x) => x.uid === targetUid) ?? p.field[0];
+      if (m) {
+        m.atk += 5;
+        // القوّة تُشترى بالحياة، فقد يسقط الوحش بها
+        const dealt = damageMonster(s, side, m, 2);
+        log(s, 'play', side, 'overload', { card: m.defId, atk: m.atk, amount: dealt });
+      }
+      break;
+    }
+    case 'mirror_image': {
+      if (p.field.length === 0 || p.field.length >= RULES.MAX_FIELD) break;
+      // أضعف وحش: الأقلّ حياةً، وعند التساوي الأقلّ هجوماً
+      const weakest = p.field.slice().sort((a, b) => a.hp - b.hp || a.atk - b.atk)[0];
+      // النسخة تُسحب من السطح أو المهملات لا تُختلق، وإلا اختلّ جرد الكروت.
+      // فإن نفدت النسخ الأخرى من هذا التصميم لم يجد السحر ما ينسخه.
+      let idx = s.deck.findIndex((c) => c.defId === weakest.defId);
+      const inst =
+        idx >= 0
+          ? s.deck.splice(idx, 1)[0]
+          : (idx = s.discard.findIndex((c) => c.defId === weakest.defId)) >= 0
+            ? s.discard.splice(idx, 1)[0]
+            : null;
+      if (!inst) break;
+      const md = def(inst.defId);
+      p.field.push({
+        uid: inst.uid,
+        defId: md.id,
+        atk: md.atk!,
+        hp: md.hp!,
+        maxHp: md.hp!,
+        exhausted: false,
+        sick: md.ability !== 'rush',
+      });
+      log(s, 'play', side, 'mirror_image', { card: md.id });
+      break;
+    }
+    case 'banish': {
+      const foeIdx = (targetUid ? findMonsterOwner(s, targetUid, foes) : null) ?? defaultFoe;
+      const foe = s.players[foeIdx];
+      const m = foe.field.find((x) => x.uid === targetUid) ?? foe.field[0];
+      if (m) {
+        // إزالة مباشرة لا ضرر: «حراسة» لا تحمي منها
+        foe.field = foe.field.filter((x) => x.uid !== m.uid);
+        s.discard.push({ uid: m.uid, defId: m.defId });
+        log(s, 'play', side, 'banished', { card: m.defId, player: foe.name });
+      }
+      break;
+    }
+    case 'chain_lightning': {
+      for (const foeIdx of foes) {
+        const foe = s.players[foeIdx];
+        for (const m of foe.field.slice()) damageMonster(s, foeIdx, m, 2);
+        damagePlayer(s, foeIdx, 1);
+        log(s, 'play', side, 'chain_lightning', { player: foe.name, amount: 2 });
+        if (isEnded(s)) break;
+      }
+      break;
+    }
+    case 'titan_call': {
+      refillDeck(s);
+      const idx = s.deck.findIndex((c) => def(c.defId).kind === 'fragment');
+      if (idx >= 0) {
+        const inst = s.deck.splice(idx, 1)[0];
+        p.hand.push(inst);
+        log(s, 'play', side, 'titan_call', { card: inst.defId });
+      }
+      break;
+    }
+    case 'graft': {
+      const m = p.field.find((x) => x.uid === targetUid) ?? p.field[0];
+      if (m) {
+        m.hp = m.maxHp;
+        m.atk += 1;
+        log(s, 'play', side, 'graft', { card: m.defId, hp: m.hp, atk: m.atk });
+      }
+      break;
+    }
+    case 'barricade':
+      p.barrier = true;
+      log(s, 'play', side, 'barricade', { player: p.name });
+      break;
+    case 'reflect':
+      p.mirror = true;
+      log(s, 'play', side, 'reflect', { player: p.name });
+      break;
+    case 'second_wind': {
+      const woken = p.field.filter((m) => m.exhausted || m.sick);
+      for (const m of woken) {
+        m.exhausted = false;
+        m.sick = false;
+      }
+      if (woken.length) log(s, 'play', side, 'second_wind', { n: woken.length });
       break;
     }
   }

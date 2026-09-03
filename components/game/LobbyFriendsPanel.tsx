@@ -1,85 +1,109 @@
 'use client';
 
-import { useState } from 'react';
-import { addFriend, removeFriend } from '@/lib/player/friends';
-import { useFriends } from '@/lib/player/useFriends';
-import { buildRoomShareUrl } from '@/lib/multiplayer/joinUrl';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useSession } from '@/lib/auth/useSession';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
+import { makeRoomCode } from '@/lib/multiplayer/code';
+import { buildRoomJoinPath } from '@/lib/multiplayer/joinUrl';
+import { DEFAULT_TURN_SECONDS } from '@/lib/multiplayer/turnClock';
+import { createInvite } from '@/lib/social/api';
+import { acceptedFriends, reloadFriends } from '@/lib/social/store';
+import { useSocial } from '@/lib/social/useSocial';
 
+/**
+ * دعوة الأصدقاء. الوضع يُشتقّ من الخصائص فلا يحتاج مفتاحاً:
+ *
+ *  - **بلا `roomCode`** (شاشة `/vs` قبل وجود غرفة): «ادعُ إلى لوبي جديد» —
+ *    يولّد رمزاً، يُدرج الدعوة، ثم يدخل الغرفة مضيفاً.
+ *  - **مع `roomCode` ومقعد شاغر**: «ادعُ إلى هذا اللوبي» — يُدرج الدعوة
+ *    بالرمز الحالي **بلا تنقّل**، فيبقى المضيف في غرفته منتظراً. وهذا ما
+ *    يجعل 1×1×1 قابلاً للتكوين: ادعُ الأول، وحين ينضمّ ادعُ الثاني.
+ *
+ * التسابق على آخر مقعد لا يحتاج حجزاً: `claimSeat` يردّ الثاني بـ«الغرفة
+ * ممتلئة» وتعرضها `OnlineGame` عبر فرع الخطأ القائم.
+ */
 export default function LobbyFriendsPanel({
   roomCode,
-  showInvite = false,
+  playerCount = 2,
+  turnSeconds = DEFAULT_TURN_SECONDS,
+  seatsTaken = 1,
+  hasFreeSeat = true,
+  matchStarted = false,
 }: {
   roomCode?: string;
-  showInvite?: boolean;
+  playerCount?: number;
+  turnSeconds?: number;
+  seatsTaken?: number;
+  hasFreeSeat?: boolean;
+  matchStarted?: boolean;
 }) {
   const { t } = useLocale();
-  const friends = useFriends();
-  const [draft, setDraft] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [invitedId, setInvitedId] = useState<string | null>(null);
+  const router = useRouter();
+  const { status, account } = useSession();
+  const social = useSocial();
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  function handleAdd(e: React.FormEvent) {
-    e.preventDefault();
-    const added = addFriend(draft);
-    if (!added) {
-      setError(t('nameTooShort'));
-      return;
-    }
-    setDraft('');
-    setError(null);
-  }
+  useEffect(() => {
+    if (status === 'signedIn') void reloadFriends();
+  }, [status]);
 
-  async function invite(friendId: string, friendName: string) {
-    if (!roomCode) return;
-    const url = buildRoomShareUrl(roomCode);
-    const text = t('inviteFriendMessage', { name: friendName, code: roomCode, url });
-    if (navigator.share) {
-      try {
-        await navigator.share({ title: t('inviteShareTitle'), text, url });
-        setInvitedId(friendId);
-        window.setTimeout(() => setInvitedId(null), 2000);
-        return;
-      } catch {
-        /* fall through to clipboard */
-      }
-    }
-    try {
-      await navigator.clipboard.writeText(text);
-      setInvitedId(friendId);
-      window.setTimeout(() => setInvitedId(null), 2000);
-    } catch {
-      /* clipboard blocked */
+  if (status !== 'signedIn' || !account) return null;
+
+  const friends = acceptedFriends(social);
+  const inRoom = Boolean(roomCode);
+  const count = playerCount === 3 ? 3 : 2;
+  const blocked = inRoom && (matchStarted || !hasFreeSeat);
+  const blockedReason = matchStarted ? t('inviteStarted') : t('inviteNoSeat');
+
+  async function invite(friendId: string) {
+    if (busy || blocked) return;
+    setBusy(true);
+    const code = roomCode ?? makeRoomCode();
+    const ok = await createInvite({
+      toUserId: friendId,
+      roomCode: code,
+      playerCount: count as 2 | 3,
+      turnSeconds,
+      seatsTaken,
+    });
+    setBusy(false);
+    if (!ok) return;
+    setSentTo(friendId);
+    window.setTimeout(() => setSentTo(null), 2500);
+
+    // لوبي جديد: ادخله مضيفاً. لوبي قائم: ابقَ مكانك وانتظر الصديق.
+    if (!roomCode) {
+      router.push(
+        buildRoomJoinPath(code, {
+          name: account!.displayName,
+          host: true,
+          secs: turnSeconds,
+          players: count,
+        })
+      );
     }
   }
 
   return (
     <section className="mt-4 rounded-xl border border-white/10 bg-white/5 p-4">
-      <h3 className="mb-2 text-sm font-black">{t('friendsTitle')}</h3>
-      <p className="mb-3 text-[11px] leading-relaxed opacity-55">{t('friendsHint')}</p>
+      <h3 className="mb-1 text-sm font-black">{t('friendsPageTitle')}</h3>
+      <p className="mb-3 text-[11px] leading-relaxed opacity-55">
+        {inRoom ? t('inviteToThisLobby') : t('inviteToNewLobby')}
+        {inRoom && ` — ${t('inviteSeats', { taken: seatsTaken, total: count })}`}
+      </p>
 
-      <form onSubmit={handleAdd} className="mb-3 flex gap-2">
-        <input
-          value={draft}
-          onChange={(e) => {
-            setDraft(e.target.value);
-            setError(null);
-          }}
-          maxLength={20}
-          placeholder={t('friendNamePlaceholder')}
-          className="min-w-0 flex-1 rounded-lg bg-black/40 px-3 py-2 text-sm outline-none ring-1 ring-white/15 focus:ring-emerald-400"
-        />
-        <button
-          type="submit"
-          className="shrink-0 rounded-lg bg-violet-500 px-3 py-2 text-sm font-black text-black hover:bg-violet-400"
-        >
-          {t('addFriend')}
-        </button>
-      </form>
-      {error && <p className="mb-2 text-xs text-rose-300">{error}</p>}
+      {blocked && <p className="mb-2 text-[11px] text-amber-200">{blockedReason}</p>}
 
       {friends.length === 0 ? (
-        <p className="text-xs opacity-50">{t('friendsEmpty')}</p>
+        <p className="text-xs opacity-50">
+          {t('noFriendsYet')}{' '}
+          <Link href="/friends" className="underline">
+            {t('openFriends')}
+          </Link>
+        </p>
       ) : (
         <ul className="space-y-1.5">
           {friends.map((f) => (
@@ -87,23 +111,17 @@ export default function LobbyFriendsPanel({
               key={f.id}
               className="flex items-center gap-2 rounded-lg bg-black/30 px-3 py-2 text-sm"
             >
-              <span className="min-w-0 flex-1 truncate font-bold">{f.name}</span>
-              {showInvite && roomCode && (
-                <button
-                  type="button"
-                  onClick={() => invite(f.id, f.name)}
-                  className="shrink-0 rounded bg-emerald-500/90 px-2 py-1 text-xs font-black text-black hover:bg-emerald-400"
-                >
-                  {invitedId === f.id ? t('invited') : t('inviteFriend')}
-                </button>
-              )}
+              <span className="rounded bg-amber-400 px-1.5 py-0.5 text-[10px] font-black tabular-nums text-black">
+                {f.profile.level}
+              </span>
+              <span className="min-w-0 flex-1 truncate font-bold">{f.profile.displayName}</span>
               <button
                 type="button"
-                onClick={() => removeFriend(f.id)}
-                className="shrink-0 rounded bg-white/10 px-2 py-1 text-xs opacity-70 hover:bg-white/20"
-                title={t('removeFriend')}
+                onClick={() => invite(f.profile.id)}
+                disabled={busy || blocked}
+                className="shrink-0 rounded bg-emerald-500/90 px-2 py-1 text-xs font-black text-black hover:bg-emerald-400 disabled:opacity-40"
               >
-                ×
+                {sentTo === f.profile.id ? t('invited') : t('inviteFriend')}
               </button>
             </li>
           ))}

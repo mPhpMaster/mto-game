@@ -30,7 +30,13 @@
     "check:autoplay": "tsx scripts/autoplay-check.ts",
     "check:ffa3": "tsx scripts/ffa3-check.ts",
     "check:chat": "tsx scripts/chat-check.ts",
-    "check:online": "tsx scripts/online-room-check.ts"
+    "check:online": "tsx scripts/online-room-check.ts",
+    "check:clock": "tsx scripts/clock-check.ts",
+    "check:effects": "tsx scripts/effects-check.ts",
+    "check:auth": "tsx scripts/auth-check.ts",
+    "check:level": "tsx scripts/level-check.ts",
+    "check:stats": "tsx scripts/stats-check.ts",
+    "check:social": "tsx scripts/social-check.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",

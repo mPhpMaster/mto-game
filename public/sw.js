@@ -3,7 +3,7 @@
  * الاستراتيجية: الأصول الثابتة من الذاكرة أولاً، والصفحات من الشبكة أولاً
  * مع الرجوع إلى الذاكرة عند الانقطاع. نداءات /api لا تُخزَّن إطلاقاً.
  */
-const VERSION = 'mto-v1';
+const VERSION = 'mto-v2';
 const STATIC_CACHE = `${VERSION}-static`;
 const PAGE_CACHE = `${VERSION}-pages`;
 const OFFLINE_URL = '/offline';
@@ -30,6 +30,17 @@ self.addEventListener('activate', (event) => {
     })()
   );
 });
+
+/**
+ * صفحات تخصّ حساباً بعينه. `cache.put` يتجاهل ترويسات `no-store`، فلو
+ * خُزِّنت هذه لَظهرت صفحة مستخدم لمن يفتح الجهاز بعده وهو دون إنترنت.
+ * تُجلَب من الشبكة فقط، وترتدّ إلى صفحة «غير متصل» لا إلى نسخة مخزَّنة.
+ */
+const AUTH_PATHS = ['/vs', '/friends', '/account', '/leaderboard'];
+
+function isAuthPath(url) {
+  return AUTH_PATHS.some((p) => url.pathname === p || url.pathname.startsWith(`${p}/`));
+}
 
 function isStaticAsset(url) {
   return (
@@ -63,6 +74,21 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (request.mode === 'navigate') {
+    // صفحات الحساب: الشبكة أو لا شيء — لا تُخزَّن ولا تُقدَّم من الذاكرة
+    if (isAuthPath(url)) {
+      event.respondWith(
+        fetch(request).catch(
+          async () =>
+            (await caches.match(OFFLINE_URL)) ??
+            new Response('غير متصل', {
+              status: 503,
+              headers: { 'content-type': 'text/plain; charset=utf-8' },
+            })
+        )
+      );
+      return;
+    }
+
     event.respondWith(
       (async () => {
         try {

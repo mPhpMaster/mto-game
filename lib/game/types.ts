@@ -37,7 +37,28 @@ export type TrapEffect =
   | 'curse'
   | 'relic_break'
   | 'counter_surge'
-  | 'mirror';
+  | 'mirror'
+  // --- الموجة الثانية: ردّ على الهجوم ---
+  | 'thorns'
+  | 'chain'
+  | 'spike_wall'
+  | 'siphon_strike'
+  | 'disarm'
+  | 'frost'
+  // --- الموجة الثانية: ردّ على الاستدعاء ---
+  | 'sinkhole'
+  | 'tax'
+  | 'mimic'
+  | 'weaken'
+  | 'soul_tithe'
+  // --- الموجة الثانية: بداية دور الخصم ---
+  | 'plague'
+  | 'time_theft'
+  | 'hex'
+  | 'drought'
+  | 'bramble'
+  | 'regrowth'
+  | 'fortify';
 
 export type SpellEffect =
   | 'heal'
@@ -48,7 +69,26 @@ export type SpellEffect =
   | 'swap'
   | 'amplify'
   | 'revive'
-  | 'purge';
+  | 'purge'
+  // --- الموجة الثانية ---
+  | 'strike'
+  | 'bolt'
+  | 'drain_life'
+  | 'shield_wall'
+  | 'rally'
+  | 'recall'
+  | 'foresight'
+  | 'mana_well'
+  | 'cleanse'
+  | 'overload'
+  | 'mirror_image'
+  | 'banish'
+  | 'chain_lightning'
+  | 'titan_call'
+  | 'graft'
+  | 'barricade'
+  | 'reflect'
+  | 'second_wind';
 
 export type TrapTiming = 'opponent_turn_start' | 'opponent_attack' | 'opponent_summon';
 
@@ -181,6 +221,13 @@ export interface GameState {
   current: Seat;
   /** اتجاه الدور: 1 مع عقارب الخانات، -1 عكسها (من كارت الانعكاس في ثلاثي) */
   turnDir: 1 | -1;
+  /**
+   * صاحب العدّاد الجاري وحقبته. رقم الدور وحده لا يصلح مفتاحاً لتصفير المهلة:
+   * كارت «تخطي» يعيد الدور إلى صاحبه بعد دورين محتسَبين، فيربح مهلة كاملة مجاناً.
+   * الحقبة لا تزيد إلا حين يبدأ لاعب مختلف دوراً يتصرّف فيه فعلاً.
+   */
+  clockSeat: Seat | null;
+  clockEpoch: number;
   phase: Phase;
   winner: Seat | null;
   winReason: GameOutcome | null;
@@ -191,6 +238,12 @@ export interface GameState {
   pendingDraw: number;
   players: PlayerState[];
   log: LogEntry[];
+  /**
+   * عدد الأسطر المكتوبة في السجل منذ بداية المباراة. السجل حلقة تُقصّ عند 200،
+   * فطولها يتجمّد بعدها ولا يصلح للكشف عن «حركة لم تُغيّر شيئاً» — وهذا العدّاد
+   * لا يتجمّد أبداً.
+   */
+  logSeq: number;
   /** كروت مكشوفة مؤقتاً للاعب (كارت البحث) */
   reveal: { side: Seat; cards: CardInstance[] } | null;
 }

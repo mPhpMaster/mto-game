@@ -474,6 +474,193 @@ function TrapArt({ card, ink }: { card: CardDef; ink: Ink }) {
           <path d="M24 40 L18 46 L24 52" stroke={glow} strokeWidth="3" fill="none" strokeLinecap="round" />
         </g>
       );
+
+    // ===== الموجة الثانية =====
+    case 'thorns':
+      return (
+        <g>
+          <circle cx="52" cy="46" r="16" fill={deep} stroke={main} strokeWidth="3" />
+          {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => (
+            <path
+              key={a}
+              d="M52 30 L48 16 L56 16 Z"
+              fill={main}
+              transform={`rotate(${a} 52 46)`}
+            />
+          ))}
+          <circle cx="52" cy="46" r="5" fill={glow} />
+        </g>
+      );
+    case 'chain':
+      return (
+        <g fill="none" stroke={main} strokeWidth="5">
+          <ellipse cx="34" cy="34" rx="11" ry="8" transform="rotate(-40 34 34)" />
+          <ellipse cx="52" cy="46" rx="11" ry="8" transform="rotate(-40 52 46)" />
+          <ellipse cx="70" cy="58" rx="11" ry="8" transform="rotate(-40 70 58)" />
+          <path d="M22 70 L82 22" stroke={glow} strokeWidth="3" opacity="0.6" />
+        </g>
+      );
+    case 'spike_wall':
+      return (
+        <g>
+          <rect x="24" y="52" width="56" height="20" rx="3" fill={deep} stroke={main} strokeWidth="3" />
+          {[30, 44, 58, 72].map((x) => (
+            <path key={x} d={`M${x} 52 L${x + 6} 22 L${x + 12} 52 Z`} fill={main} />
+          ))}
+          <path d="M24 62 H80" stroke={glow} strokeWidth="2" opacity="0.7" />
+        </g>
+      );
+    case 'siphon_strike':
+      return (
+        <g>
+          <path d="M52 74 C26 56 30 30 46 30 C51 30 52 36 52 36 C52 36 53 30 58 30 C74 30 78 56 52 74 Z" fill={main} />
+          {[0, 1, 2].map((i) => (
+            <path
+              key={i}
+              d={`M${30 + i * 22} 20 L${34 + i * 22} 34`}
+              stroke={glow}
+              strokeWidth="4"
+              strokeLinecap="round"
+            />
+          ))}
+        </g>
+      );
+    case 'disarm':
+      return (
+        <g>
+          <path d="M32 68 L64 26" stroke={main} strokeWidth="7" strokeLinecap="round" />
+          <path d="M58 20 L74 34 L66 42 L50 28 Z" fill={deep} stroke={main} strokeWidth="3" />
+          <path d="M26 24 L78 70" stroke={glow} strokeWidth="6" strokeLinecap="round" opacity="0.9" />
+        </g>
+      );
+    case 'frost':
+      return (
+        <g stroke={main} strokeWidth="4" strokeLinecap="round">
+          {[0, 60, 120].map((a) => (
+            <path key={a} d="M52 20 V72" transform={`rotate(${a} 52 46)`} />
+          ))}
+          {[0, 60, 120, 180, 240, 300].map((a) => (
+            <path key={`b${a}`} d="M52 26 L46 34 M52 26 L58 34" transform={`rotate(${a} 52 46)`} strokeWidth="3" />
+          ))}
+          <circle cx="52" cy="46" r="5" fill={glow} stroke="none" />
+        </g>
+      );
+    case 'sinkhole':
+      return (
+        <g>
+          <ellipse cx="52" cy="58" rx="30" ry="14" fill={deep} />
+          <ellipse cx="52" cy="56" rx="20" ry="9" fill="#05070f" />
+          <path d="M40 26 L52 44 L64 26" fill="none" stroke={main} strokeWidth="5" strokeLinecap="round" />
+          <path d="M52 18 V44" stroke={glow} strokeWidth="4" strokeLinecap="round" />
+        </g>
+      );
+    case 'tax':
+      return (
+        <g>
+          {[0, 1, 2].map((i) => (
+            <ellipse key={i} cx="52" cy={62 - i * 12} rx="20" ry="7" fill={i === 2 ? main : deep} stroke={main} strokeWidth="2" />
+          ))}
+          <path d="M76 30 L88 22 M76 30 L86 36" stroke={glow} strokeWidth="4" strokeLinecap="round" fill="none" />
+        </g>
+      );
+    case 'mimic':
+      return (
+        <g>
+          <rect x="24" y="24" width="34" height="46" rx="4" fill={deep} stroke={main} strokeWidth="3" />
+          <rect x="46" y="30" width="34" height="46" rx="4" fill={main} opacity="0.55" stroke={main} strokeWidth="3" />
+          <circle cx="63" cy="52" r="5" fill={glow} />
+        </g>
+      );
+    case 'weaken':
+      return (
+        <g>
+          <path d="M34 30 Q52 18 70 30 L64 62 Q52 72 40 62 Z" fill={deep} stroke={main} strokeWidth="3" />
+          <path d="M40 44 H64" stroke={glow} strokeWidth="6" strokeLinecap="round" />
+          <path d="M30 74 L74 74" stroke={main} strokeWidth="4" strokeLinecap="round" opacity="0.6" />
+        </g>
+      );
+    case 'soul_tithe':
+      return (
+        <g>
+          <path d="M52 72 C28 54 32 30 47 30 C51 30 52 35 52 35 C52 35 53 30 57 30 C72 30 76 54 52 72 Z" fill={deep} stroke={main} strokeWidth="3" />
+          <circle cx="52" cy="46" r="7" fill={glow} />
+          <path d="M52 20 L52 8" stroke={glow} strokeWidth="4" strokeLinecap="round" />
+        </g>
+      );
+    case 'plague':
+      return (
+        <g>
+          <circle cx="52" cy="46" r="18" fill={deep} stroke={main} strokeWidth="3" />
+          {[30, 90, 150, 210, 270, 330].map((a) => (
+            <circle key={a} cx="52" cy="20" r="6" fill={main} transform={`rotate(${a} 52 46)`} />
+          ))}
+          <circle cx="46" cy="42" r="3" fill={glow} />
+          <circle cx="58" cy="50" r="3" fill={glow} />
+        </g>
+      );
+    case 'time_theft':
+      return (
+        <g>
+          <circle cx="52" cy="46" r="24" fill="none" stroke={main} strokeWidth="4" />
+          <path d="M52 30 V46 L64 54" stroke={glow} strokeWidth="5" fill="none" strokeLinecap="round" />
+          <path d="M74 22 L88 14 M74 22 L86 30" stroke={main} strokeWidth="4" fill="none" strokeLinecap="round" />
+        </g>
+      );
+    case 'hex':
+      return (
+        <g>
+          <path d="M52 16 L84 34 V64 L52 82 L20 64 V34 Z" fill="none" stroke={main} strokeWidth="4" />
+          <path d="M38 38 L66 58 M66 38 L38 58" stroke={glow} strokeWidth="5" strokeLinecap="round" />
+          <circle cx="52" cy="48" r="4" fill={glow} />
+        </g>
+      );
+    case 'drought':
+      return (
+        <g>
+          <circle cx="52" cy="34" r="14" fill={main} />
+          {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => (
+            <path key={a} d="M52 14 V6" stroke={main} strokeWidth="3" strokeLinecap="round" transform={`rotate(${a} 52 34)`} />
+          ))}
+          <path d="M28 62 Q40 56 52 62 T76 62" fill="none" stroke={deep} strokeWidth="4" />
+          <path d="M32 72 H72" stroke={glow} strokeWidth="3" opacity="0.5" />
+        </g>
+      );
+    case 'bramble':
+      return (
+        <g fill="none" stroke={main} strokeWidth="4" strokeLinecap="round">
+          <path d="M24 74 Q40 50 34 26" />
+          <path d="M80 74 Q64 50 70 26" />
+          <path d="M52 78 V34" />
+          {[34, 46, 58].map((y) => (
+            <g key={y}>
+              <path d={`M52 ${y} L42 ${y - 8}`} strokeWidth="3" />
+              <path d={`M52 ${y} L62 ${y - 8}`} strokeWidth="3" />
+            </g>
+          ))}
+          <circle cx="52" cy="28" r="5" fill={glow} stroke="none" />
+        </g>
+      );
+    case 'regrowth':
+      return (
+        <g>
+          <path d="M52 76 V40" stroke={main} strokeWidth="5" strokeLinecap="round" fill="none" />
+          <path d="M52 48 Q30 44 30 24 Q52 24 52 48 Z" fill={main} opacity="0.8" />
+          <path d="M52 40 Q74 36 74 18 Q52 18 52 40 Z" fill={glow} opacity="0.7" />
+          <ellipse cx="52" cy="78" rx="20" ry="5" fill={deep} />
+        </g>
+      );
+    case 'fortify':
+      return (
+        <g>
+          <path d="M52 16 L80 27 V50 Q80 70 52 80 Q24 70 24 50 V27 Z" fill={main} opacity="0.3" stroke={main} strokeWidth="4" />
+          <path d="M52 16 V80" stroke={main} strokeWidth="3" opacity="0.6" />
+          <path d="M24 44 H80" stroke={main} strokeWidth="3" opacity="0.6" />
+          {[36, 68].map((x) => (
+            <circle key={x} cx={x} cy="34" r="4" fill={glow} />
+          ))}
+        </g>
+      );
+
     default:
       return <circle cx="52" cy="46" r="20" fill={main} />;
   }
@@ -565,6 +752,194 @@ function SpellArt({ card, ink }: { card: CardDef; ink: Ink }) {
           <circle cx="52" cy="44" r="6" fill={glow} />
         </g>
       );
+
+    // ===== الموجة الثانية =====
+    case 'strike':
+      return (
+        <g>
+          <path d="M30 72 L70 24" stroke={main} strokeWidth="9" strokeLinecap="round" />
+          <path d="M64 18 L82 32 L72 42 L56 28 Z" fill={glow} stroke={main} strokeWidth="2" />
+          <path d="M24 78 L36 66" stroke={deep} strokeWidth="7" strokeLinecap="round" />
+        </g>
+      );
+    case 'bolt':
+      return (
+        <g>
+          <path d="M58 10 L32 48 H50 L44 82 L74 40 H54 Z" fill={main} stroke={glow} strokeWidth="2" />
+          <path d="M58 10 L32 48 H50 L44 82" fill="none" stroke={glow} strokeWidth="2" opacity="0.7" />
+        </g>
+      );
+    case 'drain_life':
+      return (
+        <g>
+          <path d="M34 66 C16 50 20 28 33 28 C37 28 38 33 38 33 C38 33 39 28 43 28 C56 28 60 50 38 68 Z" fill={deep} stroke={main} strokeWidth="2" />
+          <path d="M70 70 C54 54 58 34 69 34 C73 34 74 38 74 38 C74 38 75 34 79 34 C90 34 92 54 74 70 Z" fill={main} />
+          {[0, 1, 2].map((i) => (
+            <circle key={i} cx={48 + i * 6} cy={50 - i * 5} r={2.5 - i * 0.4} fill={glow} />
+          ))}
+        </g>
+      );
+    case 'shield_wall':
+      return (
+        <g>
+          {[30, 52, 74].map((x, i) => (
+            <path
+              key={x}
+              d={`M${x} ${24 + (i === 1 ? 0 : 6)} L${x + 15} ${30 + (i === 1 ? 0 : 6)} V${52 + (i === 1 ? 0 : 6)} Q${x + 15} ${64 + (i === 1 ? 0 : 6)} ${x} ${70 + (i === 1 ? 0 : 6)} Q${x - 15} ${64 + (i === 1 ? 0 : 6)} ${x - 15} ${52 + (i === 1 ? 0 : 6)} V${30 + (i === 1 ? 0 : 6)} Z`}
+              fill={i === 1 ? main : deep}
+              opacity={i === 1 ? 0.9 : 0.65}
+              stroke={main}
+              strokeWidth="3"
+            />
+          ))}
+          <circle cx="52" cy="44" r="5" fill={glow} />
+        </g>
+      );
+    case 'rally':
+      return (
+        <g>
+          {[28, 52, 76].map((x, i) => (
+            <path
+              key={x}
+              d={`M${x} ${70 - i * 4} V${34 - i * 6}`}
+              stroke={main}
+              strokeWidth="5"
+              strokeLinecap="round"
+            />
+          ))}
+          {[28, 52, 76].map((x, i) => (
+            <path key={`h${x}`} d={`M${x} ${34 - i * 6} l12 6 l-12 6 z`} fill={glow} />
+          ))}
+          <path d="M20 78 H84" stroke={deep} strokeWidth="4" strokeLinecap="round" />
+        </g>
+      );
+    case 'recall':
+      return (
+        <g fill="none" stroke={main} strokeWidth="5" strokeLinecap="round">
+          <path d="M76 46 A24 24 0 1 1 52 22" />
+          <path d="M52 10 L52 34 L40 22 Z" fill={glow} stroke="none" />
+          <circle cx="52" cy="46" r="6" fill={deep} stroke={main} strokeWidth="3" />
+        </g>
+      );
+    case 'foresight':
+      return (
+        <g>
+          <path d="M18 46 Q52 18 86 46 Q52 74 18 46 Z" fill={deep} stroke={main} strokeWidth="4" />
+          <circle cx="52" cy="46" r="13" fill={main} />
+          <circle cx="52" cy="46" r="6" fill="#05070f" />
+          <circle cx="56" cy="41" r="3" fill={glow} />
+        </g>
+      );
+    case 'mana_well':
+      return (
+        <g>
+          <ellipse cx="52" cy="66" rx="26" ry="10" fill={deep} stroke={main} strokeWidth="3" />
+          <path d="M30 66 Q52 30 74 66" fill={main} opacity="0.45" />
+          {[0, 1, 2].map((i) => (
+            <circle key={i} cx={40 + i * 12} cy={38 - i * 6} r={4 - i * 0.6} fill={glow} />
+          ))}
+          <path d="M52 24 V12" stroke={glow} strokeWidth="4" strokeLinecap="round" />
+        </g>
+      );
+    case 'cleanse':
+      return (
+        <g>
+          <circle cx="52" cy="46" r="24" fill="none" stroke={main} strokeWidth="4" />
+          <path d="M38 46 L48 57 L68 34" stroke={glow} strokeWidth="6" fill="none" strokeLinecap="round" />
+          {[20, 84].map((x) => (
+            <path key={x} d={`M${x} 20 L${x} 30`} stroke={main} strokeWidth="3" strokeLinecap="round" />
+          ))}
+        </g>
+      );
+    case 'overload':
+      return (
+        <g>
+          <path d="M56 10 L34 46 H50 L46 82 L72 42 H54 Z" fill={main} stroke={glow} strokeWidth="2" />
+          {[0, 1, 2, 3].map((i) => (
+            <circle key={i} cx={22 + i * 20} cy={70 - (i % 2) * 46} r="3" fill={glow} opacity="0.8" />
+          ))}
+        </g>
+      );
+    case 'mirror_image':
+      return (
+        <g>
+          <circle cx="36" cy="46" r="17" fill={main} />
+          <circle cx="68" cy="46" r="17" fill={main} opacity="0.45" stroke={main} strokeWidth="2" />
+          <path d="M52 16 V76" stroke={glow} strokeWidth="3" strokeDasharray="5 5" />
+        </g>
+      );
+    case 'banish':
+      return (
+        <g>
+          <ellipse cx="52" cy="66" rx="26" ry="10" fill="#05070f" stroke={main} strokeWidth="3" />
+          <path d="M40 60 Q38 30 52 16 Q66 30 64 60" fill={deep} stroke={main} strokeWidth="3" />
+          <path d="M34 26 L70 62 M70 26 L34 62" stroke={glow} strokeWidth="5" strokeLinecap="round" />
+        </g>
+      );
+    case 'chain_lightning':
+      return (
+        <g>
+          {[0, 1, 2].map((i) => (
+            <path
+              key={i}
+              d={`M${28 + i * 22} 12 L${18 + i * 22} 42 H${28 + i * 22} L${20 + i * 22} 78`}
+              fill="none"
+              stroke={i === 1 ? glow : main}
+              strokeWidth={4 - i * 0.3}
+              strokeLinecap="round"
+            />
+          ))}
+          <path d="M18 46 H84" stroke={main} strokeWidth="2" opacity="0.5" />
+        </g>
+      );
+    case 'titan_call':
+      return (
+        <g>
+          <path d="M52 12 L74 30 L66 68 H38 L30 30 Z" fill={deep} stroke={main} strokeWidth="4" />
+          <circle cx="44" cy="40" r="4" fill={glow} />
+          <circle cx="60" cy="40" r="4" fill={glow} />
+          <path d="M42 54 L52 62 L62 54" fill="none" stroke={main} strokeWidth="4" strokeLinecap="round" />
+          {[26, 78].map((x) => (
+            <path key={x} d={`M${x} 74 l4 8 l-8 0 z`} fill={glow} />
+          ))}
+        </g>
+      );
+    case 'graft':
+      return (
+        <g>
+          <path d="M52 78 V44" stroke={main} strokeWidth="5" strokeLinecap="round" />
+          <path d="M52 52 Q32 48 32 30 Q52 30 52 52 Z" fill={main} opacity="0.85" />
+          <path d="M52 44 Q72 40 72 22 Q52 22 52 44 Z" fill={glow} opacity="0.75" />
+          <path d="M42 62 H62" stroke={deep} strokeWidth="5" strokeLinecap="round" />
+        </g>
+      );
+    case 'barricade':
+      return (
+        <g>
+          <path d="M52 14 L80 26 V50 Q80 70 52 82 Q24 70 24 50 V26 Z" fill={main} opacity="0.35" stroke={main} strokeWidth="4" />
+          {[34, 46, 58].map((y) => (
+            <path key={y} d={`M28 ${y} H76`} stroke={main} strokeWidth="4" opacity="0.7" />
+          ))}
+          <circle cx="52" cy="70" r="5" fill={glow} />
+        </g>
+      );
+    case 'reflect':
+      return (
+        <g>
+          <path d="M52 14 V78" stroke={main} strokeWidth="4" strokeDasharray="6 5" />
+          <path d="M40 30 L18 46 L40 62" fill="none" stroke={glow} strokeWidth="5" strokeLinecap="round" />
+          <path d="M64 30 L86 46 L64 62" fill="none" stroke={main} strokeWidth="5" strokeLinecap="round" />
+        </g>
+      );
+    case 'second_wind':
+      return (
+        <g fill="none" stroke={main} strokeWidth="5" strokeLinecap="round">
+          <path d="M28 34 A24 24 0 1 1 28 58" />
+          <path d="M20 26 L32 36 L18 42" stroke={glow} />
+          <path d="M62 40 L54 50 H62 L54 62" stroke={glow} strokeWidth="4" />
+        </g>
+      );
+
     default:
       return <circle cx="52" cy="46" r="20" fill={main} />;
   }

@@ -108,7 +108,7 @@ export function useRoom({
   const [via, setVia] = useState<RoomVia>('none');
   const [turnDeadline, setTurnDeadline] = useState<number | null>(null);
   const [activeSeconds, setActiveSeconds] = useState(turnSeconds);
-  const lastTurnRef = useRef(-1);
+  const lastEpochRef = useRef(-1);
 
   const fullRef = useRef<GameState | null>(null);
   const transportRef = useRef<RoomTransport | null>(null);
@@ -146,10 +146,12 @@ export function useRoom({
       setState(next);
       setStatus('playing');
 
-      const turnChanged = next.turn !== lastTurnRef.current;
-      if (turnChanged) lastTurnRef.current = next.turn;
+      // حقبة العدّاد لا رقم الدور: «تخطي» يزيد الدور دون أن ينقله لشخص آخر،
+      // فلو صُفِّرت المهلة على رقم الدور لربح صاحبه مهلة كاملة مجاناً.
+      const clockChanged = next.clockEpoch !== lastEpochRef.current;
+      if (clockChanged) lastEpochRef.current = next.clockEpoch;
       const running = next.phase !== 'ended' && turnSeconds > 0;
-      if (turnChanged && running) setTurnDeadline(Date.now() + turnSeconds * 1000);
+      if (clockChanged && running) setTurnDeadline(Date.now() + turnSeconds * 1000);
       if (!running) setTurnDeadline(null);
 
       const n = next.players.length;
@@ -158,7 +160,7 @@ export function useRoom({
         transportRef.current?.send('state', {
           forSeat: seat,
           state: redactFor(next, seat),
-          remainingMs: running && turnChanged ? turnSeconds * 1000 : undefined,
+          remainingMs: running && clockChanged ? turnSeconds * 1000 : undefined,
           turnSeconds,
           ended: next.phase === 'ended',
         } satisfies StatePayload);
@@ -442,11 +444,11 @@ export function useRoom({
   useEffect(() => {
     if (!isHost || turnDeadline === null) return;
     const delay = Math.max(0, turnDeadline - Date.now());
-    const expectedTurn = lastTurnRef.current;
+    const expectedEpoch = lastEpochRef.current;
     const timer = window.setTimeout(() => {
       const current = fullRef.current;
       if (!current || current.phase === 'ended') return;
-      if (current.turn !== expectedTurn) return;
+      if (current.clockEpoch !== expectedEpoch) return;
       publish(applyAutoPlay(current));
     }, delay);
     return () => window.clearTimeout(timer);
