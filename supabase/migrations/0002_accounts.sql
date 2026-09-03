@@ -25,10 +25,21 @@ alter table public.matches alter column difficulty set not null;
 --    الانتقال من المستوى N إلى N+1 يكلّف 3N انتصاراً:
 --    المستوى 2 عند 3، و3 عند 9، و5 عند 30، و10 عند 135.
 -- ═══════════════════════════════════════════════════════════════════
-create or replace function public.level_from_wins(p_wins integer)
-returns integer language sql immutable strict set search_path = '' as $$
-  select greatest(1, floor((1 + sqrt(1 + (8.0 * greatest(p_wins, 0)) / 3.0)) / 2.0))::integer;
-$$;
+-- `create or replace` لا يصلح هنا: عمود profiles.level مولَّد ويعتمد على هذه
+-- الدالة، وPostgres يرفض استبدال دالة يعتمد عليها عمود مولَّد. الحارس يجعل
+-- إعادة تشغيل الهجرة كلّها آمنة بدل أن تتعثّر عند هذا السطر.
+do $$ begin
+  if not exists (
+    select 1 from pg_proc p
+     where p.proname = 'level_from_wins'
+       and p.pronamespace = 'public'::regnamespace
+  ) then
+    create function public.level_from_wins(p_wins integer)
+    returns integer language sql immutable strict set search_path = '' as $fn$
+      select greatest(1, floor((1 + sqrt(1 + (8.0 * greatest(p_wins, 0)) / 3.0)) / 2.0))::integer;
+    $fn$;
+  end if;
+end $$;
 
 -- ═══════════════════════════════════════════════════════════════════
 -- 2) الملفات الشخصية
