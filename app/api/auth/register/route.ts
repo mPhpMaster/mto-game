@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import {
   PASSWORD_MAX,
-  PASSWORD_MIN,
   USERNAME_MAX,
   normalizeUsername,
   passwordErrorKey,
@@ -13,9 +12,14 @@ import { getServiceSupabase } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * zod يفحص الشكل فقط (نصّ موجود)، والطول والمحارف يفحصها المُتحقّقان أدناه.
+ * لو فرضنا الحدود هنا لسبق رفضُ zod المُتحقّقَين وأعاد مفتاح خطأ عن حقل آخر:
+ * كلمة مرور قصيرة كانت تُظهر «أدخل اسم مستخدم».
+ */
 const RegisterInput = z.object({
-  username: z.string().min(1).max(USERNAME_MAX + 10),
-  password: z.string().min(PASSWORD_MIN).max(PASSWORD_MAX),
+  username: z.string().max(USERNAME_MAX + 10),
+  password: z.string().max(PASSWORD_MAX * 4),
   displayName: z.string().max(40).optional(),
 });
 
