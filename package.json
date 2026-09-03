@@ -36,7 +36,8 @@
     "check:auth": "tsx scripts/auth-check.ts",
     "check:level": "tsx scripts/level-check.ts",
     "check:stats": "tsx scripts/stats-check.ts",
-    "check:social": "tsx scripts/social-check.ts"
+    "check:social": "tsx scripts/social-check.ts",
+    "check:archetype": "tsx scripts/archetype-check.ts"
   },
   "dependencies": {
     "@capacitor/android": "^8.5.0",

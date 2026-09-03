@@ -1,11 +1,13 @@
 import type { CardDef, Element } from '@/lib/game/types';
+import { type Archetype, archetypeOf } from '@/lib/game/archetypes';
 
 /**
  * فنّ الكروت — رسوم SVG تُولَّد من تعريف الكارت نفسه.
  *
  * لماذا التوليد بدل ملفّات صور: 86 تصميماً تبقى حادّة في كل المقاسات،
  * بلا أي بايت إضافي في الحزمة، وتتبع ألوان العنصر تلقائياً.
- * الشكل يُشتقّ من اسم الفصيلة فيبقى ثابتاً للكارت نفسه في كل مرة.
+ * الشكل يأتي من جدول الطُّرُز في lib/game/archetypes.ts، والبذرة تبقى
+ * لتنويع التفاصيل داخل الشكل الواحد.
  */
 
 const PALETTE: Record<Element, { main: string; deep: string; glow: string }> = {
@@ -27,8 +29,6 @@ function hash(s: string): number {
   return h >>> 0;
 }
 
-type Archetype = 'beast' | 'serpent' | 'avian' | 'orb' | 'golem' | 'wraith';
-const ARCHETYPES: Archetype[] = ['beast', 'serpent', 'avian', 'orb', 'golem', 'wraith'];
 
 interface Ink {
   main: string;
@@ -1004,7 +1004,9 @@ export default function CardArt({ card, className }: { card: CardDef; className?
 
   let body: React.JSX.Element;
   if (card.kind === 'monster') {
-    const Body = BODY[ARCHETYPES[seed % ARCHETYPES.length]];
+    // الطراز مكتوب في lib/game/archetypes.ts لا محسوب من الهاش: الشكل هوية
+    // تشترك فيها البطاقة مع مجسّمها ثلاثي الأبعاد، فلا يجوز أن تقرّرها البذرة.
+    const Body = BODY[archetypeOf(card.species) ?? 'beast'];
     body = <Body ink={ink} />;
   } else if (card.kind === 'action') {
     body = <ActionArt card={card} ink={ink} />;
