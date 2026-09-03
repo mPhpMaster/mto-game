@@ -105,13 +105,18 @@ interface SpeciesRow {
   ab2: Ability;
 }
 
+/**
+ * مفتاح `species` جزءٌ من هوية الكارت (`mon_<element>_<species>_<stage>`)، والهوية
+ * مخزَّنة في `profile_card_stats.card_def_id` وفي سجلّات المباريات — فلا تُغيَّر.
+ * أسماء العرض وحدها هي ما يتغيّر، ولذلك بقي `thandiro` مثلاً مفتاحاً لـ«دينامو».
+ */
 const SPECIES: Record<PlayableElement, SpeciesRow[]> = {
   fire: [
     { species: 'lahibo', base: { ar: 'لهيبو', en: 'Blazlet' }, evo: { ar: 'لهيبيون', en: 'Blazlion' }, n1: 2, a1: 3, h1: 5, ab1: 'none', n2: 7, a2: 6, h2: 9, ab2: 'rush' },
     { species: 'jamra', base: { ar: 'جمرة', en: 'Emberin' }, evo: { ar: 'جمرالنار', en: 'Emberfang' }, n1: 1, a1: 2, h1: 4, ab1: 'venom', n2: 6, a2: 5, h2: 8, ab2: 'pierce' },
-    { species: 'nariks', base: { ar: 'ناريكس', en: 'Narix' }, evo: { ar: 'ناريكس الأعظم', en: 'Narix Prime' }, n1: 5, a1: 4, h1: 4, ab1: 'rush', n2: 9, a2: 7, h2: 8, ab2: 'pierce' },
-    { species: 'smoki', base: { ar: 'سموكي', en: 'Smokel' }, evo: { ar: 'سموكاتور', en: 'Smokator' }, n1: 3, a1: 3, h1: 3, ab1: 'scout', n2: 8, a2: 5, h2: 7, ab2: 'drain' },
-    { species: 'volkani', base: { ar: 'فولكاني', en: 'Volcani' }, evo: { ar: 'فولكانوس', en: 'Volcanos' }, n1: 4, a1: 5, h1: 6, ab1: 'none', n2: 0, a2: 8, h2: 10, ab2: 'guard' },
+    { species: 'nariks', base: { ar: 'ناريكس', en: 'Narix' }, evo: { ar: 'ناريكس الجحيم', en: 'Narix Inferno' }, n1: 5, a1: 4, h1: 4, ab1: 'rush', n2: 9, a2: 7, h2: 8, ab2: 'pierce' },
+    { species: 'smoki', base: { ar: 'سموكي', en: 'Smokel' }, evo: { ar: 'سموكوس', en: 'Smokos' }, n1: 3, a1: 3, h1: 3, ab1: 'scout', n2: 8, a2: 5, h2: 7, ab2: 'drain' },
+    { species: 'volkani', base: { ar: 'حِمَمو', en: 'Lavel' }, evo: { ar: 'حِمَموس', en: 'Lavos' }, n1: 4, a1: 5, h1: 6, ab1: 'none', n2: 0, a2: 8, h2: 10, ab2: 'guard' },
   ],
   water: [
     { species: 'muwaija', base: { ar: 'مويجة', en: 'Ripplet' }, evo: { ar: 'مويجاتور', en: 'Rippletor' }, n1: 1, a1: 2, h1: 6, ab1: 'guard', n2: 6, a2: 5, h2: 11, ab2: 'guard' },
@@ -132,18 +137,18 @@ const SPECIES: Record<PlayableElement, SpeciesRow[]> = {
     { species: 'volti', base: { ar: 'فولتي', en: 'Volti' }, evo: { ar: 'فولتاج', en: 'Voltage' }, n1: 2, a1: 2, h1: 4, ab1: 'charge', n2: 7, a2: 5, h2: 7, ab2: 'charge' },
     { species: 'ra3doon', base: { ar: 'رعدون', en: 'Thundon' }, evo: { ar: 'رعدونيوم', en: 'Thundonium' }, n1: 3, a1: 4, h1: 4, ab1: 'none', n2: 8, a2: 7, h2: 8, ab2: 'pierce' },
     { species: 'plazmi', base: { ar: 'بلازمي', en: 'Plazmi' }, evo: { ar: 'بلازمون', en: 'Plazmon' }, n1: 0, a1: 5, h1: 4, ab1: 'link', n2: 5, a2: 8, h2: 7, ab2: 'link' },
-    { species: 'thandiro', base: { ar: 'ثانديرو', en: 'Thandiro' }, evo: { ar: 'ثانديروس', en: 'Thandiros' }, n1: 4, a1: 3, h1: 6, ab1: 'venom', n2: 9, a2: 6, h2: 10, ab2: 'rush' },
+    { species: 'thandiro', base: { ar: 'دينامو', en: 'Dynamel' }, evo: { ar: 'ديناموس', en: 'Dynamos' }, n1: 4, a1: 3, h1: 6, ab1: 'venom', n2: 9, a2: 6, h2: 10, ab2: 'rush' },
   ],
   psychic: [
     { species: 'holmi', base: { ar: 'حلمي', en: 'Dreamlet' }, evo: { ar: 'حلماتور', en: 'Dreamator' }, n1: 1, a1: 2, h1: 5, ab1: 'scout', n2: 6, a2: 5, h2: 9, ab2: 'scout' },
     { species: 'thehno', base: { ar: 'ذهنو', en: 'Mindo' }, evo: { ar: 'ذهنوس', en: 'Mindos' }, n1: 2, a1: 3, h1: 4, ab1: 'link', n2: 7, a2: 6, h2: 7, ab2: 'link' },
     { species: 'taifa', base: { ar: 'طيفا', en: 'Spectra' }, evo: { ar: 'طيفانا', en: 'Spectrana' }, n1: 3, a1: 4, h1: 3, ab1: 'pierce', n2: 8, a2: 7, h2: 6, ab2: 'pierce' },
-    { species: 'orakl', base: { ar: 'أوراكل', en: 'Oracle' }, evo: { ar: 'أوراكلوس', en: 'Oraclos' }, n1: 0, a1: 2, h1: 6, ab1: 'charge', n2: 5, a2: 4, h2: 11, ab2: 'charge' },
-    { species: 'nirfa', base: { ar: 'نيرفا', en: 'Nerva' }, evo: { ar: 'نيرفانا', en: 'Nervana' }, n1: 4, a1: 5, h1: 5, ab1: 'none', n2: 9, a2: 8, h2: 9, ab2: 'drain' },
+    { species: 'orakl', base: { ar: 'أوراكل', en: 'Oracle' }, evo: { ar: 'أوراكلون', en: 'Oraclon' }, n1: 0, a1: 2, h1: 6, ab1: 'charge', n2: 5, a2: 4, h2: 11, ab2: 'charge' },
+    { species: 'nirfa', base: { ar: 'عصبو', en: 'Nervin' }, evo: { ar: 'عصبوس', en: 'Nervos' }, n1: 4, a1: 5, h1: 5, ab1: 'none', n2: 9, a2: 8, h2: 9, ab2: 'drain' },
   ],
   dark: [
     { species: 'thilli', base: { ar: 'ظلّي', en: 'Shadel' }, evo: { ar: 'ظلاتور', en: 'Shadator' }, n1: 1, a1: 3, h1: 4, ab1: 'venom', n2: 6, a2: 6, h2: 8, ab2: 'venom' },
-    { species: 'shadow', base: { ar: 'شادو', en: 'Shadow' }, evo: { ar: 'شادوس', en: 'Shadowos' }, n1: 2, a1: 4, h1: 3, ab1: 'rush', n2: 7, a2: 7, h2: 6, ab2: 'rush' },
+    { species: 'shadow', base: { ar: 'عقربو', en: 'Scorvel' }, evo: { ar: 'عقربون', en: 'Scorvon' }, n1: 2, a1: 4, h1: 3, ab1: 'rush', n2: 7, a2: 7, h2: 6, ab2: 'rush' },
     { species: 'lailks', base: { ar: 'ليلكس', en: 'Nyxel' }, evo: { ar: 'ليلكسون', en: 'Nyxelon' }, n1: 3, a1: 2, h1: 6, ab1: 'guard', n2: 8, a2: 5, h2: 10, ab2: 'guard' },
     { species: 'nightmare', base: { ar: 'نايتمير', en: 'Nightmare' }, evo: { ar: 'نايتميروس', en: 'Nightmaros' }, n1: 0, a1: 5, h1: 5, ab1: 'drain', n2: 5, a2: 8, h2: 9, ab2: 'drain' },
     { species: 'voido', base: { ar: 'فويدو', en: 'Voido' }, evo: { ar: 'فويدوس', en: 'Voidos' }, n1: 4, a1: 3, h1: 7, ab1: 'link', n2: 9, a2: 6, h2: 11, ab2: 'pierce' },
