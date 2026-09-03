@@ -88,7 +88,7 @@ for (let g = 0; g < 40; g++) {
     const before = s;
     s = applyGameAction(s, action);
     steps++;
-    if (s.turn === before.turn && s.log.length === before.log.length && action.type !== 'END_TURN') {
+    if (s.turn === before.turn && s.logSeq === before.logSeq && action.type !== 'END_TURN') {
       s = applyGameAction(s, { type: 'END_TURN' });
       steps++;
     }

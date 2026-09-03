@@ -7,6 +7,7 @@ import {
   evaluateAttack,
   hasAnyPlayable,
   opponentsOf,
+  RULES,
 } from './engine';
 import { nextRandom } from './rng';
 import type { CardDef, GameAction, GameState, PlayableElement, Seat } from './types';
@@ -97,6 +98,49 @@ function scoreCard(s: GameState, side: Seat, d: CardDef): number {
           return me.field.filter((m) => !m.sick && !m.exhausted).length >= 2 ? 100 : 10;
         case 'search':
           return 60;
+
+        // --- الموجة الثانية ---
+        // الإزالة الموجَّهة تُقيَّم بوجود هدف، وإلا فهي بطاقة ميتة
+        case 'banish':
+          return foeField ? 200 : 0;
+        case 'strike':
+          return foeField ? 150 : 0;
+        case 'chain_lightning':
+          return foeField >= 2 ? 185 : foeField === 1 ? 75 : 20;
+        // الضرر المباشر يقفز حين يُنهي المباراة
+        case 'bolt':
+          return foes.some((f) => f.hp <= 3) ? 400 : 70;
+        case 'drain_life':
+          return foes.some((f) => f.hp <= 3) ? 400 : me.hp <= 16 ? 150 : 85;
+        case 'second_wind':
+          return me.field.filter((m) => m.exhausted || m.sick).length >= 2 ? 140 : 15;
+        case 'rally':
+          return me.field.length >= 2 ? 110 : me.field.length ? 40 : 0;
+        case 'shield_wall':
+          return me.field.length >= 2 ? 90 : me.field.length ? 35 : 0;
+        case 'overload':
+          return me.field.length ? 95 : 0;
+        case 'graft':
+          return me.field.some((m) => m.hp < m.maxHp) ? 100 : me.field.length ? 25 : 0;
+        case 'mirror_image':
+          return me.field.length && me.field.length < RULES.MAX_FIELD ? 90 : 0;
+        // القطع طريق فوز كامل، فوزنها يتبع سعي المستوى إليها
+        case 'titan_call':
+          return 300 * cfg.fragmentWeight;
+        case 'mana_well':
+          return 85;
+        case 'foresight':
+          return me.hand.length <= 3 ? 120 : 65;
+        case 'recall':
+          return 70;
+        // الدفاع يستحقّ حين يوجد ما يُهاجَم به
+        case 'barricade':
+          return foeField ? 80 : 10;
+        case 'reflect':
+          return foeField ? 75 : 10;
+        case 'cleanse':
+          return me.skipNext || me.attackLocked ? 130 : 20;
+
         default:
           return 30;
       }
@@ -284,6 +328,7 @@ export function stampAutoPlay(state: GameState): GameState {
     key: 'auto_play',
     params: { player: s.players[s.current].name },
   });
+  s.logSeq += 1;
   if (s.log.length > 200) s.log.splice(0, s.log.length - 200);
   return s;
 }
@@ -306,10 +351,12 @@ export function applyAutoPlay(state: GameState): GameState {
     if (s.phase === 'ended' || s.current !== side || s.turn !== turn) return s;
     const action = aiChooseAction(s);
     const beforeTurn = s.turn;
-    const beforeLog = s.log.length;
+    // logSeq لا length: السجل حلقة تُقصّ عند 200، فطولها يتجمّد في المباريات
+    // الطويلة ويبدو كل تصرّف بلا أثر، فيُنهي اللعبُ التلقائي الدورَ بعد حركة واحدة.
+    const beforeSeq = s.logSeq;
     s = applyGameAction(s, action);
     if (action.type === 'END_TURN' || action.type === 'ACCEPT_DRAW') return s;
-    if (s.turn === beforeTurn && s.log.length === beforeLog) {
+    if (s.turn === beforeTurn && s.logSeq === beforeSeq) {
       s = applyGameAction(s, forceEndAction(s));
       return s;
     }

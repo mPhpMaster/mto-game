@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { aiChooseAction, stampAutoPlay } from '@/lib/game/ai';
+import { advanceTally, emptyTally, tallyToPayload, type MatchTally } from '@/lib/game/stats';
 import {
   ELEMENT_ICON,
   ELEMENT_NAME,
@@ -149,6 +150,10 @@ export interface GameBoardProps {
   endActions?: React.ReactNode;
   /** مهلة الجولة بالثواني — عند انتهائها يلعب الكمبيوتر عن اللاعب الحالي */
   turnSeconds?: number;
+  /** رمز الغرفة في اللعب الجماعي — يُشتقّ منه معرّف المباراة المشترك */
+  roomCode?: string;
+  /** أسماء الخصوم لسجلّ الحساب */
+  opponentNames?: string[];
 }
 
 export default function GameBoard({
@@ -163,6 +168,8 @@ export default function GameBoard({
   makeGame,
   banner,
   endActions,
+  roomCode,
+  opponentNames,
   turnSeconds = DEFAULT_TURN_SECONDS,
 }: GameBoardProps) {
   const { t, L, logText, outcomeText, reason, name: pname } = useLocale();
@@ -211,10 +218,11 @@ export default function GameBoard({
   const autoPlayingRef = useRef(false);
   const autoPlayTurnRef = useRef<number | null>(null);
   const [turnDeadline, setTurnDeadline] = useState<number | null>(null);
-  const deadlineTurnRef = useRef(-1);
   const gameRef = useRef(game);
   gameRef.current = game;
   const savedRef = useRef(false);
+  /** حصيلة ما لعبتَه — تُجمَّع تزايدياً لأن السجل يُقصّ عند 200 سطر */
+  const tallyRef = useRef<MatchTally>(emptyTally());
   const logEnd = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
 
@@ -230,7 +238,7 @@ export default function GameBoard({
     game.phase !== 'ended' &&
     !game.players[game.current]?.isAI &&
     !(hotseat && readyTurn !== game.turn);
-  const clockEpochKey = clockOn ? `${game.seed}:${game.turn}:${game.current}` : '';
+  const clockEpochKey = clockOn ? `${game.seed}:${game.clockEpoch}` : '';
 
   useEffect(() => {
     if (showCurtain) setDetail(null);
@@ -329,16 +337,15 @@ export default function GameBoard({
   useEffect(() => {
     if (!clockOn) {
       setTurnDeadline(null);
-      deadlineTurnRef.current = -1;
       return;
     }
-    const expectedTurn = game.turn;
-    deadlineTurnRef.current = expectedTurn;
+    // الحقبة لا رقم الدور: «تخطي» يقفز بالدور دون أن ينقله لشخص آخر
+    const expectedEpoch = game.clockEpoch;
     setTurnDeadline(Date.now() + turnLimit * 1000);
     const timer = window.setTimeout(() => {
       const g = gameRef.current;
       if (g.phase === 'ended' || g.players[g.current].isAI) return;
-      if (g.turn !== expectedTurn) return;
+      if (g.clockEpoch !== expectedEpoch) return;
       if (autoPlayingRef.current) return;
       autoPlayingRef.current = true;
       autoPlayTurnRef.current = g.turn;
@@ -352,7 +359,7 @@ export default function GameBoard({
           queueMicrotask(() => setAutoPlaying(false));
           return prev;
         }
-        if (prev.turn !== expectedTurn) {
+        if (prev.clockEpoch !== expectedEpoch) {
           autoPlayingRef.current = false;
           autoPlayTurnRef.current = null;
           queueMicrotask(() => setAutoPlaying(false));
@@ -362,27 +369,58 @@ export default function GameBoard({
       });
     }, turnLimit * 1000);
     return () => window.clearTimeout(timer);
-  }, [clockOn, clockEpochKey, turnLimit, game.turn, setGame]);
+  }, [clockOn, clockEpochKey, turnLimit, game.clockEpoch, setGame]);
+
+  // ---------- حصيلة ما لعبتَه (لإحصاءات الحساب) ----------
+  useEffect(() => {
+    if (tutorial) return;
+    tallyRef.current = advanceTally(tallyRef.current, game.log, game.logSeq, ME);
+  }, [game.logSeq, game.log, tutorial, ME]);
 
   // ---------- حفظ نتيجة المباراة ----------
   useEffect(() => {
-    // السجل مخصّص لمبارياتك ضد الخصم الآلي
-    if (tutorial || controlled || hotseat) return;
+    // التعليم لا يُسجَّل، واللعب على جهاز واحد لا صاحب له
+    if (tutorial || hotseat) return;
+    // اللعب الجماعي يحتاج رمز غرفة ليُشتقّ منه معرّف مشترك بين المقاعد
+    if (controlled && !roomCode) return;
     if (game.phase !== 'ended' || savedRef.current) return;
     savedRef.current = true;
     setSaveState('saving');
-    fetch('/api/matches', {
+    const tally = tallyRef.current;
+    const stats = {
+      cards: tallyToPayload(tally),
+      titans: tally.titans,
+      trapsSet: tally.trapsSet,
+    };
+    const online = controlled && roomCode;
+    fetch(online ? '/api/matches/online' : '/api/matches', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({
-        seed: game.seed,
-        turns: game.turn,
-        winner: game.winner === ME ? 'player' : 'ai',
-        reason: game.winReason?.key ?? null,
-        playerHp: me.hp,
-        opponentHp: foe.hp,
-        difficulty: game.difficulty,
-      }),
+      body: JSON.stringify(
+        online
+          ? {
+              roomCode,
+              seed: game.seed,
+              seat: ME,
+              playerCount: game.players.length,
+              result: game.winner === ME ? 'win' : 'loss',
+              turns: game.turn,
+              hpLeft: me.hp,
+              reason: game.winReason?.key ?? null,
+              opponents: opponentNames ?? [],
+              stats,
+            }
+          : {
+              seed: game.seed,
+              turns: game.turn,
+              winner: game.winner === ME ? 'player' : 'ai',
+              reason: game.winReason?.key ?? null,
+              playerHp: me.hp,
+              opponentHp: foe.hp,
+              difficulty: game.difficulty,
+              stats,
+            }
+      ),
     })
       // الحالة 202 تعني أن قاعدة البيانات غير مهيّأة — ليست نجاحاً في الحفظ
       .then(async (r) => {
@@ -404,6 +442,9 @@ export default function GameBoard({
     me.hp,
     foe.hp,
     ME,
+    roomCode,
+    opponentNames,
+    game.players.length,
   ]);
 
   useEffect(() => {

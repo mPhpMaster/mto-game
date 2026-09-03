@@ -12,12 +12,7 @@ import {
 } from '@/lib/multiplayer/turnClock';
 import { CROSS_DEVICE_READY } from '@/lib/supabase/client';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
-import {
-  PLAYER_NAME_MAX,
-  playerNameErrorKey,
-  writePlayerName,
-} from '@/lib/player/name';
-import { usePlayerName } from '@/lib/player/usePlayerName';
+import type { Account } from '@/lib/social/types';
 import LanguageSwitch from '@/components/LanguageSwitch';
 import LobbyFriendsPanel from '@/components/game/LobbyFriendsPanel';
 import QrScannerModal from '@/components/game/QrScannerModal';
@@ -25,15 +20,15 @@ import type { PlayerCount } from '@/lib/multiplayer/seats';
 
 export default function RoomLobby({
   initialPlayerCount = 2,
+  account,
 }: {
   initialPlayerCount?: number;
+  account: Account;
 }) {
   const { t } = useLocale();
   const router = useRouter();
-  const storedName = usePlayerName();
-  const [nameDraft, setNameDraft] = useState<string | null>(null);
-  const name = nameDraft ?? storedName;
-  const setName = (value: string) => setNameDraft(value);
+  // الاسم يأتي من الحساب: البوّابة في app/vs ضمنت وجوده قبل الوصول هنا
+  const name = account.displayName;
   const [code, setCode] = useState('');
   const [turnSecs, setTurnSecs] = useState<number>(DEFAULT_TURN_SECONDS);
   const [playerCount, setPlayerCount] = useState<PlayerCount>(
@@ -43,13 +38,8 @@ export default function RoomLobby({
   const [scanOpen, setScanOpen] = useState(false);
   const ffa3 = playerCount === 3;
 
-  function requireName(): string | null {
-    const key = playerNameErrorKey(name);
-    if (key) {
-      setError(t(key));
-      return null;
-    }
-    return writePlayerName(name);
+  function requireName(): string {
+    return name;
   }
 
   function host() {
@@ -77,7 +67,6 @@ export default function RoomLobby({
   }
 
   function onQrScan(result: { code: string; name?: string }) {
-    if (result.name && !name.trim()) setName(result.name);
     setCode(result.code);
     join(result.code);
   }
@@ -105,19 +94,15 @@ export default function RoomLobby({
       )}
 
       <div className="panel rounded-2xl p-5">
-        <label className="block">
-          <span className="mb-1 block text-xs opacity-70">{t('yourName')}</span>
-          <input
-            value={name}
-            maxLength={PLAYER_NAME_MAX}
-            onChange={(e) => {
-              setName(e.target.value);
-              setError(null);
-            }}
-            placeholder={t('yourNamePlaceholder')}
-            className="w-full rounded-lg bg-black/40 px-3 py-2 outline-none ring-1 ring-white/15 focus:ring-emerald-400"
-          />
-        </label>
+        <div className="flex items-center gap-2 rounded-lg bg-black/30 px-3 py-2">
+          <span className="rounded bg-amber-400 px-1.5 py-0.5 text-[10px] font-black tabular-nums text-black">
+            {account.level}
+          </span>
+          <span className="min-w-0 flex-1 truncate font-bold">{account.displayName}</span>
+          <Link href="/account" className="shrink-0 text-[11px] opacity-60 hover:opacity-100">
+            @{account.username}
+          </Link>
+        </div>
 
         <div className="mt-4">
           <span className="mb-1 block text-xs opacity-70">{t('playFriend')}</span>
@@ -213,7 +198,7 @@ export default function RoomLobby({
         </div>
       </div>
 
-      <LobbyFriendsPanel />
+      <LobbyFriendsPanel playerCount={playerCount} turnSeconds={turnSecs} />
 
       <p className="mt-4 text-[11px] leading-relaxed opacity-50">
         {ffa3 ? t('hostNote3') : t('hostNote')}

@@ -14,6 +14,7 @@ import { RULES } from '@/lib/game/engine';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import type { UIKey } from '@/lib/i18n/ui';
 import { APP_VERSION } from '@/lib/version';
+import AccountMenuButton from './auth/AccountMenuButton';
 import LanguageSwitch from './LanguageSwitch';
 import SoundToggle from './SoundToggle';
 
@@ -68,6 +69,7 @@ export default function HomeScreen() {
   return (
     <div className="mx-auto w-full max-w-5xl px-4 py-10">
       <div className="mb-4 flex items-center justify-end gap-2">
+        <AccountMenuButton />
         <SoundToggle />
         <LanguageSwitch />
       </div>
@@ -224,6 +226,9 @@ export default function HomeScreen() {
           </Link>
           <Link href="/leaderboard" className="panel rounded-xl px-5 py-2 text-sm font-bold transition hover:scale-105">
             {t('history')}
+          </Link>
+          <Link href="/friends" className="panel rounded-xl px-5 py-2 text-sm font-bold transition hover:scale-105">
+            {t('openFriends')}
           </Link>
         </div>
       </header>

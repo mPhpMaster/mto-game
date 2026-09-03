@@ -38,7 +38,7 @@ console.log('لعب تلقائي:\n');
   ended.phase = 'ended';
   ended.winner = 0;
   const next = applyAutoPlay(ended);
-  if (next.turn === ended.turn && next.log.length === ended.log.length) ok('مباراة منتهية: لا حركة');
+  if (next.turn === ended.turn && next.logSeq === ended.logSeq) ok('مباراة منتهية: لا حركة');
   else fail('مباراة منتهية تغيّرت بعد اللعب التلقائي');
 }
 

@@ -21,4 +21,18 @@ export function getSupabase(): SupabaseClient | null {
   });
 }
 
+/**
+ * عميل بصلاحية الخدمة — لإنشاء الحسابات وحده (`auth.admin`).
+ * `getSupabase` أعلاه يتراجع إلى المفتاح المجهول عند غياب مفتاح الخدمة،
+ * والمفتاح المجهول لا يستطيع نداء auth.admin، فيلزم عميل لا يقبل هذا التراجع.
+ */
+export function getServiceSupabase(): SupabaseClient | null {
+  const url = process.env.SUPABASE_URL ?? process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY ?? '';
+  if (!url || !key) return null;
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+}
+
 export const MATCHES_TABLE = 'matches';

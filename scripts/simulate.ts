@@ -13,12 +13,14 @@ const GAMES = Number(process.argv[2] ?? 200);
 const MAX_ACTIONS = 4000;
 
 console.log(`السطح: ${TOTAL_CARDS} كارتاً`, CATALOG_BREAKDOWN);
-if (TOTAL_CARDS !== 200) {
-  console.error(`✗ عدد الكروت ${TOTAL_CARDS} — المتوقّع 200`);
+// المجموع مشتقّ من الكتالوج لا رقماً مكتوباً، فلا يتعطّل الفحص مع كل توسعة.
+// الثابت المهمّ هو أن يبقى المجموع نفسه من أول المباراة إلى آخرها.
+if (TOTAL_CARDS < 100) {
+  console.error(`✗ عدد الكروت ${TOTAL_CARDS} — الكتالوج ناقص`);
   process.exit(1);
 }
 
-/** كل كارت يجب أن يكون في مكان واحد فقط، والمجموع ثابت عند 200 */
+/** كل كارت يجب أن يكون في مكان واحد فقط، والمجموع ثابت عند TOTAL_CARDS */
 function auditCards(s: GameState): { total: number; dupes: string[] } {
   const seen = new Map<string, number>();
   const bump = (uid: string) => seen.set(uid, (seen.get(uid) ?? 0) + 1);
@@ -71,7 +73,7 @@ for (let g = 0; g < GAMES; g++) {
     actions++;
     if (
       s.turn === before.turn &&
-      s.log.length === before.log.length &&
+      s.logSeq === before.logSeq &&
       s.players[0].hand.length === before.players[0].hand.length &&
       s.players[1].hand.length === before.players[1].hand.length &&
       action.type !== 'END_TURN'

@@ -1,5 +1,11 @@
 'use client';
 
+/**
+ * @deprecated دفتر أسماء محلّي سابق للحسابات. حلّ محلّه `lib/social/` المدعوم
+ * بالخادم (طلب/قبول/حذف حقيقي). يبقى هنا لأن شاشة الاستيراد لمرّة واحدة
+ * (`components/social/LocalFriendsImport.tsx`) تقرأ منه — ولا تُحذف المصفوفة
+ * أبداً، فهي أسماء كتبها اللاعب بنفسه.
+ */
 export const FRIENDS_STORAGE_KEY = 'mto-friends';
 
 export type Friend = {

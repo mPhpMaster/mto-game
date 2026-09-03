@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { MATCHES_TABLE, getSupabase } from '@/lib/supabase/server';
+import { getAuthSupabase } from '@/lib/supabase/auth-server';
+import { randomUUID } from 'node:crypto';
+import { StatsInput, recordMatch } from '@/lib/social/record';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,6 +16,7 @@ const MatchInput = z.object({
   opponentHp: z.number().int().min(0).max(999),
   playerName: z.string().min(1).max(40).optional(),
   difficulty: z.enum(['easy', 'normal', 'hard']).optional(),
+  stats: StatsInput.optional(),
 });
 
 export async function POST(request: Request) {
@@ -28,6 +32,31 @@ export async function POST(request: Request) {
   }
 
   const m = parsed.data;
+
+  // سجلّ الحساب مستقلّ عن السجلّ العام المجهول: الأوّل يحتاج جلسة والثاني لا.
+  // فشل أحدهما لا يمنع الآخر.
+  const authed = await getAuthSupabase();
+  const { data: { user } = { user: null } } = (await authed?.auth.getUser()) ?? { data: { user: null } };
+  if (authed && user) {
+    await recordMatch(authed, {
+      // مباراة الآلي مقعد واحد فلا صفوف تُضَمّ، ومعرّف عشوائي هو الصحيح:
+      // الاشتقاق من البذرة كان سيجعل إعادة لعب البذرة نفسها «تقريراً مكرّراً».
+      matchId: randomUUID(),
+      mode: 'ai',
+      seat: 0,
+      playerCount: 2,
+      result: m.winner === 'player' ? 'win' : 'loss',
+      turns: m.turns,
+      hpLeft: m.playerHp,
+      reason: m.reason ?? null,
+      difficulty: m.difficulty ?? 'easy',
+      roomCode: null,
+      seed: m.seed,
+      opponents: [],
+      stats: m.stats ?? { cards: {}, titans: 0, trapsSet: 0 },
+    });
+  }
+
   const { error } = await supabase.from(MATCHES_TABLE).insert({
     seed: m.seed,
     turns: m.turns,

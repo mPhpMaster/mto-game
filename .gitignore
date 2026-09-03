@@ -43,6 +43,9 @@ next-env.d.ts
 .vercel
 .env*
 
+# القالب وحده يُرفع — لا أسرار فيه، والـREADME يحيل إليه
+!.env.example
+
 # Capacitor / Android
 /android/.gradle
 /android/build

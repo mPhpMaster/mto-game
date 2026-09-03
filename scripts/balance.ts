@@ -45,7 +45,7 @@ for (const lvl of LEVELS) {
       actions++;
       if (
         s.turn === before.turn &&
-        s.log.length === before.log.length &&
+        s.logSeq === before.logSeq &&
         s.players[0].hand.length === before.players[0].hand.length &&
         action.type !== 'END_TURN'
       ) {

@@ -3,6 +3,7 @@ import { Cairo } from "next/font/google";
 import AppVersion from "@/components/AppVersion";
 import DeepLinkHandler from "@/components/DeepLinkHandler";
 import PwaRegister from "@/components/PwaRegister";
+import SocialHub from "@/components/social/SocialHub";
 import { APP_VERSION } from "@/lib/version";
 import "./globals.css";
 
@@ -15,7 +16,7 @@ const cairo = Cairo({
 export const metadata: Metadata = {
   title: "مواجهة الوحوش — MTO",
   description:
-    "لعبة كروت استراتيجية: 200 كارت، مطابقة على طريقة الأونو، نظام طاقة متصاعد، هجمات مشتركة، وحش أعظم يحسم المباراة.",
+    "لعبة كروت استراتيجية: 272 كارت، مطابقة على طريقة الأونو، نظام طاقة متصاعد، هجمات مشتركة، وحش أعظم يحسم المباراة.",
   manifest: "/manifest.webmanifest",
   applicationName: "مواجهة الوحوش",
   appleWebApp: {
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <AppVersion />
         <DeepLinkHandler />
         <PwaRegister />
+        <SocialHub />
       </body>
     </html>
   );
