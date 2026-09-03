@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useEffect, useRef } from 'react';
 import AuthForm from '@/components/auth/AuthForm';
 import LanguageSwitch from '@/components/LanguageSwitch';
 import { primeAuth, refreshAuth } from '@/lib/auth/session';
@@ -18,6 +19,18 @@ import type { Account } from '@/lib/social/types';
  * لا تُحوّل المسار: الضيف الذي يفتح دعوة `/vs/CODE` وهو غير مسجَّل يجب أن
  * يبقى على رمزه بعد الدخول لا أن يُقذف إلى الجذر.
  */
+function GateSkeleton() {
+  return (
+    <div className="mx-auto w-full max-w-md px-4 py-16">
+      <div className="panel animate-pulse rounded-2xl p-6">
+        <div className="mb-3 h-5 w-1/2 rounded bg-white/10" />
+        <div className="mb-2 h-9 rounded bg-white/5" />
+        <div className="h-9 rounded bg-white/5" />
+      </div>
+    </div>
+  );
+}
+
 export default function AuthGate({
   initialAccount = null,
   children,
@@ -28,6 +41,8 @@ export default function AuthGate({
 }) {
   const { t } = useLocale();
   const { status } = useSession();
+  const router = useRouter();
+  const refreshedRef = useRef(false);
 
   // اللقطة من الخادم تملأ المخزن قبل أول رسم، ثم يتأكّد العميل بنفسه
   useEffect(() => {
@@ -35,20 +50,27 @@ export default function AuthGate({
     if (!initialAccount) void refreshAuth();
   }, [initialAccount]);
 
-  if (status === 'signedIn') return <>{children ?? null}</>;
+  /**
+   * بوّابةٌ بلا أبناء تعني أن مكوّن الخادم رأى «ضيف» فعاد مبكراً قبل أن يُرسم
+   * محتواه أصلاً (`if (!account) return <AuthGate />`). والدخول يجري في
+   * المتصفّح: يكتب كوكي الجلسة لكنه **لا يُعيد تشغيل مكوّن الخادم**، فتنقلب
+   * الحالة إلى signedIn ولا يوجد ما يُرسَم — وهذه هي الصفحة البيضاء.
+   *
+   * `router.refresh()` يُعيد جلب حمولة الخادم، وقد صارت الكوكي معه، فيرسم
+   * المحتوى الحقيقي مكان البوّابة. مرّة واحدة بحارس: التحديث يُعيد تركيب
+   * الشجرة، ولولا الحارس لدار.
+   */
+  useEffect(() => {
+    if (children || status !== 'signedIn' || refreshedRef.current) return;
+    refreshedRef.current = true;
+    router.refresh();
+  }, [children, status, router]);
+
+  // انتظارُ التحديث يعرض الهيكل لا فراغاً — الفراغ هو ما كان يبدو عطلاً
+  if (status === 'signedIn') return <>{children ?? <GateSkeleton />}</>;
 
   // حالة الانتظار: هيكل محايد لا زرّ «دخول»، وإلا ومض للمسجَّلين في كل صفحة
-  if (status === 'loading') {
-    return (
-      <div className="mx-auto w-full max-w-md px-4 py-16">
-        <div className="panel animate-pulse rounded-2xl p-6">
-          <div className="mb-3 h-5 w-1/2 rounded bg-white/10" />
-          <div className="mb-2 h-9 rounded bg-white/5" />
-          <div className="h-9 rounded bg-white/5" />
-        </div>
-      </div>
-    );
-  }
+  if (status === 'loading') return <GateSkeleton />;
 
   return (
     <div className="mx-auto w-full max-w-md px-4 py-10">
