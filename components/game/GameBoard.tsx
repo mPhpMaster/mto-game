@@ -46,6 +46,8 @@ import SoundToggle from '@/components/SoundToggle';
 import CardDetail from './CardDetail';
 import CardView, { CardBack, ELEMENT_HEX, numberLabel, type CardSize } from './CardView';
 import MonsterView from './MonsterView';
+import LoadoutScreen from './LoadoutScreen';
+import { WEATHER_BY_ID } from '@/lib/game/loadout';
 import TurnClock from './TurnClock';
 
 type Pending =
@@ -188,6 +190,7 @@ export default function GameBoard({
   const FOE: Seat = foeSeats[0] ?? (ME === 0 ? 1 : 0);
   const [step, setStep] = useState(0);
   const [showHelp, setShowHelp] = useState(false);
+  const [showPrep, setShowPrep] = useState(false);
   /** كارت مفتوح شرحه (ضغط مطوّل أو ضغطة على كارت لا يمكن لعبه أو اطّلاع على فخ) */
   const [detail, setDetail] = useState<{ card: CardDef; reason?: string; peekUid?: string } | null>(
     null
@@ -793,6 +796,14 @@ export default function GameBoard({
             )}
           </div>
           <div className="flex items-center gap-2">
+            {game.weather && (
+              <span
+                className="rounded-md bg-sky-400/20 px-2 py-1 font-bold text-sky-100"
+                title={L(WEATHER_BY_ID[game.weather].text)}
+              >
+                {WEATHER_BY_ID[game.weather].icon} {L(WEATHER_BY_ID[game.weather].name)}
+              </span>
+            )}
             {game.pendingDraw > 0 && (
               <span className="rounded-md bg-rose-500/25 px-2 py-1 font-bold text-rose-200">
                 {t('drawPenalty', { n: game.pendingDraw })}
@@ -966,6 +977,7 @@ export default function GameBoard({
                     <div key={m.uid} data-uid={m.uid} className={monsterWrapClass(m.uid)}>
                       <MonsterView
                         monster={m}
+                        weather={game.weather ?? null}
                         strike={strikeDelta[m.uid] ?? null}
                         hit={battle?.type === 'strike' && battle.target === m.uid}
                         targetable={
@@ -1047,6 +1059,7 @@ export default function GameBoard({
               <div key={m.uid} data-uid={m.uid} className={monsterWrapClass(m.uid)}>
                 <MonsterView
                   monster={m}
+                  weather={game.weather ?? null}
                   selected={attackers.includes(m.uid)}
                   ready={canAct && !m.sick && !m.exhausted && !me.attackLocked}
                   strike={strikeDelta[m.uid] ?? null}
@@ -1150,6 +1163,15 @@ export default function GameBoard({
                 }`}
               >
                 {t('summonTitan', { titan: L(TITAN.name) })}
+              </button>
+              <button
+                type="button"
+                disabled={!canAct || game.phase !== 'main'}
+                onClick={() => setShowPrep(true)}
+                title={canAct ? t('prepHint') : t('prepClosed')}
+                className="rounded-lg bg-white/15 px-3 py-1.5 font-black hover:bg-white/25 disabled:opacity-35"
+              >
+                {t('openPrep')}
               </button>
               <button
                 disabled={!canAct || game.phase !== 'main'}
@@ -1472,6 +1494,22 @@ export default function GameBoard({
       )}
 
       {/* مرجع سريع */}
+      {/*
+        شاشة التحضير تُغطّي اللوحة ولا تحلّ محلّها: تُرسَل أفعالُها إلى
+        `dispatch` نفسه، فتمرّ في الوضع المُدار عبر الحَكَم كما تمرّ أي حركة
+        أخرى — ولولا ذلك لغيّر التجهيزُ لوحةَ صاحبه وحده وافترقت اللوحتان.
+      */}
+      {showPrep && (
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-[#0a0c18]">
+          <LoadoutScreen
+            state={game}
+            seat={ME}
+            onAction={dispatch}
+            onBack={() => setShowPrep(false)}
+          />
+        </div>
+      )}
+
       {showHelp && (
         <Modal title={t('howToPlay')} onClose={() => setShowHelp(false)}>
           <div className="thin-scroll max-h-[70vh] space-y-3 overflow-y-auto text-[13px] leading-relaxed">

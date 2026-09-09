@@ -2,6 +2,8 @@ import { def } from './cards';
 import { DIFFICULTIES } from './difficulty';
 import {
   applyGameAction,
+  canActivateWeather,
+  canEquip,
   canPlayCard,
   canSummonTitan,
   evaluateAttack,
@@ -9,8 +11,15 @@ import {
   opponentsOf,
   RULES,
 } from './engine';
+import {
+  GEAR,
+  WEATHER,
+  WEATHER_DISPEL_COST,
+  type GearDef,
+  type WeatherDef,
+} from './loadout';
 import { nextRandom } from './rng';
-import type { CardDef, GameAction, GameState, PlayableElement, Seat } from './types';
+import type { CardDef, FieldMonster, GameAction, GameState, PlayableElement, Seat } from './types';
 
 const level = (s: GameState) => DIFFICULTIES[s.difficulty];
 
@@ -164,6 +173,143 @@ function scoreCard(s: GameState, side: Seat, d: CardDef): number {
   return 0;
 }
 
+// ===================== التجهيزات والطقس =====================
+
+/**
+ * الطاقة التي يجب ألا يمسّها التحضير: ثمن أرخص وحشٍ في اليد.
+ *
+ * بدونها ينفق الخصم طاقته على درعٍ ثم لا يجد ما يستدعي به، فيقف بساحةٍ
+ * خالية وهو «متقن» — وهذا أسوأ من ألّا يستعمل الطبقة أصلاً.
+ */
+function reservedEnergy(s: GameState, side: Seat): number {
+  const me = s.players[side];
+  if (me.field.length >= RULES.MAX_FIELD) return 0;
+  let cheapest = Infinity;
+  for (const c of me.hand) {
+    const d = def(c.defId);
+    if (d.kind === 'monster' && canPlayCard(s, side, c.uid).ok) cheapest = Math.min(cheapest, d.cost);
+  }
+  return Number.isFinite(cheapest) ? cheapest : 0;
+}
+
+function scoreGear(s: GameState, side: Seat, g: GearDef, m: FieldMonster): number {
+  const foes = opponentsOf(s, side).map((i) => s.players[i]);
+  const foeMonsters = foes.flatMap((f) => f.field);
+  const foeTopAtk = foeMonsters.reduce((n, x) => Math.max(n, x.atk), 0);
+
+  switch (g.id) {
+    case 'lightning_blade':
+      // +3 واختراق: أثقل تجهيزة، وتزداد قيمةً في وحشٍ يستطيع الضرب الآن
+      return 70 + m.atk * 4 + (m.sick || m.exhausted ? 0 : 25);
+    case 'rock_shield':
+      // الدرع يساوي ما يمنعه: بلا مهاجمٍ قادر لا يمنع شيئاً
+      return foeTopAtk === 0 ? 0 : 35 + Math.min(foeTopAtk, 6) * 4 + m.atk * 3;
+    case 'healing_amulet':
+      return m.hp < m.maxHp ? 25 + (m.maxHp - m.hp) * 7 : 0;
+    case 'speed_jewel':
+      // قيمتها كلّها في وحشٍ لا يستطيع الهجوم بعد؛ وإلا فهي طاقة مهدورة
+      return m.sick ? 40 + m.atk * 6 : 0;
+  }
+}
+
+function scoreWeather(s: GameState, side: Seat, w: WeatherDef): number {
+  const me = s.players[side];
+  const foes = opponentsOf(s, side).map((i) => s.players[i]);
+  const foeMonsters = foes.flatMap((f) => f.field);
+  const isElectric = (m: FieldMonster) => def(m.defId).element === 'electric';
+
+  switch (w.id) {
+    case 'thunderstorm': {
+      // الطقس يعمّ الساحة، فيفيد الخصم بقدر ما عنده من كهرباء أيضاً
+      const mine = me.field.filter(isElectric).length;
+      const theirs = foeMonsters.filter(isElectric).length;
+      return mine === 0 ? 0 : 40 * mine - 35 * theirs;
+    }
+    case 'acid_rain':
+      // ينهش الساحتين معاً، فلا ينفع إلا من كانت ساحته أخفّ
+      return foeMonsters.length === 0 ? 0 : 22 * (foeMonsters.length - me.field.length);
+    case 'heavy_fog': {
+      // دفاعيّ: يُشترى حين يفوق هجومُ الخصم هجومي
+      const theirs = foeMonsters.reduce((n, m) => n + m.atk, 0);
+      const mine = me.field.reduce((n, m) => n + m.atk, 0);
+      return theirs <= mine ? 0 : 18 + (theirs - mine) * 4;
+    }
+  }
+}
+
+/**
+ * قيمة إزاحة الطقس القائم — مرآةُ `scoreWeather`.
+ *
+ * لا تكفي إشارة `scoreWeather` السالبة هنا: هي تعيد صفراً لطقسٍ «لا ينفعني»
+ * سواءٌ كان محايداً أو ضارّاً بي. والفرق جوهري — «عاصفة رعدية» وخصمي وحده
+ * يملك الكهرباء تساوي صفراً في تلك الدالّة وهي كارثة في الواقع.
+ */
+function scoreDispel(s: GameState, side: Seat): number {
+  const w = s.weather;
+  if (!w) return 0;
+  const me = s.players[side];
+  const foeMonsters = opponentsOf(s, side).flatMap((i) => s.players[i].field);
+  const isElectric = (m: FieldMonster) => def(m.defId).element === 'electric';
+
+  switch (w) {
+    case 'thunderstorm':
+      return 38 * (foeMonsters.filter(isElectric).length - me.field.filter(isElectric).length);
+    case 'acid_rain':
+      return 22 * (me.field.length - foeMonsters.length);
+    case 'heavy_fog': {
+      // الضباب يعمي الجميع، فيضرّ صاحبَ الهجوم الأقوى
+      const mine = me.field.reduce((n, m) => n + m.atk, 0);
+      const theirs = foeMonsters.reduce((n, m) => n + m.atk, 0);
+      return mine > theirs ? 18 + (mine - theirs) * 4 : 0;
+    }
+  }
+}
+
+/**
+ * أفضل تجهيزٍ أو طقسٍ يستحقّ الطاقة الآن، أو `null`.
+ *
+ * يُسأل المحرّك عن الجواز (`canEquip`/`canActivateWeather`) ولا يُعاد حسابه
+ * هنا: لو رجّح الذكاءُ حركةً يرفضها المحرّك لعادت الحالة كما هي بلا سطر
+ * سجلّ، فيظنّ اللعبُ التلقائي أن الدور جمد ويُنهيه.
+ */
+function chooseLoadout(s: GameState, side: Seat): GameAction | null {
+  const cfg = level(s);
+  if (cfg.loadoutWeight <= 0) return null;
+
+  const me = s.players[side];
+  const spare = me.energy - reservedEnergy(s, side);
+
+  type Option = { action: GameAction; value: number };
+  const options: Option[] = [];
+
+  for (const g of GEAR) {
+    if (g.cost > spare) continue;
+    for (const m of me.field) {
+      if (!canEquip(s, side, g.id, m.uid).ok) continue;
+      const value = scoreGear(s, side, g, m) - g.cost * 8;
+      if (value > 0) options.push({ action: { type: 'EQUIP', gear: g.id, targetUid: m.uid }, value });
+    }
+  }
+
+  for (const w of WEATHER) {
+    if (w.cost > spare) continue;
+    if (!canActivateWeather(s, side, w.id).ok) continue;
+    const value = scoreWeather(s, side, w) - w.cost * 8;
+    if (value > 0) options.push({ action: { type: 'WEATHER', weather: w.id }, value });
+  }
+
+  if (WEATHER_DISPEL_COST <= spare && canActivateWeather(s, side, null).ok) {
+    const value = scoreDispel(s, side) - WEATHER_DISPEL_COST * 8;
+    if (value > 0) options.push({ action: { type: 'WEATHER', weather: null }, value });
+  }
+
+  if (options.length === 0) return null;
+  options.sort((a, b) => b.value - a.value);
+  // العتبة تمنع إنفاق الطاقة على حسنةٍ صغيرة؛ ووزن المستوى يرفعها في السهل
+  if (options[0].value * cfg.loadoutWeight < 45) return null;
+  return pickMaybeMistake(s, options, 83).action;
+}
+
 /** أفضل مجموعة مهاجمين: يفضّل قتل وحش خصم، ثم الضرب المباشر، ثم الدمج */
 function chooseAttack(s: GameState, side: Seat): GameAction | null {
   const me = s.players[side];
@@ -254,7 +400,12 @@ export function aiChooseAction(s: GameState): GameAction {
   // 1) حسم فوري بالوحش الأعظم
   if (canSummonTitan(s, side).ok) return { type: 'SUMMON_TITAN' };
 
-  // 2) الكروت غير المنهية للدور (قطع، وحوش، سحر، فخاخ)
+  // 2) التحضير قبل إنفاق الطاقة على الاستدعاء — وإلا لم يبقَ ما يُجهَّز به.
+  //    `reservedEnergy` يحمي ثمن أرخص وحشٍ في اليد فلا تُخنق الساحة.
+  const prep = chooseLoadout(s, side);
+  if (prep) return prep;
+
+  // 3) الكروت غير المنهية للدور (قطع، وحوش، سحر، فخاخ)
   const playable = me.hand
     .filter((c) => canPlayCard(s, side, c.uid).ok)
     .map((c) => ({ inst: c, d: def(c.defId) }));
@@ -290,11 +441,11 @@ export function aiChooseAction(s: GameState): GameAction {
     };
   }
 
-  // 3) الهجوم
+  // 4) الهجوم
   const atk = chooseAttack(s, side);
   if (atk) return atk;
 
-  // 4) كروت تُنهي الدور (تخطي / سحب / انعكاس) كحركة أخيرة
+  // 5) كروت تُنهي الدور (تخطي / سحب / انعكاس) كحركة أخيرة
   const ending = playable
     .filter((x) => isTurnEnding(x.d))
     .map((x) => ({ ...x, score: scoreCard(s, side, x.d) }))
@@ -309,7 +460,7 @@ export function aiChooseAction(s: GameState): GameAction {
     };
   }
 
-  // 5) سحب إنقاذ
+  // 6) سحب إنقاذ
   if (!me.extraDrawUsed && !hasAnyPlayable(s, side)) return { type: 'DRAW' };
 
   return { type: 'END_TURN' };

@@ -679,6 +679,9 @@ export const UI = {
     en: 'Energy is spent here before combat. One weather is active across the whole arena; gear attaches to a single monster and stays with it.',
   },
   passiveLabel: { ar: 'قدرة الطراز', en: 'Archetype passive' },
+  poisoned: { ar: 'مسموم — يفقد صحةً في بداية كل دور', en: 'Poisoned — loses health each turn' },
+  openPrep: { ar: '⚙ التحضير', en: '⚙ Prepare' },
+  prepClosed: { ar: 'التحضير متاح في دورك فقط', en: 'Preparation is only available on your turn' },
 } as const satisfies Record<string, Localized>;
 
 export type UIKey = keyof typeof UI;

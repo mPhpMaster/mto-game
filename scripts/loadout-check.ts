@@ -244,6 +244,13 @@ console.log('التجهيزات والطقس وقدرات الطُّرُز:\n');
   // واحد فقط يعمل: الجديد يزيح القديم
   const swapped = applyGameAction(after, { type: 'WEATHER', weather: 'thunderstorm' });
   eq('الطقس الجديد يزيح القديم', swapped.weather, 'thunderstorm');
+
+  // الانقشاع: يزيح بثمن، ولا يُسمح به وليس هناك طقس
+  const energyBefore = swapped.players[0].energy;
+  const cleared = applyGameAction(swapped, { type: 'WEATHER', weather: null });
+  eq('الانقشاع أزاح الطقس', cleared.weather, null);
+  eq('الانقشاع أنفق طاقة', energyBefore - cleared.players[0].energy, 1);
+  eq('لا انقشاع بلا طقس', canActivateWeather(cleared, 0, null).reason, 'no_weather');
 }
 
 // ---------- جوهرة السرعة ----------

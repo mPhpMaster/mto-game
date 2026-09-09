@@ -1,6 +1,9 @@
 'use client';
 
 import { ABILITY_NAME, ELEMENT_ICON, def } from '@/lib/game/cards';
+import { ARCHETYPE_PASSIVE, archetypeOf } from '@/lib/game/archetypes';
+import { GEAR_BY_ID, type WeatherId } from '@/lib/game/loadout';
+import { atkOf, strikeOf } from '@/lib/game/loadoutEffects';
 import type { FieldMonster } from '@/lib/game/types';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { ELEMENT_HEX } from './CardView';
@@ -15,6 +18,8 @@ interface Props {
   strike?: { dx: number; dy: number } | null;
   /** وميض الاصطدام على المدافع */
   hit?: boolean;
+  /** الطقس الفعّال — يدخل في الهجوم المعروض فيرى اللاعب أثره قبل أن يضرب */
+  weather?: WeatherId | null;
 }
 
 export default function MonsterView({
@@ -25,11 +30,18 @@ export default function MonsterView({
   onClick,
   strike,
   hit,
+  weather = null,
 }: Props) {
   const { t, L } = useLocale();
   const d = def(monster.defId);
   const color = ELEMENT_HEX[d.element];
   const hpPct = Math.max(0, Math.round((monster.hp / monster.maxHp) * 100));
+  // الهجوم بعد التجهيز، ثم بعد الطقس — يُعرَض الرقمان حين يفترقان كي يرى
+  // اللاعب من أين جاءت الزيادة بدل أن يجدها في السجل بعد فوات الضربة
+  const geared = atkOf(monster);
+  const struck = strikeOf(monster, weather);
+  const gear = monster.gear ?? [];
+  const passive = ARCHETYPE_PASSIVE[archetypeOf(d.species) ?? 'beast'];
   const status = monster.sick ? t('fresh') : monster.exhausted ? t('exhausted') : t('ready');
   const label = t('monsterAria', {
     name: L(d.name),
@@ -87,6 +99,25 @@ export default function MonsterView({
         </div>
       )}
 
+      <div className="truncate text-[8px] text-white/45" title={L(passive.text)}>
+        {L(passive.name)}
+      </div>
+
+      {(gear.length > 0 || (monster.poison ?? 0) > 0) && (
+        <div className="mt-0.5 flex items-center gap-0.5 text-[10px]">
+          {gear.map((id, i) => (
+            <span key={`${id}-${i}`} title={L(GEAR_BY_ID[id].name)}>
+              {GEAR_BY_ID[id].icon}
+            </span>
+          ))}
+          {(monster.poison ?? 0) > 0 && (
+            <span className="text-lime-300" title={t('poisoned')}>
+              ☠{monster.poison}
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-black/50">
         <div
           className="h-full rounded-full bg-emerald-400 transition-all"
@@ -95,7 +126,10 @@ export default function MonsterView({
       </div>
 
       <div className="mt-1 flex justify-between text-[10px] font-black">
-        <span className="text-orange-300">⚔ {monster.atk}</span>
+        <span className="text-orange-300">
+          ⚔ {struck !== geared ? `${geared}→${struck}` : struck}
+          {geared !== monster.atk && struck === geared && <span className="text-sky-300"> ▲</span>}
+        </span>
         <span className="text-emerald-300">
           ❤ {monster.hp}/{monster.maxHp}
         </span>

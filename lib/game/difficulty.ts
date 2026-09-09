@@ -19,6 +19,16 @@ export interface DifficultyConfig {
   combo: boolean;
   /** مدى سعي الخصم لجمع قطع الوحش الأعظم */
   fragmentWeight: number;
+  /**
+   * مدى استعمال الخصم للتجهيزات والطقس — يُضرَب في قيمة الحركة قبل مقارنتها
+   * بعتبة `chooseLoadout`، فالوزن الأقلّ يعني ألّا يشتري إلا الحركة الظاهرة
+   * النفع.
+   *
+   * صفرٌ يعطّل الطبقة بالكامل، وقد جُرِّب في السهل فرفع فوز اللاعب من 92.7%
+   * إلى 97.7%: الطبقة عمقٌ يستغلّه اللاعب، فخصمٌ يجهلها تماماً يصير هدفاً
+   * ثابتاً. الأرقام أدناه مضبوطة بـ`npm run balance` لتُبقي المنحنى حيث كان.
+   */
+  loadoutWeight: number;
 }
 
 export const DIFFICULTIES: Record<Difficulty, DifficultyConfig> = {
@@ -36,6 +46,7 @@ export const DIFFICULTIES: Record<Difficulty, DifficultyConfig> = {
     denialWeight: 0.15,
     combo: false,
     fragmentWeight: 0.05,
+    loadoutWeight: 0.6,
   },
   normal: {
     id: 'normal',
@@ -51,6 +62,7 @@ export const DIFFICULTIES: Record<Difficulty, DifficultyConfig> = {
     denialWeight: 0.55,
     combo: true,
     fragmentWeight: 0.5,
+    loadoutWeight: 0.8,
   },
   hard: {
     id: 'hard',
@@ -66,6 +78,7 @@ export const DIFFICULTIES: Record<Difficulty, DifficultyConfig> = {
     denialWeight: 1,
     combo: true,
     fragmentWeight: 1,
+    loadoutWeight: 1,
   },
 };
 
