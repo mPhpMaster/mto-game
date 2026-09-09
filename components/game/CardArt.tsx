@@ -31,7 +31,7 @@ function hash(s: string): number {
 }
 
 
-interface Ink {
+export interface Ink {
   main: string;
   deep: string;
   glow: string;
@@ -1063,3 +1063,19 @@ export default function CardArt({ card, className }: { card: CardDef; className?
 }
 
 export { PALETTE as ART_PALETTE };
+
+/**
+ * أشكال الطُّرُز الستّة تُصدَّر ليعيد استعمالَها مسرحُ التحضير: الشكل هوية
+ * واحدة تشترك فيها البطاقة والمجسّم، فرسمُه مرّتين يجعلهما ينحرفان.
+ */
+export { BODY as ARCHETYPE_BODY };
+
+/**
+ * بذرة الرسم — من هوية البطاقة لا من نسخة الكارت في المباراة.
+ *
+ * كنتُ أشتقّها في مسرح التحضير من `uid` النسخة، و`uid` عدّادٌ في وحدةٍ
+ * يحيا في الخادم عبر الطلبات ويبدأ من الصفر في المتصفّح — فتختلف البذرة بين
+ * الرسمتين، ويختلف عدد القرون، فينهار الترطيب. والأصحّ منطقاً أيضاً: نسختان
+ * من البطاقة نفسها يجب أن تُرسما سواءً.
+ */
+export const artSeed = (card: CardDef): number => hash(card.species ?? card.id);

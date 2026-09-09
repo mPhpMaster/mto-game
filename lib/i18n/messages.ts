@@ -1,4 +1,6 @@
 import { ELEMENT_NAME, FRAGMENT_NAME, TITAN, def } from '@/lib/game/cards';
+import { GEAR_BY_ID, WEATHER_BY_ID } from '@/lib/game/loadout';
+import type { GearId, WeatherId } from '@/lib/game/loadout';
 import type { Element, GameOutcome, LogEntry, LogParams } from '@/lib/game/types';
 import { type Locale, type Localized, tx } from './locale';
 
@@ -138,6 +140,58 @@ export const LOG_MESSAGES: Record<string, Localized> = {
   pierce_extra: { ar: 'اختراق: {amount} ضرر إضافي إلى {player}.', en: 'Pierce: {amount} extra damage to {player}.' },
   venom_bite: { ar: 'سُم {card}: {amount} ضرر لكل مهاجم.', en: '{card}’s venom: {amount} damage to each attacker.' },
   drain_heal: { ar: 'امتصاص: {player} استعاد {amount} حياة.', en: 'Drain: {player} restored {amount} life.' },
+
+  // --- التجهيز والطقس ---
+  gear_equipped: {
+    ar: '⚙ {player} ركّب «{gear}» على {card}.',
+    en: '⚙ {player} equipped “{gear}” to {card}.',
+  },
+  gear_haste: {
+    ar: 'جوهرة السرعة: {card} يهاجم فوراً.',
+    en: 'Speed Jewel: {card} can attack right away.',
+  },
+  gear_shield: {
+    ar: 'درع الصخر: {card} تلقّى ضرراً أقلّ بمقدار {amount}.',
+    en: 'Rock Shield: {card} took {amount} less damage.',
+  },
+  gear_regen: {
+    ar: 'تميمة الشفاء: {card} استعاد {amount} صحة.',
+    en: 'Healing Amulet: {card} restored {amount} health.',
+  },
+  weather_set: { ar: '🌦 {player} فعّل «{weather}».', en: '🌦 {player} activated “{weather}”.' },
+  weather_dispelled: {
+    ar: '🌤 {player} أزاح «{weather}».',
+    en: '🌤 {player} dispelled “{weather}”.',
+  },
+  weather_replaced: {
+    ar: 'انقشع «{weather}» — لا يعمل إلا طقس واحد.',
+    en: '“{weather}” cleared — only one weather can be active.',
+  },
+  weather_tick: {
+    ar: '{weather}: كل وحش على الساحة فقد {amount} صحة.',
+    en: '{weather}: every monster on the field lost {amount} health.',
+  },
+  weather_miss: { ar: 'ضباب كثيف: أخفق هجوم {names}.', en: 'Heavy Fog: {names}’s attack missed.' },
+  poison_tick: { ar: 'سُم: {card} يفقد {amount} صحة.', en: 'Poison: {card} loses {amount} health.' },
+
+  // --- قدرات الطُّرُز ---
+  passive_absorb: {
+    ar: 'حلقة امتصاص: {card} امتصّ الضربة بالكامل.',
+    en: 'Absorb Ring: {card} absorbed the hit entirely.',
+  },
+  passive_return: {
+    ar: 'عودة الطيف: {card} عاد بنقطة صحة واحدة.',
+    en: 'Spectral Return: {card} came back with 1 health.',
+  },
+  passive_dodge: { ar: 'تفادٍ هوائي: {card} تفادى الهجوم.', en: 'Air Dodge: {card} dodged the attack.' },
+  passive_thermal: {
+    ar: 'درع حراري: {card} ردّ {amount} ضرر إلى كل مهاجم.',
+    en: 'Thermal Shield: {card} reflected {amount} damage at each attacker.',
+  },
+  passive_venom_trail: {
+    ar: 'أثر سام: {card} أصابه السُم.',
+    en: 'Venom Trail: {card} is poisoned.',
+  },
   titan_summon: { ar: '⚡ {player} استدعى {titan}!', en: '⚡ {player} summoned {titan}!' },
 
   // --- النهاية ---
@@ -181,6 +235,11 @@ function resolveParam(name: string, value: string | number, locale: Locale): str
   if (name === 'fragment' && typeof value === 'string')
     return tx(FRAGMENT_NAME[value] ?? { ar: value, en: value }, locale);
   if (name === 'titan') return tx(TITAN.name, locale);
+  // أسماء التجهيز والطقس مخزَّنة كمعرّفات كي يتبع السجلُّ لغةَ القارئ
+  if (name === 'gear' && typeof value === 'string')
+    return tx(GEAR_BY_ID[value as GearId]?.name ?? { ar: value, en: value }, locale);
+  if (name === 'weather' && typeof value === 'string')
+    return tx(WEATHER_BY_ID[value as WeatherId]?.name ?? { ar: value, en: value }, locale);
   if (NAME_PARAMS.has(name) && typeof value === 'string') return playerName(value, locale);
   return String(value);
 }

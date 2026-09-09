@@ -90,3 +90,71 @@ export function archetypeOf(species: string | undefined): Archetype | null {
   if (!species) return null;
   return SPECIES_ARCHETYPE[species] ?? null;
 }
+
+/**
+ * القدرة الكامنة — صفة الطراز، فترثها فصائله الخمس.
+ *
+ * الوثيقة التصميمية نسبت هذه القدرات إلى «كوبو» و«فليكس» كأنها خمسة وحوش،
+ * وهي طُرُز يحمل كلٌّ منها خمس فصائل. ونسبتُها إلى الطراز أصدق للاعب: الشكل
+ * يصير قابلاً للقراءة من بعيد — «هذا زحّاف، إذن يسمّم» — فتُفيد الهيئةُ في
+ * اللعب لا في العين وحدها.
+ *
+ * ثلاثٌ منها موجودة في المحرّك أصلاً كقدرات بطاقة (`venom` و`pierce`
+ * و`guard`)، فالجديد فيها التعميمُ على الطراز لا البرمجة من الصفر.
+ */
+export interface ArchetypePassive {
+  key: string;
+  name: Localized;
+  text: Localized;
+}
+
+export const ARCHETYPE_PASSIVE: Record<Archetype, ArchetypePassive> = {
+  golem: {
+    key: 'thermal_shield',
+    name: { ar: 'درع حراري', en: 'Thermal Shield' },
+    text: {
+      ar: 'يردّ نقطة ضرر واحدة إلى كل من يهاجمه.',
+      en: 'Reflects 1 damage back at every attacker.',
+    },
+  },
+  serpent: {
+    key: 'venom_trail',
+    name: { ar: 'أثر سام', en: 'Venom Trail' },
+    text: {
+      ar: 'هجماته تسمّم: يفقد المصاب نقطة صحة في بداية كل دور.',
+      en: 'Its attacks poison: the victim loses 1 health each turn.',
+    },
+  },
+  orb: {
+    key: 'absorb_ring',
+    name: { ar: 'حلقة امتصاص', en: 'Absorb Ring' },
+    text: {
+      ar: 'يمتصّ أوّل ضرر سحري أو بيئي يصيبه دون أن يتأثّر.',
+      en: 'Absorbs the first spell or weather damage it takes.',
+    },
+  },
+  beast: {
+    key: 'surge_strike',
+    name: { ar: 'صاعقة خارقة', en: 'Surge Strike' },
+    text: {
+      ar: 'هجماته تتجاهل نصف ما يخفّضه دفاع الخصم.',
+      en: 'Its attacks ignore half of the defender’s damage reduction.',
+    },
+  },
+  avian: {
+    key: 'air_dodge',
+    name: { ar: 'تفادٍ هوائي', en: 'Air Dodge' },
+    text: {
+      ar: 'يتفادى الهجوم بالكامل باحتمال 20%.',
+      en: 'Has a 20% chance to dodge an attack entirely.',
+    },
+  },
+  wraith: {
+    key: 'spectral_return',
+    name: { ar: 'عودة الطيف', en: 'Spectral Return' },
+    text: {
+      ar: 'أوّل مرّة يُهزم فيها يعود إلى الساحة بنقطة صحة واحدة.',
+      en: 'The first time it is defeated, it returns to the field with 1 health.',
+    },
+  },
+};

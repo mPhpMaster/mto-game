@@ -1,6 +1,7 @@
 // ===== أنواع اللعبة الأساسية =====
 
 import type { Localized } from '@/lib/i18n/locale';
+import type { GearId, WeatherId } from './loadout';
 
 export type Element =
   | 'fire'
@@ -139,6 +140,14 @@ export interface FieldMonster {
   exhausted: boolean;
   /** حديث الاستدعاء: لا يهاجم إلا إذا كان لديه «اندفاع» */
   sick: boolean;
+  /** التجهيزات المركَّبة عليه — تبقى معه حتى يسقط */
+  gear?: GearId[];
+  /** سُمّ متراكم: يفقده صحةً في بداية كل دور */
+  poison?: number;
+  /** استُهلكت «حلقة امتصاص» (طراز هالو) */
+  absorbed?: boolean;
+  /** استُهلكت «عودة الطيف» (طراز خَيال) */
+  revived?: boolean;
 }
 
 /** فخ مُجهّز على الساحة */
@@ -183,6 +192,9 @@ export interface PlayerState {
   mirror: boolean;
   /** استُخدم سحب الإنقاذ هذا الدور (عند عدم وجود كارت قابل للعب) */
   extraDrawUsed: boolean;
+  /** مخزون التجهيزات — لا يُسحب من السطح بل يُنفق من رصيد ثابت */
+  gearStock: Record<GearId, number>;
+  weatherStock: Record<WeatherId, number>;
 }
 
 export interface FlowTop {
@@ -246,6 +258,11 @@ export interface GameState {
   logSeq: number;
   /** كروت مكشوفة مؤقتاً للاعب (كارت البحث) */
   reveal: { side: Seat; cards: CardInstance[] } | null;
+  /**
+   * الطقس الفعّال — حالة عامّة على الساحة كلّها لا على لاعب، وواحدٌ فقط
+   * يعمل في كل لحظة: تفعيل جديد يزيح القديم.
+   */
+  weather: WeatherId | null;
 }
 
 export type GameAction =
@@ -261,4 +278,6 @@ export type GameAction =
     }
   | { type: 'SUMMON_TITAN' }
   | { type: 'PICK_REVEAL'; uid: string }
+  | { type: 'EQUIP'; gear: GearId; targetUid: string }
+  | { type: 'WEATHER'; weather: WeatherId | null }
   | { type: 'END_TURN' };

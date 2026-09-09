@@ -651,6 +651,34 @@ export const UI = {
     ar: 'الكلمة المكتوبة أسفل الوحش هي خاصيته، وتعمل تلقائياً في لحظتها. اضغط مطوّلاً على أي كارت داخل المباراة لترى شرحه.',
     en: 'The word under a monster is its ability, and it fires automatically at its moment. Hold any card during a match to read its explanation.',
   },
+
+  // --- مرحلة التحضير التكتيكي ---
+  prepPhase: { ar: 'مرحلة التحضير التكتيكي', en: 'Tactical preparation' },
+  readyToEquip: { ar: 'جاهز للتجهيز', en: 'Ready to equip' },
+  gearPanel: { ar: 'لوحة التجهيزات', en: 'Item builds' },
+  weatherPanel: { ar: 'لوحة الطقس والبيئة', en: 'Weather & environment' },
+  activateWeather: { ar: 'تفعيل الطقس', en: 'Activate weather' },
+  clearWeather: { ar: 'تحديث', en: 'Reset' },
+  dispelTip: {
+    ar: 'يزيح الطقس الفعّال مقابل {n} طاقة',
+    en: 'Dispels the active weather for {n} energy',
+  },
+  gearStock: { ar: 'مخزون التجهيزات', en: 'Gear stock' },
+  weatherStock: { ar: 'مخزون الطقس', en: 'Weather stock' },
+  backToArena: { ar: 'زر العودة للساحة ⟵', en: 'Return to arena ⟶' },
+  energyLeft: { ar: 'الطاقة {n}/{cap}', en: 'Energy {n}/{cap}' },
+  pickGearTarget: { ar: 'اختر وحشاً لتركيب «{gear}»', en: 'Pick a monster to equip “{gear}”' },
+  gearEquipped: { ar: 'رُكِّب «{gear}» على {monster}', en: '“{gear}” equipped to {monster}' },
+  weatherOn: { ar: 'الطقس الفعّال: {name}', en: 'Active weather: {name}' },
+  weatherNone: { ar: 'لا طقس فعّال', en: 'No active weather' },
+  outOfStock: { ar: 'نفد المخزون', en: 'Out of stock' },
+  electricOnly: { ar: 'لوحوش الكهرباء فقط', en: 'Electric monsters only' },
+  noTargetFor: { ar: 'لا وحش صالح لهذا التجهيز', en: 'No valid monster for this gear' },
+  prepHint: {
+    ar: 'الطاقة تُنفق هنا قبل القتال. الطقس واحد فعّال في الساحة كلّها، والتجهيز يُركَّب على وحش واحد ويبقى معه.',
+    en: 'Energy is spent here before combat. One weather is active across the whole arena; gear attaches to a single monster and stays with it.',
+  },
+  passiveLabel: { ar: 'قدرة الطراز', en: 'Archetype passive' },
 } as const satisfies Record<string, Localized>;
 
 export type UIKey = keyof typeof UI;
@@ -686,4 +714,11 @@ export const REASONS: Record<string, Localized> = {
   monster_exhausted: { ar: 'هذا الوحش مُنهك', en: 'This monster is exhausted' },
   need_fragments: { ar: 'تحتاج القطع الأربع أولاً', en: 'You need all four fragments first' },
   need_energy: { ar: 'طاقة غير كافية للاستدعاء', en: 'Not enough energy to summon' },
+  out_of_stock: { ar: 'نفد المخزون', en: 'Out of stock' },
+  gear_wrong_element: { ar: 'لا يُركَّب على هذا العنصر', en: 'Cannot be equipped to this element' },
+  gear_duplicate: { ar: 'هذا التجهيز مركَّب عليه بالفعل', en: 'That gear is already equipped' },
+  weather_already: { ar: 'هذا الطقس فعّال بالفعل', en: 'That weather is already active' },
+  unknown_gear: { ar: 'تجهيز مجهول', en: 'Unknown gear' },
+  unknown_weather: { ar: 'طقس مجهول', en: 'Unknown weather' },
+  no_weather: { ar: 'لا طقس فعّال لإزاحته', en: 'No active weather to dispel' },
 };

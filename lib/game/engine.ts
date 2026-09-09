@@ -1,7 +1,28 @@
 import { def, ELEMENTS, ELEMENT_NAME, TITAN } from './cards';
+import {
+  GEAR,
+  GEAR_BY_ID,
+  WEATHER,
+  WEATHER_BY_ID,
+  WEATHER_DISPEL_COST,
+  type GearId,
+  type WeatherId,
+} from './loadout';
+import {
+  ACID_RAIN_TICK,
+  AIR_DODGE_CHANCE,
+  FOG_MISS_CHANCE,
+  hasGear,
+  passiveOf,
+  piercesOf,
+  poisonTick,
+  reductionOf,
+  strikeOf,
+  surgeCut,
+} from './loadoutEffects';
 import { CATALOG } from './cards';
 import { DEFAULT_DIFFICULTY, DIFFICULTIES, type Difficulty } from './difficulty';
-import { curveShuffle, makeSeed, randomInt, shuffle } from './rng';
+import { curveShuffle, makeSeed, nextRandom, randomInt, shuffle } from './rng';
 import type {
   CardDef,
   CardInstance,
@@ -214,6 +235,11 @@ function newPlayer(id: string, name: string, isAI: boolean): PlayerState {
     barrier: false,
     mirror: false,
     extraDrawUsed: false,
+    gearStock: Object.fromEntries(GEAR.map((g) => [g.id, g.stock])) as Record<GearId, number>,
+    weatherStock: Object.fromEntries(WEATHER.map((w) => [w.id, w.stock])) as Record<
+      WeatherId,
+      number
+    >,
   };
 }
 
@@ -290,6 +316,7 @@ export function createGame(opts?: {
     log: [],
     logSeq: 0,
     reveal: null,
+    weather: null,
   };
 
   // مستوى الصعوبة يضبط الخصوم الآليين وحدهم — اللاعب البشري لا يُمَسّ
@@ -779,21 +806,64 @@ function triggerOpponentTraps(
 
 // ===================== الضرر والموت =====================
 
+/**
+ * مصدر الضرر يحكم أيّ دفاعٍ ينطبق:
+ *
+ *   attack  — الدرع يخفّض، والحلقة لا تمتصّ
+ *   spell   — الدرع يخفّض (كما كان قبل هذه الطبقة)، والحلقة تمتصّ
+ *   weather — الدرع **لا** يخفّض، والحلقة تمتصّ
+ *   poison  — لا درع ولا امتصاص
+ *
+ * الدرع يصدّ الضربة والسحر لا الحمضَ والسُم؛ ولولا هذا التمييز لأبطل
+ * «درع الصخر» المطرَ الحمضي والسُمَّ إبطالاً تامّاً — كلاهما نقطة واحدة
+ * والدرع ينقص اثنتين — فتصير التجهيزةُ الواحدة مناعةً من ثلاثة تأثيرات.
+ */
+interface HitOpts {
+  source?: 'attack' | 'spell' | 'weather' | 'poison';
+  /** ما يتجاهله المهاجم من تخفيض المدافع («صاعقة خارقة» تتجاهل نصفه) */
+  ignoreReduction?: number;
+}
+
 function damageMonster(
   s: GameState,
   ownerIdx: Seat,
   m: FieldMonster,
-  amount: number
+  amount: number,
+  opts: HitOpts = {}
 ): number {
   const d = def(m.defId);
-  const reduced = d.ability === 'guard' ? Math.max(0, amount - 1) : amount;
+
+  // حلقة امتصاص (هالو): أوّل ضرر سحري أو بيئي يمرّ دون أثر، مرّةً واحدة
+  if (
+    amount > 0 &&
+    (opts.source === 'spell' || opts.source === 'weather') &&
+    passiveOf(m) === 'absorb_ring' &&
+    !m.absorbed
+  ) {
+    m.absorbed = true;
+    log(s, 'attack', ownerIdx, 'passive_absorb', { card: d.id });
+    return 0;
+  }
+
+  const armored = opts.source !== 'weather' && opts.source !== 'poison';
+  const reduction = armored ? Math.max(0, reductionOf(m) - (opts.ignoreReduction ?? 0)) : 0;
+  const reduced = Math.max(0, amount - reduction);
   // الخصائص الصامتة تبدو معطّلة للاعب، فتُعلن عن نفسها في السجل
-  if (d.ability === 'guard' && amount > 0) {
-    log(s, 'attack', ownerIdx, 'ability_guard', { card: d.id, amount: amount - reduced });
+  if (amount > 0 && reduction > 0) {
+    const key = hasGear(m, 'rock_shield') ? 'gear_shield' : 'ability_guard';
+    log(s, 'attack', ownerIdx, key, { card: d.id, amount: amount - reduced });
   }
   const dealt = Math.min(reduced, m.hp);
   m.hp -= reduced;
   if (m.hp <= 0) {
+    // عودة الطيف (خَيال): أوّل سقوط لا يُخرجه من الساحة، والسُم يزول معه
+    if (passiveOf(m) === 'spectral_return' && !m.revived) {
+      m.revived = true;
+      m.hp = 1;
+      m.poison = 0;
+      log(s, 'attack', ownerIdx, 'passive_return', { card: d.id });
+      return dealt;
+    }
     const p = s.players[ownerIdx];
     p.field = p.field.filter((x) => x.uid !== m.uid);
     s.discard.push({ uid: m.uid, defId: m.defId });
@@ -885,6 +955,36 @@ function beginTurn(s: GameState) {
   }
 
   log(s, 'system', idx, 'turn_start', { player: p.name, energy: p.energy, cap: p.energyCap });
+
+  // --- طبقة التحضير: تميمة الشفاء، ثم البيئة، ثم السُم المتراكم ---
+  for (const m of p.field.slice()) {
+    if (hasGear(m, 'healing_amulet') && m.hp < m.maxHp) {
+      m.hp = Math.min(m.maxHp, m.hp + 1);
+      log(s, 'system', idx, 'gear_regen', { card: def(m.defId).id, amount: 1 });
+    }
+  }
+
+  // المطر الحمضي يمسّ الساحة كلّها لا ساحةَ صاحب الدور وحده — ولذلك يعيش
+  // الطقس في حالة المباراة لا في حالة اللاعب.
+  if (s.weather === 'acid_rain') {
+    let bitten = 0;
+    for (let i = 0; i < s.players.length; i++) {
+      for (const m of s.players[i].field.slice()) {
+        if (damageMonster(s, i, m, ACID_RAIN_TICK, { source: 'weather' }) > 0) bitten++;
+      }
+    }
+    if (bitten > 0) {
+      log(s, 'system', idx, 'weather_tick', { weather: 'acid_rain', amount: ACID_RAIN_TICK });
+    }
+  }
+
+  for (const m of p.field.slice()) {
+    const tick = poisonTick(m.poison ?? 0, s.weather ?? null);
+    if (tick > 0) {
+      log(s, 'attack', idx, 'poison_tick', { card: def(m.defId).id, amount: tick });
+      damageMonster(s, idx, m, tick, { source: 'poison' });
+    }
+  }
 
   // فخاخ الخصوم التي تنطلق مع بداية دورك (فخ واحد لكل حدث)
   triggerOpponentTraps(s, idx, 'opponent_turn_start');
@@ -1352,7 +1452,7 @@ export function evaluateAttack(
     if (m.exhausted) return { ok: false, reason: 'monster_exhausted', damage: 0 };
   }
 
-  let damage = monsters.reduce((n, m) => n + m.atk, 0);
+  let damage = monsters.reduce((n, m) => n + strikeOf(m, s.weather ?? null), 0);
 
   if (monsters.length > 1) {
     if (p.comboUsed) return { ok: false, reason: 'combo_used', damage: 0 };
@@ -1456,10 +1556,36 @@ function doAttack(s: GameState, action: Extract<GameAction, { type: 'ATTACK' }>)
     return;
   }
   if (alive.length !== monsters.length) {
-    damage = alive.reduce((n, m) => n + m.atk, 0) + (alive.length > 1 ? RULES.COMBO_BONUS_PER_EXTRA * (alive.length - 1) : 0);
+    damage =
+      alive.reduce((n, m) => n + strikeOf(m, s.weather ?? null), 0) +
+      (alive.length > 1 ? RULES.COMBO_BONUS_PER_EXTRA * (alive.length - 1) : 0);
   }
 
   const attackerDefs = alive.map((m) => def(m.defId));
+
+  /*
+   * رميتا «الضباب الكثيف» و«التفادي الهوائي» تُحسمان من بذرة الحالة لا من
+   * `Math.random`. المحرّك مُخفِّض خالص تُعاد به المباراة من بذرتها، ويشغّله
+   * كلا الطرفين في اللعب الشبكي — فعشوائيةٌ خارج البذرة تجعل اللوحتين
+   * تفترقان عند أوّل هجوم.
+   */
+  if (s.weather === 'heavy_fog') {
+    const [roll, rng] = nextRandom(s.rng);
+    s.rng = rng;
+    if (roll < FOG_MISS_CHANCE) {
+      log(s, 'attack', side, 'weather_miss', { names, weather: 'heavy_fog' });
+      return;
+    }
+  }
+
+  if (targetMonster && passiveOf(targetMonster) === 'air_dodge') {
+    const [roll, rng] = nextRandom(s.rng);
+    s.rng = rng;
+    if (roll < AIR_DODGE_CHANCE) {
+      log(s, 'attack', foeIdx, 'passive_dodge', { card: def(targetMonster.defId).id });
+      return;
+    }
+  }
 
   if (!targetMonster) {
     damagePlayer(s, foeIdx, damage);
@@ -1473,8 +1599,14 @@ function doAttack(s: GameState, action: Extract<GameAction, { type: 'ATTACK' }>)
     });
   } else {
     const before = targetMonster.hp;
-    const dealt = damageMonster(s, foeIdx, targetMonster, damage);
     const tDef = def(targetMonster.defId);
+    const reduction = reductionOf(targetMonster);
+    // صاعقة خارقة (فليكس): يتجاهل نصف ما يخفّضه المدافع
+    const ignore = alive.some((m) => passiveOf(m) === 'surge_strike') ? surgeCut(reduction) : 0;
+    const dealt = damageMonster(s, foeIdx, targetMonster, damage, {
+      source: 'attack',
+      ignoreReduction: ignore,
+    });
     log(s, 'attack', side, isCombo ? 'combo_monster' : 'attack_monster', {
       names,
       card: tDef.id,
@@ -1483,18 +1615,36 @@ function doAttack(s: GameState, action: Extract<GameAction, { type: 'ATTACK' }>)
       target: targetMonster.uid,
       targetSeat: foeIdx,
     });
-    // اختراق
-    const overflow = damage - (tDef.ability === 'guard' ? before + 1 : before);
-    if (attackerDefs.some((d) => d.ability === 'pierce') && overflow > 0) {
+    // اختراق — التخفيض صار مجموع «حراسة» و«درع الصخر» ناقصَ ما تجاهلته
+    // الصاعقة، فحسابُه بـ«+1 إن كان حارساً» لم يعد صحيحاً.
+    const overflow = damage - (before + Math.max(0, reduction - ignore));
+    if (alive.some(piercesOf) && overflow > 0) {
       damagePlayer(s, foeIdx, overflow);
       log(s, 'attack', side, 'pierce_extra', { amount: overflow, player: foe.name });
     }
     // سُم المدافع
     if (tDef.ability === 'venom') {
       for (const m of alive) {
-        if (p.field.some((x) => x.uid === m.uid)) damageMonster(s, side, m, 1);
+        if (p.field.some((x) => x.uid === m.uid)) damageMonster(s, side, m, 1, { source: 'attack' });
       }
       log(s, 'attack', foeIdx, 'venom_bite', { card: tDef.id, amount: 1 });
+    }
+
+    // درع حراري (كوبو): يردّ نقطةً إلى كل مهاجم ما دام صامداً
+    if (passiveOf(targetMonster) === 'thermal_shield' && foe.field.some((x) => x.uid === targetMonster.uid)) {
+      for (const m of alive) {
+        if (p.field.some((x) => x.uid === m.uid)) damageMonster(s, side, m, 1, { source: 'attack' });
+      }
+      log(s, 'attack', foeIdx, 'passive_thermal', { card: tDef.id, amount: 1 });
+    }
+
+    // أثر سام (زحّاف): يسمّم من صمد أمامه لا من سقط
+    if (
+      alive.some((m) => passiveOf(m) === 'venom_trail') &&
+      foe.field.some((x) => x.uid === targetMonster.uid)
+    ) {
+      targetMonster.poison = (targetMonster.poison ?? 0) + 1;
+      log(s, 'attack', side, 'passive_venom_trail', { card: tDef.id });
     }
     void dealt;
   }
@@ -1523,6 +1673,94 @@ export function canSummonTitan(s: GameState, side: Seat): Playability {
   return { ok: true };
 }
 
+// ===================== التجهيز والطقس =====================
+
+/**
+ * التجهيز والطقس يُنفقان من **مخزون ثابت** لا من السطح، ولذلك لا يمرّان
+ * بـ`canPlayCard`: لا يد ولا مطابقة تدفّق ولا خانة ساحة — تكلفةُ طاقةٍ
+ * ومخزونٌ وهدفٌ صالح فقط.
+ */
+export function canEquip(
+  s: GameState,
+  side: Seat,
+  gear: GearId,
+  targetUid: string
+): Playability {
+  if (s.phase !== 'main' || s.current !== side) return { ok: false, reason: 'not_your_turn' };
+  const p = s.players[side];
+  const g = GEAR_BY_ID[gear];
+  if (!g) return { ok: false, reason: 'unknown_gear' };
+  if ((p.gearStock?.[gear] ?? 0) <= 0) return { ok: false, reason: 'out_of_stock' };
+  const m = p.field.find((x) => x.uid === targetUid);
+  if (!m) return { ok: false, reason: 'no_own_monster' };
+  if (g.onlyElement && def(m.defId).element !== g.onlyElement)
+    return { ok: false, reason: 'gear_wrong_element' };
+  if (hasGear(m, gear)) return { ok: false, reason: 'gear_duplicate' };
+  // الطاقة آخر ما يُفحص: نقصُها حالٌ يزول بعد دور، أمّا العنصر الخطأ
+  // والتكرار فمانعان دائمان — وإظهار المانع الزائل يخفي الباقي.
+  if (p.energy < g.cost) return { ok: false, reason: 'not_enough_energy' };
+  return { ok: true };
+}
+
+/** `weather: null` تعني الانقشاع — إزاحة الطقس القائم بثمن ثابت */
+export function canActivateWeather(
+  s: GameState,
+  side: Seat,
+  weather: WeatherId | null
+): Playability {
+  if (s.phase !== 'main' || s.current !== side) return { ok: false, reason: 'not_your_turn' };
+  const p = s.players[side];
+  if (weather === null) {
+    if (!s.weather) return { ok: false, reason: 'no_weather' };
+    if (p.energy < WEATHER_DISPEL_COST) return { ok: false, reason: 'not_enough_energy' };
+    return { ok: true };
+  }
+  const w = WEATHER_BY_ID[weather];
+  if (!w) return { ok: false, reason: 'unknown_weather' };
+  if (s.weather === weather) return { ok: false, reason: 'weather_already' };
+  if ((p.weatherStock?.[weather] ?? 0) <= 0) return { ok: false, reason: 'out_of_stock' };
+  if (p.energy < w.cost) return { ok: false, reason: 'not_enough_energy' };
+  return { ok: true };
+}
+
+function doEquip(s: GameState, side: Seat, gear: GearId, targetUid: string) {
+  if (!canEquip(s, side, gear, targetUid).ok) return;
+  const p = s.players[side];
+  const g = GEAR_BY_ID[gear];
+  const m = p.field.find((x) => x.uid === targetUid)!;
+  p.energy -= g.cost;
+  p.gearStock[gear] -= 1;
+  m.gear = [...(m.gear ?? []), gear];
+  // «جوهرة السرعة» تعني أن يتصرّف الآن، فترفع عنه حداثة الاستدعاء فوراً
+  if (gear === 'speed_jewel' && m.sick) {
+    m.sick = false;
+    log(s, 'play', side, 'gear_haste', { card: def(m.defId).id });
+  }
+  log(s, 'play', side, 'gear_equipped', { player: p.name, gear, card: def(m.defId).id });
+}
+
+function doWeather(s: GameState, side: Seat, weather: WeatherId | null) {
+  if (!canActivateWeather(s, side, weather).ok) return;
+  const p = s.players[side];
+  if (weather === null) {
+    const gone = s.weather!;
+    p.energy -= WEATHER_DISPEL_COST;
+    s.weather = null;
+    log(s, 'system', side, 'weather_dispelled', { player: p.name, weather: gone });
+    return;
+  }
+  const w = WEATHER_BY_ID[weather];
+  p.energy -= w.cost;
+  p.weatherStock[weather] -= 1;
+  const previous = s.weather;
+  s.weather = weather;
+  // واحدٌ فقط يعمل: الجديد يزيح القديم، وذلك يُعلَن كي لا يبدو أنه ضاع سُدى
+  if (previous && previous !== weather) {
+    log(s, 'system', side, 'weather_replaced', { weather: previous });
+  }
+  log(s, 'system', side, 'weather_set', { player: p.name, weather });
+}
+
 // ===================== نقطة الدخول =====================
 
 export function applyGameAction(state: GameState, action: GameAction): GameState {
@@ -1534,6 +1772,14 @@ export function applyGameAction(state: GameState, action: GameAction): GameState
   switch (action.type) {
     case 'PLAY':
       doPlay(s, action);
+      break;
+
+    case 'EQUIP':
+      doEquip(s, side, action.gear, action.targetUid);
+      break;
+
+    case 'WEATHER':
+      doWeather(s, side, action.weather);
       break;
 
     case 'DRAW': {
