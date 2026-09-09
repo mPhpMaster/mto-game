@@ -78,6 +78,14 @@ export const RULES = {
 
 // ===================== أدوات مساعدة =====================
 
+/**
+ * عدّاد لنسخ الكروت التي تُصنَع **أثناء اللعب** لا عند التوزيع.
+ *
+ * لا يصلح لبناء السطح: العدّاد يعيش في الوحدة، فيتراكم في الخادم عبر
+ * الطلبات ويبدأ من الصفر في المتصفّح — فيرسم الخادم `data-uid="c590"`
+ * ويرسم العميل `data-uid="c46"` للكارت نفسه، وينهار الترطيب. البادئة هنا
+ * تختلف عن بادئة السطح فلا تتصادم المجموعتان.
+ */
 let uidCounter = 0;
 function makeUid(prefix: string): string {
   uidCounter += 1;
@@ -179,11 +187,15 @@ function curveWeightOf(c: CardInstance): number {
   return d.cost - (d.kind === 'monster' ? RULES.MONSTER_CURVE_BONUS : 0);
 }
 
+/**
+ * السطح كاملاً بمعرّفات مشتقّة من الترتيب، فمباراتان ببذرة واحدة تتطابقان
+ * تطابقاً تامّاً — وهذا شرطُ أن يرسم الخادم والمتصفّح الشجرة نفسها.
+ */
 function buildDeck(): CardInstance[] {
   const cards: CardInstance[] = [];
   for (const d of CATALOG) {
     for (let i = 0; i < d.copies; i++) {
-      cards.push({ uid: makeUid('c'), defId: d.id });
+      cards.push({ uid: `c${cards.length}`, defId: d.id });
     }
   }
   return cards;
@@ -630,7 +642,7 @@ function triggerTraps(
         s.rng = rng;
         const lost = foe.fragments.splice(idx, 1)[0];
         // تعود القطعة إلى دورة السطح ليتمكّن أي لاعب من إيجادها مجدداً
-        s.discard.push({ uid: makeUid('c'), defId: `frag_${lost}` });
+        s.discard.push({ uid: makeUid('r'), defId: `frag_${lost}` });
         log(s, 'trap', ownerIdx, 'trap_relic_break', { fragment: lost });
         break;
       }

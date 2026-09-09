@@ -15,6 +15,7 @@
     "check:coin": "tsx scripts/coin-check.ts",
     "check:redact": "tsx scripts/redact-check.ts",
     "check:loadout": "tsx scripts/loadout-check.ts",
+    "check:hydration": "tsx scripts/hydration-check.ts",
     "cards:export": "tsx scripts/export-cards.tsx",
     "icons": "tsx scripts/gen-icons.ts",
     "version:bump": "node scripts/bump-version.mjs",
