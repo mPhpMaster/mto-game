@@ -264,3 +264,26 @@ body {
     animation: hit-impact 0.3s ease-out both;
   }
 }
+
+/*
+  طفوُ التجهيزات فوق بلاطاتها. الحركة وحدها هي ما يفرّق بين «أيقونة موضوعة
+  على الأرض» و«غرضٍ معلَّق بالسحر» — وهي فارق التصميم الذي تُظهره الصورة.
+  الإزاحة صغيرة عمداً: الكبيرة تُلهي عن قراءة اللوحة.
+*/
+@keyframes float-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+.float-bob {
+  animation: float-bob 3.2s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .float-bob {
+    animation: none;
+  }
+}
