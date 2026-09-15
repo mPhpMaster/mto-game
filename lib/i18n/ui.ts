@@ -706,6 +706,8 @@ export const UI = {
   scrollHand: { ar: 'مرّر اليد', en: 'Scroll hand' },
   invalidTarget: { ar: 'هجوم غير صالح', en: 'Invalid attack' },
   perfectMatchShort: { ar: 'تامّة', en: 'Perfect' },
+  titanRises: { ar: 'الوحش الأعظم يستيقظ', en: 'THE TITAN AWAKENS' },
+  titanSummonedBy: { ar: 'استدعاه {name}', en: 'Summoned by {name}' },
 } as const satisfies Record<string, Localized>;
 
 export type UIKey = keyof typeof UI;

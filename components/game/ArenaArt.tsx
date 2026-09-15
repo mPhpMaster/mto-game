@@ -2,7 +2,8 @@
 
 import type { FieldMonster } from '@/lib/game/types';
 import { archetypeOf } from '@/lib/game/archetypes';
-import { def } from '@/lib/game/cards';
+import { TITAN, def } from '@/lib/game/cards';
+import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { ARCHETYPE_BODY, ART_PALETTE, artSeed, type Ink } from './CardArt';
 import { SunsetRuins } from './LoadoutArt';
 
@@ -330,6 +331,63 @@ export function ArenaBackdrop({ titanReady = false }: { titanReady?: boolean }) 
           }}
         />
       ))}
+    </div>
+  );
+}
+
+// ===================== دخول الوحش الأعظم =====================
+
+/** ذهبٌ خالص: الوحش الأعظم لا عنصر له، فلا يُرسم بلون أي عنصر */
+const TITAN_INK: Ink = { main: '#ffd76a', deep: '#8a5a00', glow: '#fff4c2', evolved: true, seed: 7 };
+
+/**
+ * لحظة الاستدعاء: الساحة تعتم، أشعّةٌ ذهبية تدور، والعملاق يصعد من النور.
+ * الطبقة لا تمسك أي نقرة وتختفي وحدها بعد ثلاث ثوانٍ (titan-cine)، فتظهر
+ * نافذة النهاية تحتها كما هي — لا حالة جديدة ولا مؤقّت في المكوّن.
+ */
+export function TitanCinematic({ summoner }: { summoner: string }) {
+  const { t, L } = useLocale();
+  const Body = ARCHETYPE_BODY.golem;
+  return (
+    <div
+      role="status"
+      aria-live="assertive"
+      className="titan-cine pointer-events-none fixed inset-0 z-[80] grid place-items-center overflow-hidden bg-[radial-gradient(60%_50%_at_50%_45%,rgba(120,80,0,0.55),rgba(3,3,8,0.95)_72%)] px-4"
+    >
+      <div
+        aria-hidden
+        className="titan-rays absolute left-1/2 top-[42%] size-[170vmax] bg-[repeating-conic-gradient(from_0deg,rgba(255,215,106,0.16)_0deg_6deg,transparent_6deg_18deg)]"
+      />
+      {EMBERS.map((e, i) => (
+        <span
+          key={i}
+          aria-hidden
+          className="ember absolute bottom-0 rounded-full bg-amber-200"
+          style={{
+            left: `${e.left}%`,
+            width: e.size + 1,
+            height: e.size + 1,
+            animationDelay: `${e.delay * 0.3}s`,
+            animationDuration: `${e.duration * 0.5}s`,
+          }}
+        />
+      ))}
+      <div className="relative flex flex-col items-center">
+        <svg
+          viewBox="0 0 104 88"
+          aria-hidden
+          className="titan-rise w-[min(72vw,400px)] drop-shadow-[0_0_40px_rgba(255,200,60,0.8)]"
+        >
+          <Body ink={TITAN_INK} />
+        </svg>
+        <div className="titan-title mt-2 text-center">
+          <div className="text-xs font-bold tracking-[0.3em] text-amber-200/80">{t('titanRises')}</div>
+          <div className="text-4xl font-black text-amber-200 [text-shadow:0_0_24px_rgba(251,191,36,0.9)] sm:text-6xl">
+            {L(TITAN.name)}
+          </div>
+          <div className="mt-1 text-sm font-bold text-amber-50/85">{t('titanSummonedBy', { name: summoner })}</div>
+        </div>
+      </div>
     </div>
   );
 }

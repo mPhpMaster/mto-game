@@ -376,6 +376,136 @@ body {
   animation: arrow-dash 0.7s linear infinite;
 }
 
+/* ===================== حركة الوحوش ===================== */
+
+/*
+  لكل طرازٍ حركة وقوفٍ تشبه جسده، لا نبضةٌ واحدة للجميع: الأفعى تتمايل،
+  والطائر يرفرف صعوداً، والكرة تطفو وتدور، والعملاق يتنفّس ثقيلاً، والشبح
+  ينجرف ويبهت. الحركة هنا تقول «ما هذا المخلوق» كما يقوله شكله.
+*/
+@keyframes idle-sway {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+@keyframes idle-hover {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8%); }
+}
+@keyframes idle-float {
+  0%, 100% { transform: translateY(-2%) rotate(0deg); }
+  50% { transform: translateY(-9%) rotate(8deg); }
+}
+@keyframes idle-heavy {
+  0%, 100% { transform: scaleY(1); }
+  50% { transform: scaleY(0.965) translateY(1.5%); }
+}
+@keyframes idle-drift {
+  0%, 100% { transform: translateX(-3%); opacity: 1; }
+  50% { transform: translate(3%, -4%); opacity: 0.8; }
+}
+.idle-sway { animation: idle-sway 3.2s ease-in-out infinite; transform-origin: 50% 90%; }
+.idle-hover { animation: idle-hover 1.6s ease-in-out infinite; }
+.idle-float { animation: idle-float 4s ease-in-out infinite; }
+.idle-heavy { animation: idle-heavy 3.6s ease-in-out infinite; transform-origin: 50% 100%; }
+.idle-drift { animation: idle-drift 5s ease-in-out infinite; }
+
+/* وميض الاستدعاء: حلقةٌ بلون العنصر تتّسع مرّة واحدة لحظة دخول الوحش */
+@keyframes summon-ring {
+  0% { transform: scale(0.2); opacity: 1; }
+  100% { transform: scale(1.45); opacity: 0; }
+}
+.summon-ring {
+  translate: -50% -50%;
+  opacity: 0;
+  animation: summon-ring 0.7s ease-out forwards;
+}
+
+/*
+  انفجار الاصطدام بلون عنصر المهاجم. يتأخّر 0.22s ليقع لحظة وصول
+  المهاجم إلى هدفه في حركة strike-lunge، لا لحظة انطلاقه.
+*/
+@keyframes impact-burst {
+  0% { transform: scale(0.2); opacity: 0.95; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+@keyframes impact-spark {
+  0% { transform: rotate(var(--a)) translateX(0) scale(1); opacity: 1; }
+  100% { transform: rotate(var(--a)) translateX(2.6em) scale(0.3); opacity: 0; }
+}
+.impact-burst {
+  font-size: max(12px, 4cqw);
+  width: 3.2em;
+  height: 3.2em;
+  translate: -50% -50%;
+  background: radial-gradient(circle, #fff 0%, var(--burst) 35%, transparent 70%);
+  animation: impact-burst 0.5s ease-out 0.22s both;
+}
+.impact-spark {
+  font-size: max(12px, 4cqw);
+  width: 0.45em;
+  height: 0.45em;
+  translate: -50% -50%;
+  background: var(--burst);
+  box-shadow: 0 0 8px var(--burst);
+  animation: impact-spark 0.55s ease-out 0.22s both;
+}
+
+/* ===================== دخول الوحش الأعظم ===================== */
+
+/*
+  ثلاث ثوانٍ لا أكثر: لحظةٌ استثنائية، لكنها تسبق نافذة النهاية ولا
+  تحبس اللاعب. الطبقة تختفي وحدها (visibility في آخر إطار) فلا تحتاج حالة.
+*/
+@keyframes titan-cine {
+  0% { opacity: 0; }
+  8% { opacity: 1; }
+  82% { opacity: 1; }
+  100% { opacity: 0; visibility: hidden; }
+}
+.titan-cine { animation: titan-cine 3s ease-in-out forwards; }
+@keyframes titan-rise {
+  0% { transform: translateY(30%) scale(0.6); opacity: 0; filter: brightness(3); }
+  35% { opacity: 1; }
+  60% { transform: translateY(0) scale(1.06); filter: brightness(1.25); }
+  100% { transform: scale(1); filter: none; }
+}
+.titan-rise { animation: titan-rise 1.6s cubic-bezier(0.2, 0.9, 0.3, 1.1) 0.25s both; }
+@keyframes titan-rays {
+  to { transform: translate(-50%, -50%) rotate(360deg); }
+}
+.titan-rays {
+  transform: translate(-50%, -50%);
+  animation: titan-rays 14s linear infinite;
+}
+@keyframes titan-title {
+  0%, 40% { opacity: 0; transform: translateY(12px) scale(0.9); letter-spacing: 0.35em; }
+  70%, 100% { opacity: 1; transform: none; letter-spacing: 0.03em; }
+}
+.titan-title { animation: titan-title 1.8s ease-out both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .idle-sway,
+  .idle-hover,
+  .idle-float,
+  .idle-heavy,
+  .idle-drift,
+  .titan-rays {
+    animation: none;
+  }
+  .summon-ring,
+  .impact-spark,
+  .titan-rise,
+  .titan-title {
+    animation-duration: 0.01s;
+  }
+  .impact-burst {
+    animation: impact-burst 0.3s ease-out both;
+  }
+  .titan-cine {
+    animation-duration: 1.6s;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .arrow-dash {
     animation: none;

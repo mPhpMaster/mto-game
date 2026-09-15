@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { ELEMENT_ICON, ELEMENT_NAME, HIDDEN_CARD_ID, def } from '@/lib/game/cards';
+import { archetypeOf, type Archetype } from '@/lib/game/archetypes';
 import type { BattleFx } from '@/lib/game/battleFx';
 import { WEATHER_BY_ID } from '@/lib/game/loadout';
 import { strikeOf } from '@/lib/game/loadoutEffects';
@@ -28,6 +29,16 @@ const UNIT_W = 23;
  */
 const FLOW_W = 15;
 const CARD_SM = { w: 86, h: 122 };
+
+/** حركة الوقوف لكل طراز — تفاصيلها ولماذا تختلف في globals.css */
+const IDLE: Record<Archetype, string> = {
+  beast: 'unit-idle',
+  serpent: 'idle-sway',
+  avian: 'idle-hover',
+  orb: 'idle-float',
+  golem: 'idle-heavy',
+  wraith: 'idle-drift',
+};
 
 type Slot = { x: number; y: number; s: number };
 
@@ -140,6 +151,15 @@ export default function Battlefield({
   lights[`${middle}:1`] = { color: ELEMENT_HEX[game.flow.element], strong: true, pulse: true };
 
   const shaking = battle?.type === 'strike' && battle.damage > 0;
+  /** لون عنصر المهاجم — يُلوَّن به انفجار الاصطدام. المهاجم قد يسقط في الضربة نفسها، فللبحث بديل */
+  const strikeColor = (() => {
+    if (battle?.type !== 'strike') return '#fca5a5';
+    for (const p of game.players) {
+      const m = p.field.find((x) => battle.strikers.includes(x.uid));
+      if (m) return ELEMENT_HEX[def(m.defId).element];
+    }
+    return '#fca5a5';
+  })();
 
   // ---------- وحدة على الأرض ----------
   function renderUnit(m: FieldMonster, i: number, seat: Seat, owner: number, band: { top: number; bottom: number }) {
@@ -318,7 +338,10 @@ export default function Battlefield({
                       : undefined,
             }}
           >
-            <Effigy m={m} className={`block h-auto w-full ${!strike && !dim ? 'unit-idle' : ''}`} />
+            <Effigy
+              m={m}
+              className={`block h-auto w-full ${!strike && !dim ? IDLE[archetypeOf(d.species) ?? 'beast'] : ''}`}
+            />
           </div>
         </button>
 
@@ -345,6 +368,28 @@ export default function Battlefield({
           </div>
         </div>
 
+        {/* وميض الاستدعاء: يُرسم مع أوّل ظهورٍ للوحدة فقط، فلا يتكرّر مع إعادة الرسم */}
+        <span
+          aria-hidden
+          className="summon-ring pointer-events-none absolute left-1/2 top-[88%] rounded-[50%]"
+          style={{ width: '140%', aspectRatio: '2.6 / 1', border: `3px solid ${color}`, boxShadow: `0 0 22px ${color}` }}
+        />
+        {hit && (
+          <span
+            aria-hidden
+            className="pointer-events-none absolute left-1/2 top-[45%] z-30"
+            style={{ '--burst': strikeColor } as React.CSSProperties}
+          >
+            <span className="impact-burst absolute rounded-full" />
+            {[0, 60, 120, 180, 240, 300].map((a) => (
+              <span
+                key={a}
+                className="impact-spark absolute rounded-full"
+                style={{ '--a': `${a}deg` } as React.CSSProperties}
+              />
+            ))}
+          </span>
+        )}
         {hit && battle.damage > 0 && (
           <span className="damage-pop pointer-events-none absolute start-1/2 top-0 z-40 text-[max(18px,5cqw)] font-black text-rose-300 [text-shadow:0_2px_6px_#000]">
             −{battle.damage}
@@ -647,6 +692,47 @@ export default function Battlefield({
           </div>
         );
       })}
+
+      {/*
+        انفجار الضربة القاتلة. الهدف الذي يسقط يغادر الحالة في التحديث نفسه
+        الذي تصل فيه الضربة، فلا وحدة يُعلَّق عليها الانفجار — وكانت أقوى
+        الضربات هي بالضبط التي لا يظهر لها أثر. يُرسم هنا في وسط صفوف طرفه.
+      */}
+      {battle?.type === 'strike' &&
+        battle.target !== 'face' &&
+        !owners.some((seat) => game.players[seat].field.some((m) => m.uid === battle.target)) &&
+        (() => {
+          const seat = battle.targetSeat ?? (battle.entry.side === me ? foeSeats[0] : me);
+          const owner = owners.indexOf(seat as Seat);
+          if (owner < 0) return null;
+          const band = layout.band(owner);
+          return (
+            <span
+              aria-hidden
+              className="pointer-events-none absolute z-[66]"
+              style={
+                {
+                  left: '50%',
+                  top: py((band.top + band.bottom) / 2),
+                  '--burst': strikeColor,
+                  fontSize: '1.6em',
+                } as React.CSSProperties
+              }
+            >
+              <span className="impact-burst absolute rounded-full" style={{ fontSize: 'max(18px, 6cqw)' }} />
+              {[0, 45, 90, 135, 180, 225, 270, 315].map((a) => (
+                <span
+                  key={a}
+                  className="impact-spark absolute rounded-full"
+                  style={{ '--a': `${a}deg`, fontSize: 'max(18px, 6cqw)' } as React.CSSProperties}
+                />
+              ))}
+              <span className="damage-pop absolute left-0 top-0 text-[max(22px,6cqw)] font-black text-rose-200 [text-shadow:0_2px_8px_#000]">
+                💀
+              </span>
+            </span>
+          );
+        })()}
 
       {renderAim()}
 

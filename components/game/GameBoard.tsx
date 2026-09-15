@@ -46,7 +46,7 @@ import SoundToggle from '@/components/SoundToggle';
 import CardDetail from './CardDetail';
 import CardView, { ELEMENT_HEX } from './CardView';
 import Battlefield from './Battlefield';
-import { ArenaBackdrop } from './ArenaArt';
+import { ArenaBackdrop, TitanCinematic } from './ArenaArt';
 import { BattleLog, BoardStatus, ElementLegend, FlowBadge, MonsterDetails, QuickGuide, SideCard } from './MatchPanels';
 import LoadoutScreen from './LoadoutScreen';
 import { WEATHER_BY_ID } from '@/lib/game/loadout';
@@ -1368,6 +1368,15 @@ export default function GameBoard({
           </div>
         </div>
       )}
+
+      {/* فوق نافذة النهاية: تُخفيها ثلاث ثوانٍ ثم تختفي وحدها */}
+      {game.phase === 'ended' &&
+        (() => {
+          const entry = game.log.find((l) => l.key === 'titan_summon');
+          return entry ? (
+            <TitanCinematic key={entry.turn} summoner={pname(game.players[entry.side ?? 0].name)} />
+          ) : null;
+        })()}
 
       {detail && (
         <CardDetail
