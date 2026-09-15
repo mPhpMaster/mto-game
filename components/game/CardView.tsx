@@ -4,6 +4,7 @@ import { ABILITY_NAME, ELEMENT_ICON, ELEMENT_NAME, KIND_NAME } from '@/lib/game/
 import type { CardDef, Element } from '@/lib/game/types';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import CardArt from './CardArt';
+import { artPathOf } from '@/lib/game/artManifest';
 
 export const ELEMENT_HEX: Record<Element, string> = {
   fire: '#ff6b3d',
@@ -46,6 +47,17 @@ const ART_H: Record<CardSize, string> = {
   xs: 'h-[20px]',
   sm: 'h-[28px]',
   md: 'h-[60px]',
+};
+
+/**
+ * نافذة أطول لبطاقات الوحوش ذات الرسم المُصوَّر. الصور لوحاتٌ طولية، وفي نافذة
+ * 60px كانت الشجرة والأفعى تُقصّ رأساً وذيلاً. في الكارت متّسعٌ يكفي: مجموع
+ * أجزائه على المقاس الكبير 168px من 184.
+ */
+const ART_H_IMAGE: Record<CardSize, string> = {
+  xs: 'h-[26px]',
+  sm: 'h-[36px]',
+  md: 'h-[74px]',
 };
 
 interface Props {
@@ -168,7 +180,7 @@ export default function CardView({
 
       {/* نافذة الرسم — إطار غائر يفصل الفنّ عن سطح الكارت */}
       <div
-        className={`relative mt-0.5 w-full shrink-0 overflow-hidden ${tiny ? 'rounded-sm' : 'rounded'} ${ART_H[size]}`}
+        className={`relative mt-0.5 w-full shrink-0 overflow-hidden ${tiny ? 'rounded-sm' : 'rounded'} ${card.kind === 'monster' && artPathOf(card.id) ? ART_H_IMAGE[size] : ART_H[size]}`}
         style={{
           background: `radial-gradient(120% 110% at 50% 0%, ${color}26 0%, rgba(0,0,0,0.34) 100%)`,
           boxShadow: `inset 0 0 0 1px ${color}3d`,

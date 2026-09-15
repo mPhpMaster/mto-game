@@ -1229,7 +1229,8 @@ export default function CardArt({ card, className }: { card: CardDef; className?
       <img
         src={art}
         alt={`رسم ${card.name.ar}`}
-        className={`${className ?? ''} object-cover`}
+        // المركز أعلى من المنتصف قليلاً: رأس الوحش يُقرأ قبل قدميه، والقصّ يقع على الأرض
+        className={`${className ?? ''} object-cover object-[50%_38%]`}
         loading="lazy"
         decoding="async"
         draggable={false}
