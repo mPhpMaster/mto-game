@@ -682,6 +682,12 @@ export const UI = {
   poisoned: { ar: 'مسموم — يفقد صحةً في بداية كل دور', en: 'Poisoned — loses health each turn' },
   openPrep: { ar: '⚙ التحضير', en: '⚙ Prepare' },
   prepClosed: { ar: 'التحضير متاح في دورك فقط', en: 'Preparation is only available on your turn' },
+  unitHint: { ar: 'اضغط وحشاً لتفاصيله', en: 'Tap a monster for details' },
+  titanReadyBanner: {
+    ar: 'اكتملت القطع الأربع — الوحش الأعظم ينتظر استدعاءك',
+    en: 'All four fragments gathered — the Titan awaits your call',
+  },
+  foeThinking: { ar: '{name} يلعب…', en: '{name} is playing…' },
 } as const satisfies Record<string, Localized>;
 
 export type UIKey = keyof typeof UI;

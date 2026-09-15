@@ -92,15 +92,16 @@ export default function CardView({
     // وإخفاؤه يمنع اللاعب من التخطيط لدوره القادم. grayscale كان يمحوه.
     dimmed ? 'opacity-75 saturate-[0.85]' : '',
     selected ? 'ring-2 ring-white -translate-y-2' : '',
-    // إشعاع أصفر هادئ على الجوال والكمبيوتر (الحركة في globals.css)
-    playable ? 'playable-glow ring-2 ring-amber-300/70' : '',
+    // إشعاعٌ بلون العنصر (الحركة في globals.css) — الحلقة من الظلّ نفسه
+    playable ? 'playable-glow' : '',
     fresh ? 'card-fresh' : '',
   ].join(' ');
 
   // فاتح عند الزاوية العليا وغامق عند السفلى، فيقرأ الإطار كحافة لها سماكة
   const style = {
     background: `linear-gradient(150deg, ${color}e6 0%, ${color}70 24%, rgba(255,255,255,0.24) 46%, ${color}5c 64%, ${color}b8 100%)`,
-  };
+    '--glow': color,
+  } as React.CSSProperties;
 
   /** زاوية مزخرفة — خطّان قصيران يلتقيان، تُحذف على المصغّر فتبقى الحافة نظيفة */
   const corner = (pos: string, sides: string) => (

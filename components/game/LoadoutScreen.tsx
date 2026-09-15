@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { ARCHETYPE_BODY, ART_PALETTE, artSeed, type Ink } from './CardArt';
+import { Effigy } from './ArenaArt';
 import { GearIcon, ISO, IsoStage, WeatherScene } from './LoadoutArt';
 import { ARCHETYPE_NAME, ARCHETYPE_PASSIVE, archetypeOf } from '@/lib/game/archetypes';
 import { def } from '@/lib/game/cards';
@@ -84,24 +84,6 @@ const TILE_GLOW: Record<string, { on: string; off: string }> = {
   lime: { on: '#a6e04a', off: '#4f6b24' },
   slate: { on: '#cbd5e1', off: '#5c6470' },
 };
-
-/** مجسّم الوحش على المنصّة — نفس أشكال البطاقة، فالشكل هوية واحدة */
-function Effigy({ m, className }: { m: FieldMonster; className?: string }) {
-  const d = def(m.defId);
-  const arch = archetypeOf(d.species) ?? 'beast';
-  const Body = ARCHETYPE_BODY[arch];
-  const pal = ART_PALETTE[d.element];
-  const ink: Ink = { ...pal, evolved: d.stage === 2, seed: artSeed(d) };
-  return (
-    <svg
-      viewBox="0 0 100 100"
-      aria-hidden
-      className={`drop-shadow-[0_8px_16px_rgba(0,0,0,0.55)] ${className ?? ''}`}
-    >
-      <Body ink={ink} />
-    </svg>
-  );
-}
 
 export default function LoadoutScreen({
   state,

@@ -402,21 +402,6 @@ export function IsoStage({
       aria-hidden
     >
       <defs>
-        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#241a3e" />
-          <stop offset="0.42" stopColor="#5b3352" />
-          <stop offset="0.68" stopColor="#a85f45" />
-          <stop offset="0.86" stopColor="#e0954f" />
-          <stop offset="1" stopColor="#f6c877" />
-        </linearGradient>
-        <radialGradient id="sun" cx="0.5" cy="1" r="0.6">
-          <stop offset="0" stopColor="#ffd9a0" stopOpacity="0.95" />
-          <stop offset="1" stopColor="#ffd9a0" stopOpacity="0" />
-        </radialGradient>
-        <linearGradient id="haze" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#f6c877" stopOpacity="0" />
-          <stop offset="1" stopColor="#f6c877" stopOpacity="0.42" />
-        </linearGradient>
         <linearGradient id="ember" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#ff7a2f" stopOpacity="0.55" />
           <stop offset="1" stopColor="#ff3d00" stopOpacity="0" />
@@ -426,54 +411,7 @@ export function IsoStage({
         </filter>
       </defs>
 
-      <rect width="800" height="470" fill="url(#sky)" />
-      {/* شرائط سحابٍ رفيعة تكسر فراغ السماء العلوي */}
-      {[
-        [40, 22, 210, 0.1],
-        [520, 44, 250, 0.08],
-        [180, 74, 300, 0.07],
-      ].map((c, i) => (
-        <rect key={i} x={c[0]} y={c[1]} width={c[2]} height="9" rx="4.5" fill="#ffd9a0" opacity={c[3]} />
-      ))}
-      <ellipse cx="400" cy="330" rx="330" ry="150" fill="url(#sun)" />
-      <circle cx="400" cy="316" r="46" fill="#ffe6b8" opacity="0.5" filter="url(#soft)" />
-
-      {/*
-        ثلاث طبقات من الأنقاض تفتَح كلّما بعُدت. الفتحُ مع البعد هو ما يصنع
-        العمق الجوّي: صفٌّ واحدٌ من المستطيلات يبقى مسطّحاً مهما كثُر.
-      */}
-      {[
-        { xs: [30, 96, 690, 756], fill: '#7d5566', o: 0.42, top: 118, h: 160, w: 30 },
-        { xs: [140, 636], fill: '#5a3a53', o: 0.68, top: 138, h: 200, w: 40 },
-        { xs: [196, 560], fill: '#3a2440', o: 0.95, top: 150, h: 230, w: 50 },
-      ].map((layer, li) => (
-        <g key={li} fill={layer.fill} opacity={layer.o}>
-          {layer.xs.map((x, i) => {
-            const top = layer.top + (i % 3) * 14;
-            return (
-              <g key={x}>
-                {/* بدنٌ ثم تاجٌ ثم قاعدة — العمود بلا تاجٍ يبدو أنبوباً */}
-                <rect x={x} y={top} width={layer.w} height={layer.h} />
-                <rect x={x - 5} y={top - 9} width={layer.w + 10} height="9" rx="2" />
-                <rect x={x - 4} y={top + layer.h - 6} width={layer.w + 8} height="8" rx="2" />
-                {/* أخاديد العمود */}
-                <rect x={x + layer.w * 0.32} y={top} width="2" height={layer.h} fill="#000" opacity="0.18" />
-                <rect x={x + layer.w * 0.62} y={top} width="2" height={layer.h} fill="#000" opacity="0.14" />
-              </g>
-            );
-          })}
-          {/* قوسٌ مكسور: نقطةُ تثبيتٍ للعين، ويقول «أنقاض» لا «صفَّ أعمدة» */}
-          {li === 2 && (
-            <>
-              <path d="M196 168h50v-6a26 26 0 0 1 44 18v10h-24v-8a12 12 0 0 0-20-8Z" />
-              <rect x="288" y="182" width="26" height="150" />
-              <rect x="283" y="174" width="36" height="9" rx="2" />
-            </>
-          )}
-          {li === 1 && <path d="M140 158h40v-8a24 24 0 0 1 40 16v8h-20v-6a10 10 0 0 0-16-6Z" opacity="0.9" />}
-        </g>
-      ))}
-      <rect y="120" width="800" height="270" fill="url(#haze)" opacity="0.55" />
+      <SunsetRuins />
 
       {/*
         قاعدة المنصّة محسوبةٌ من رؤوس الشبكة نفسها.
@@ -518,5 +456,84 @@ export function IsoStage({
         return <TileShadow key={key} col={c} row={r} />;
       })}
     </svg>
+  );
+}
+
+/**
+ * سماء الغروب والأنقاض — مشتركةٌ بين شاشة التحضير وخلفية المباراة، فالمكان
+ * واحدٌ في الشاشتين. تُرسَم داخل `<svg viewBox="0 0 800 470">`.
+ */
+export function SunsetRuins() {
+  return (
+    <g>
+      <defs>
+        <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#241a3e" />
+          <stop offset="0.42" stopColor="#5b3352" />
+          <stop offset="0.68" stopColor="#a85f45" />
+          <stop offset="0.86" stopColor="#e0954f" />
+          <stop offset="1" stopColor="#f6c877" />
+        </linearGradient>
+        <radialGradient id="sun" cx="0.5" cy="1" r="0.6">
+          <stop offset="0" stopColor="#ffd9a0" stopOpacity="0.95" />
+          <stop offset="1" stopColor="#ffd9a0" stopOpacity="0" />
+        </radialGradient>
+        <linearGradient id="haze" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor="#f6c877" stopOpacity="0" />
+          <stop offset="1" stopColor="#f6c877" stopOpacity="0.42" />
+        </linearGradient>
+        <filter id="ruins-soft" x="-60%" y="-60%" width="220%" height="220%">
+          <feGaussianBlur stdDeviation="5" />
+        </filter>
+      </defs>
+      <rect width="800" height="470" fill="url(#sky)" />
+      {/* شرائط سحابٍ رفيعة تكسر فراغ السماء العلوي */}
+      {[
+        [40, 22, 210, 0.1],
+        [520, 44, 250, 0.08],
+        [180, 74, 300, 0.07],
+      ].map((c, i) => (
+        <rect key={i} x={c[0]} y={c[1]} width={c[2]} height="9" rx="4.5" fill="#ffd9a0" opacity={c[3]} />
+      ))}
+      <ellipse cx="400" cy="330" rx="330" ry="150" fill="url(#sun)" />
+      <circle cx="400" cy="316" r="46" fill="#ffe6b8" opacity="0.5" filter="url(#ruins-soft)" />
+
+      {/*
+        ثلاث طبقات من الأنقاض تفتَح كلّما بعُدت. الفتحُ مع البعد هو ما يصنع
+        العمق الجوّي: صفٌّ واحدٌ من المستطيلات يبقى مسطّحاً مهما كثُر.
+      */}
+      {[
+        { xs: [30, 96, 690, 756], fill: '#7d5566', o: 0.42, top: 118, h: 160, w: 30 },
+        { xs: [140, 636], fill: '#5a3a53', o: 0.68, top: 138, h: 200, w: 40 },
+        { xs: [196, 560], fill: '#3a2440', o: 0.95, top: 150, h: 230, w: 50 },
+      ].map((layer, li) => (
+        <g key={li} fill={layer.fill} opacity={layer.o}>
+          {layer.xs.map((x, i) => {
+            const top = layer.top + (i % 3) * 14;
+            return (
+              <g key={x}>
+                {/* بدنٌ ثم تاجٌ ثم قاعدة — العمود بلا تاجٍ يبدو أنبوباً */}
+                <rect x={x} y={top} width={layer.w} height={layer.h} />
+                <rect x={x - 5} y={top - 9} width={layer.w + 10} height="9" rx="2" />
+                <rect x={x - 4} y={top + layer.h - 6} width={layer.w + 8} height="8" rx="2" />
+                {/* أخاديد العمود */}
+                <rect x={x + layer.w * 0.32} y={top} width="2" height={layer.h} fill="#000" opacity="0.18" />
+                <rect x={x + layer.w * 0.62} y={top} width="2" height={layer.h} fill="#000" opacity="0.14" />
+              </g>
+            );
+          })}
+          {/* قوسٌ مكسور: نقطةُ تثبيتٍ للعين، ويقول «أنقاض» لا «صفَّ أعمدة» */}
+          {li === 2 && (
+            <>
+              <path d="M196 168h50v-6a26 26 0 0 1 44 18v10h-24v-8a12 12 0 0 0-20-8Z" />
+              <rect x="288" y="182" width="26" height="150" />
+              <rect x="283" y="174" width="36" height="9" rx="2" />
+            </>
+          )}
+          {li === 1 && <path d="M140 158h40v-8a24 24 0 0 1 40 16v8h-20v-6a10 10 0 0 0-16-6Z" opacity="0.9" />}
+        </g>
+      ))}
+      <rect y="120" width="800" height="270" fill="url(#haze)" opacity="0.55" />
+    </g>
   );
 }

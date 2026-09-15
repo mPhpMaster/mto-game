@@ -44,8 +44,9 @@ import { pickSfx } from '@/lib/audio/logSfx';
 import LanguageSwitch from '@/components/LanguageSwitch';
 import SoundToggle from '@/components/SoundToggle';
 import CardDetail from './CardDetail';
-import CardView, { CardBack, ELEMENT_HEX, numberLabel, type CardSize } from './CardView';
-import MonsterView from './MonsterView';
+import CardView, { ELEMENT_HEX } from './CardView';
+import Battlefield from './Battlefield';
+import { ArenaBackdrop } from './ArenaArt';
 import LoadoutScreen from './LoadoutScreen';
 import { WEATHER_BY_ID } from '@/lib/game/loadout';
 import TurnClock from './TurnClock';
@@ -54,10 +55,6 @@ type Pending =
   | { kind: 'element'; uid: string }
   | { kind: 'target'; uid: string; need: NonNullable<ReturnType<typeof def>['needsTarget']> }
   | null;
-
-/** lg = تخطيط الكمبيوتر (سطران). دونه = الجوال (سطر واحد). */
-const visibleHandLayout = () =>
-  window.matchMedia('(min-width: 1024px)').matches ? 'desktop' : 'mobile';
 
 const LOG_PREF_KEY = 'mto-match-log';
 let logPref: boolean | null = null;
@@ -591,7 +588,7 @@ export default function GameBoard({
   useEffect(() => {
     if (!myTurn) return;
     const scroller = handArea.current?.querySelector(
-      `[data-hand-scroller="${visibleHandLayout()}"]`
+      '[data-hand-scroller]'
     );
     scroller?.firstElementChild?.scrollIntoView({
       behavior: 'smooth',
@@ -604,7 +601,7 @@ export default function GameBoard({
   useEffect(() => {
     if (!freshUids.length) return;
     const node = handArea.current?.querySelector<HTMLElement>(
-      `[data-hand-layout="${visibleHandLayout()}"] [data-fresh="1"]`
+      '[data-hand-scroller] [data-fresh="1"]'
     );
     node?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
     const timer = window.setTimeout(() => setFreshUids([]), 2200);
@@ -705,23 +702,6 @@ export default function GameBoard({
         }`
       : reason(comboPreview.reason);
 
-  /** backdrop-filter على .panel يحبس z-index — ارفع الإطار كلّه فوق الجيران أثناء الاندفاع */
-  const fieldIsStriking = (field: GameState['players'][0]['field']) =>
-    field.some((m) => Boolean(strikeDelta[m.uid]));
-  const monsterWrapClass = (uid: string) => {
-    const striking = Boolean(strikeDelta[uid]);
-    const hitting = battle?.type === 'strike' && battle.target === uid;
-    return [
-      'relative',
-      striking || hitting ? 'overflow-visible' : '',
-      striking ? 'z-50' : hitting ? 'z-20' : '',
-    ]
-      .filter(Boolean)
-      .join(' ');
-  };
-  const strikePanelClass = (field: GameState['players'][0]['field']) =>
-    fieldIsStriking(field) ? 'relative z-30 overflow-visible' : '';
-
   // ---------- التعليم ----------
   const lesson = tutorial ? TUTORIAL_STEPS[step] : null;
   const isLastLesson = step === TUTORIAL_STEPS.length - 1;
@@ -742,20 +722,27 @@ export default function GameBoard({
     setGame(makeGame?.() ?? newGame(undefined, tutorial, nextLevel, names, playerCount));
   }
 
-  function renderHandCard(c: CardInstance, size: CardSize) {
+  function renderHandCard(c: CardInstance, first: boolean) {
     const d = def(c.defId);
     const check = canPlayCard(game, ME, c.uid);
     const isFresh = freshUids.includes(c.uid);
     const livePlayable = !pending && playableUids.has(c.uid);
     return (
-      <div key={c.uid} data-fresh={isFresh ? '1' : '0'} data-card-id={d.id} className="shrink-0">
+      <div
+        key={c.uid}
+        data-fresh={isFresh ? '1' : '0'}
+        data-card-id={d.id}
+        className={`relative shrink-0 transition-[translate] duration-150 hover:z-20 hover:-translate-y-3 focus-within:z-20 focus-within:-translate-y-3 ${
+          first ? '' : '-ms-11 lg:-ms-5'
+        }`}
+      >
         <CardView
           card={d}
-          size={size}
+          size="md"
           fresh={isFresh}
           playable={livePlayable}
-          // المصغّر دائماً خافت؛ وأثناء اختيار الهدف تُجمّد اليد كلّها
-          dimmed={size === 'xs' || Boolean(pending) || autoPlaying || (canAct && !playableUids.has(c.uid))}
+          // أثناء اختيار الهدف تُجمّد اليد كلّها
+          dimmed={Boolean(pending) || autoPlaying || (canAct && !playableUids.has(c.uid))}
           onClick={pending ? undefined : () => onHandCard(c.uid)}
           onLongPress={() =>
             setDetail({
@@ -774,17 +761,41 @@ export default function GameBoard({
   }
 
   // ---------- العرض ----------
+  const titanReady = titanCheck.ok && canAct;
+  const canHitFace = (seat: Seat) => {
+    const p = game.players[seat];
+    return attackers.length > 0 && canAct && p.field.length === 0 && !p.eliminated;
+  };
+  const foeMonsterAction = (uid: string, seat: Seat) =>
+    targeting === 'enemy_monster'
+      ? () => pickTarget(uid)
+      : attackers.length > 0 && canAct
+        ? () => launchAttack(uid, seat)
+        : undefined;
+  const faceImpact = (seat: Seat) =>
+    battle?.type === 'strike' &&
+    battle.target === 'face' &&
+    (battle.targetSeat === seat ||
+      (battle.targetSeat === undefined &&
+        (seat === ME ? battle.entry.side !== ME : battle.entry.side === ME && seat === FOE)))
+      ? battle.damage
+      : 0;
+  const faceSeats = foeSeats.filter(
+    (seat) => !game.players[seat].eliminated && game.players[seat].field.length === 0
+  );
+
   return (
-    <div ref={boardRef} data-players={game.players.length} className="flex min-h-screen max-w-full flex-col overflow-x-clip lg:flex-row">
-      <main className="flex min-w-0 flex-1 flex-col gap-2 p-2 sm:p-3">
-        {/* شريط علوي */}
-        <header className="panel flex flex-wrap items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="font-black text-sm hover:opacity-80">
+    <div ref={boardRef} data-players={game.players.length} className="relative isolate flex min-h-screen max-w-full flex-col overflow-x-clip lg:flex-row">
+      {/* isolate: بدونه تُرسم الخلفية ذات z سالب تحت خلفية body فلا تُرى */}
+      <ArenaBackdrop titanReady={titanReady} />
+      <main className="mx-auto flex w-full min-w-0 max-w-[860px] flex-1 flex-col gap-2 p-2 sm:p-3">
+        {/* الشريط العلوي — مضغوطٌ عمداً: الساحة هي الشاشة، لا الأزرار */}
+        <header className="hud-panel flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-2xl px-3 py-2 text-xs">
+          <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+            <Link href="/" className="text-sm font-black hover:opacity-80">
               ⚔️ {t('appName')}
             </Link>
             <span className="opacity-60">{t('turnLabel', { n: game.turn })}</span>
-            <span className="opacity-60">{t('deckLabel', { n: game.deck.length })}</span>
             <span className="hidden opacity-60 sm:inline">{t('discardLabel', { n: game.discard.length })}</span>
             {!tutorial && !controlled && !hotseat && (
               <span
@@ -795,7 +806,7 @@ export default function GameBoard({
               </span>
             )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             {game.weather && (
               <span
                 className="rounded-md bg-sky-400/20 px-2 py-1 font-bold text-sky-100"
@@ -810,8 +821,10 @@ export default function GameBoard({
               </span>
             )}
             <span
-              className={`rounded-md px-2 py-1 font-bold ${
-                myTurn ? 'bg-emerald-500/25 text-emerald-200' : 'bg-white/10 opacity-70'
+              className={`rounded-lg px-2.5 py-1 font-black ${
+                myTurn
+                  ? 'bg-emerald-500/30 text-emerald-100 shadow-[0_0_14px_rgba(52,211,153,0.45)] ring-1 ring-emerald-300/50'
+                  : 'bg-white/10 opacity-70'
               }`}
               data-clock={clockOn ? 'on' : 'off'}
             >
@@ -847,7 +860,7 @@ export default function GameBoard({
                 showLog ? 'bg-emerald-500/25 text-emerald-200' : 'bg-white/10 hover:bg-white/20'
               }`}
             >
-              📜 {showLog ? t('hideLog') : t('showLog')}
+              📜 <span className="hidden sm:inline">{showLog ? t('hideLog') : t('showLog')}</span>
             </button>
           </div>
         </header>
@@ -867,7 +880,7 @@ export default function GameBoard({
 
         {/* شريط المدرّب */}
         {lesson && (
-          <section className="pop-in rounded-xl border border-amber-400/40 bg-amber-400/10 p-3">
+          <section className="hud-panel pop-in rounded-xl border-amber-400/40 p-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-md bg-amber-400 px-2 py-0.5 text-[11px] font-black text-black">
                 {t('stepOf', { n: step + 1, total: TUTORIAL_STEPS.length })}
@@ -919,186 +932,51 @@ export default function GameBoard({
         {/* الخصوم — واحد في 1 ضد 1، واثنان جنباً إلى جنب في 1 ضد 1 ضد 1 */}
         <div
           data-foes={foeSeats.length}
-          className={
-            foeSeats.length > 1
-              ? 'grid min-w-0 gap-2 sm:grid-cols-2'
-              : 'min-w-0'
-          }
+          className={foeSeats.length > 1 ? 'grid min-w-0 grid-cols-2 gap-2' : 'min-w-0'}
         >
-          {foeSeats.map((seat) => {
-            const foeP = game.players[seat];
-            const isCurrent = game.current === seat;
-            const canHitFace =
-              attackers.length > 0 && canAct && foeP.field.length === 0 && !foeP.eliminated;
-            return (
-              <section
-                key={seat}
-                data-seat={seat}
-                className={`panel min-w-0 rounded-xl p-2 ${
-                  seat === FOE ? focusRing('foeField') : ''
-                } ${strikePanelClass(foeP.field)} ${
-                  foeP.eliminated ? 'opacity-55' : ''
-                } ${isCurrent ? 'ring-1 ring-amber-300/50' : ''}`}
-              >
-                <PlayerStrip
-                  state={foeP}
-                  align="start"
-                  face={`p${seat}`}
-                  current={isCurrent}
-                  impact={
-                    battle?.type === 'strike' &&
-                    battle.target === 'face' &&
-                    (battle.targetSeat === seat ||
-                      (battle.targetSeat === undefined && battle.entry.side === ME && seat === FOE))
-                      ? battle.damage
-                      : 0
-                  }
-                  onFaceClick={canHitFace ? () => launchAttack('face', seat) : undefined}
-                />
-                <div
-                  data-field={`p${seat}`}
-                  className={`relative mt-2 flex min-h-[92px] flex-wrap items-start gap-2 ${
-                    fieldIsStriking(foeP.field) ? 'z-30 overflow-visible' : ''
-                  }`}
-                >
-                  {foeP.field.length === 0 && (
-                    <EmptySlot
-                      text={
-                        foeP.eliminated
-                          ? t('eliminatedTag')
-                          : canHitFace
-                            ? t('attackFaceNamed', { name: pname(foeP.name) })
-                            : t('noFoeMonsters')
-                      }
-                      onClick={canHitFace ? () => launchAttack('face', seat) : undefined}
-                    />
-                  )}
-                  {foeP.field.map((m) => (
-                    <div key={m.uid} data-uid={m.uid} className={monsterWrapClass(m.uid)}>
-                      <MonsterView
-                        monster={m}
-                        weather={game.weather ?? null}
-                        strike={strikeDelta[m.uid] ?? null}
-                        hit={battle?.type === 'strike' && battle.target === m.uid}
-                        targetable={
-                          (attackers.length > 0 && canAct) || targeting === 'enemy_monster'
-                        }
-                        onClick={
-                          targeting === 'enemy_monster'
-                            ? () => pickTarget(m.uid)
-                            : attackers.length > 0 && canAct
-                              ? () => launchAttack(m.uid, seat)
-                              : undefined
-                        }
-                      />
-                      {battle?.type === 'strike' && battle.target === m.uid && battle.damage > 0 && (
-                        <span className="damage-pop pointer-events-none absolute start-1/2 top-0 z-40 text-lg font-black text-rose-300 drop-shadow">
-                          −{battle.damage}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <TrapRow
-                  traps={foeP.traps}
-                  hidden
-                  selectable={targeting === 'enemy_trap'}
-                  onPick={pickTarget}
-                />
-              </section>
-            );
-          })}
+          {foeSeats.map((seat) => (
+            <PlayerStrip
+              key={seat}
+              state={game.players[seat]}
+              face={`p${seat}`}
+              current={game.current === seat}
+              impact={faceImpact(seat)}
+              compact={foeSeats.length > 1}
+              onFaceClick={canHitFace(seat) ? () => launchAttack('face', seat) : undefined}
+            />
+          ))}
         </div>
 
-        {/* الوسط: طابور التدفق */}
+        <Battlefield
+          game={game}
+          me={ME}
+          foeSeats={foeSeats}
+          attackers={attackers}
+          canAct={canAct}
+          targeting={targeting}
+          battle={battle}
+          strikeDelta={strikeDelta}
+          onOwnMonster={(uid) => (targeting === 'own_monster' ? pickTarget(uid) : toggleAttacker(uid))}
+          foeMonsterAction={foeMonsterAction}
+          canHitFace={canHitFace}
+          onFaceAttack={(seat) => launchAttack('face', seat)}
+          trapSelectable={targeting === 'enemy_trap'}
+          onPickTrap={pickTarget}
+          peekable={!pending}
+          onPeekTrap={peekOwnTrap}
+          focus={{ foe: focusRing('foeField'), flow: focusRing('flow'), mine: focusRing('myField') }}
+          titanReady={titanReady}
+        />
+
+        <PlayerStrip state={me} face={`p${ME}`} current={myTurn} impact={faceImpact(ME)} />
+
+        {/*
+          شريط الأوامر سياقيّ: يعرض ما يصلح للحظة لا كل ما في اللعبة. تحديد
+          وحشٍ يُبدّل الأزرار إلى أزرار الهجوم، وزرّ الوحش الأعظم لا يظهر إلا
+          حين يصحّ استدعاؤه — فالزرّ المعطَّل الدائم يُعلّم العين أن تتجاهله.
+        */}
         <section
-          className={`panel flex items-center justify-center gap-4 rounded-xl p-3 ${focusRing('flow')}`}
-        >
-          <div className="text-center">
-            <div className="mb-1 text-[10px] opacity-60">{t('deckPile')}</div>
-            <CardBack size="sm" label={`${game.deck.length}`} />
-          </div>
-
-          <div className="text-center" data-flow>
-            <div className="mb-1 text-[10px] opacity-60">{t('flowPile')}</div>
-            {game.flow.defId ? (
-              <CardView card={def(game.flow.defId)} size="sm" />
-            ) : (
-              <CardBack size="sm" />
-            )}
-          </div>
-
-          <div className="min-w-[130px] text-center">
-            <div className="mb-1 text-[10px] opacity-60">{t('activeElement')}</div>
-            <div
-              className="rounded-xl px-3 py-2 text-lg font-black"
-              style={{
-                background: `${ELEMENT_HEX[game.flow.element]}25`,
-                border: `1px solid ${ELEMENT_HEX[game.flow.element]}80`,
-                color: ELEMENT_HEX[game.flow.element],
-              }}
-            >
-              {ELEMENT_ICON[game.flow.element]} {L(ELEMENT_NAME[game.flow.element])}
-            </div>
-            <div className="mt-1 text-[11px] opacity-70">
-              {t('numberLabel')}{' '}
-              <b className="tabular-nums">
-                {game.flow.defId ? numberLabel(def(game.flow.defId)) : '—'}
-              </b>
-            </div>
-            <div className="mt-1 text-[10px] opacity-50">{t('matchHint')}</div>
-          </div>
-        </section>
-
-        {/* أنت */}
-        <section className={`panel rounded-xl p-2 ${focusRing('myField')} ${strikePanelClass(me.field)}`}>
-          <TrapRow traps={me.traps} peekable={!pending} onPeek={peekOwnTrap} />
-          <div data-field={`p${ME}`} className={`relative mt-2 flex min-h-[92px] flex-wrap items-start gap-2 ${fieldIsStriking(me.field) ? 'z-30 overflow-visible' : ''}`}>
-            {me.field.length === 0 && <EmptySlot text={t('summonHint', { n: RULES.MAX_FIELD })} />}
-            {me.field.map((m) => (
-              <div key={m.uid} data-uid={m.uid} className={monsterWrapClass(m.uid)}>
-                <MonsterView
-                  monster={m}
-                  weather={game.weather ?? null}
-                  selected={attackers.includes(m.uid)}
-                  ready={canAct && !m.sick && !m.exhausted && !me.attackLocked}
-                  strike={strikeDelta[m.uid] ?? null}
-                  hit={battle?.type === 'strike' && battle.target === m.uid}
-                  onClick={
-                    targeting === 'own_monster'
-                      ? () => pickTarget(m.uid)
-                      : () => toggleAttacker(m.uid)
-                  }
-                />
-                {battle?.type === 'strike' && battle.target === m.uid && battle.damage > 0 && (
-                  <span className="damage-pop pointer-events-none absolute start-1/2 top-0 z-40 text-lg font-black text-rose-300 drop-shadow">
-                    −{battle.damage}
-                  </span>
-                )}
-              </div>
-            ))}
-          </div>
-          <div className="mt-2">
-            <PlayerStrip
-              state={me}
-              align="end"
-              face={`p${ME}`}
-              current={myTurn}
-              impact={
-                battle?.type === 'strike' &&
-                battle.target === 'face' &&
-                (battle.targetSeat === ME ||
-                  (battle.targetSeat === undefined && battle.entry.side !== ME))
-                  ? battle.damage
-                  : 0
-              }
-            />
-          </div>
-        </section>
-
-        {/* شريط الأوامر */}
-        <section
-          className={`panel flex flex-wrap items-center gap-2 rounded-xl p-2 text-xs ${focusRing('commands')}`}
+          className={`hud-panel flex flex-wrap items-center gap-2 rounded-2xl p-2 text-xs ${focusRing('commands')}`}
         >
           {game.phase === 'respond' && myTurn ? (
             <>
@@ -1108,75 +986,77 @@ export default function GameBoard({
               <button
                 disabled={autoPlaying}
                 onClick={() => dispatch({ type: 'ACCEPT_DRAW' })}
-                className="rounded-lg bg-rose-500/80 px-3 py-1.5 font-bold enabled:hover:bg-rose-500 disabled:opacity-35"
+                className="ms-auto rounded-xl bg-gradient-to-b from-rose-400 to-rose-600 px-4 py-2 font-black text-black disabled:opacity-35"
               >
                 {t('acceptPenalty')}
               </button>
             </>
-          ) : (
+          ) : !myTurn && game.phase !== 'ended' ? (
+            <span className="flex-1 py-1.5 text-center font-bold opacity-70">
+              {t('foeThinking', { name: pname(game.players[game.current].name) })}
+            </span>
+          ) : attackers.length > 0 ? (
             <>
-              {foeSeats.length <= 1 ? (
+              {faceSeats.map((seat) => (
                 <button
-                  disabled={!attackers.length || game.players[FOE]?.field.length > 0 || autoPlaying}
-                  onClick={() => launchAttack('face', FOE)}
-                  className="rounded-lg bg-orange-500/85 px-3 py-1.5 font-bold enabled:hover:bg-orange-500 disabled:opacity-35"
+                  key={seat}
+                  disabled={autoPlaying}
+                  onClick={() => launchAttack('face', seat)}
+                  className="glow-pulse rounded-xl bg-gradient-to-b from-orange-400 to-orange-600 px-4 py-2 font-black text-black disabled:opacity-35"
                 >
-                  {t('attackFace')}
+                  {foeSeats.length > 1
+                    ? t('attackFaceNamed', { name: pname(game.players[seat].name) })
+                    : t('attackFace')}
                 </button>
-              ) : (
-                foeSeats
-                  .filter((seat) => !game.players[seat].eliminated && game.players[seat].field.length === 0)
-                  .map((seat) => (
-                    <button
-                      key={seat}
-                      disabled={!attackers.length || autoPlaying}
-                      onClick={() => launchAttack('face', seat)}
-                      className="rounded-lg bg-orange-500/85 px-3 py-1.5 font-bold enabled:hover:bg-orange-500 disabled:opacity-35"
-                    >
-                      {t('attackFaceNamed', { name: pname(game.players[seat].name) })}
-                    </button>
-                  ))
-              )}
+              ))}
               <button
-                disabled={!attackers.length || autoPlaying}
                 onClick={() => setAttackers([])}
-                className="rounded-lg bg-white/10 px-3 py-1.5 enabled:hover:bg-white/20 disabled:opacity-35"
+                className="rounded-xl bg-white/10 px-3 py-2 font-bold ring-1 ring-white/15 hover:bg-white/20"
               >
                 {t('clearSelection')}
               </button>
               <button
-                disabled={!canRescueDraw}
-                onClick={() => dispatch({ type: 'DRAW' })}
-                className="rounded-lg bg-sky-500/80 px-3 py-1.5 font-bold enabled:hover:bg-sky-500 disabled:opacity-35"
-                title={t('drawCardHint')}
+                disabled={!canAct || game.phase !== 'main'}
+                onClick={() => dispatch({ type: 'END_TURN' })}
+                className="ms-auto rounded-xl bg-emerald-500/25 px-3 py-2 font-bold text-emerald-100 ring-1 ring-emerald-300/40 disabled:opacity-35"
               >
-                {t('drawCard')}
+                {t('endTurn')}
               </button>
-              <button
-                disabled={!titanCheck.ok || autoPlaying}
-                onClick={() => dispatch({ type: 'SUMMON_TITAN' })}
-                title={reason(titanCheck.reason)}
-                className={`rounded-lg px-3 py-1.5 font-black disabled:opacity-35 ${
-                  titanCheck.ok
-                    ? 'glow-pulse bg-amber-400 text-black hover:bg-amber-300'
-                    : 'bg-amber-400/30'
-                }`}
-              >
-                {t('summonTitan', { titan: L(TITAN.name) })}
-              </button>
+            </>
+          ) : (
+            <>
+              {titanCheck.ok && (
+                <button
+                  disabled={autoPlaying}
+                  onClick={() => dispatch({ type: 'SUMMON_TITAN' })}
+                  className="glow-pulse w-full rounded-xl bg-gradient-to-b from-amber-200 via-amber-400 to-amber-600 px-4 py-2.5 text-sm font-black text-black shadow-[0_0_28px_rgba(251,191,36,0.55)] disabled:opacity-35"
+                  title={t('titanReadyBanner')}
+                >
+                  🗿 {t('summonTitan', { titan: L(TITAN.name) })}
+                </button>
+              )}
+              {canRescueDraw && (
+                <button
+                  onClick={() => dispatch({ type: 'DRAW' })}
+                  className="rounded-xl bg-gradient-to-b from-sky-400 to-sky-600 px-4 py-2 font-black text-black"
+                  title={t('drawCardHint')}
+                >
+                  {t('drawCard')}
+                </button>
+              )}
               <button
                 type="button"
                 disabled={!canAct || game.phase !== 'main'}
                 onClick={() => setShowPrep(true)}
                 title={canAct ? t('prepHint') : t('prepClosed')}
-                className="rounded-lg bg-white/15 px-3 py-1.5 font-black hover:bg-white/25 disabled:opacity-35"
+                className="rounded-xl bg-white/10 px-3 py-2 font-bold ring-1 ring-white/15 hover:bg-white/20 disabled:opacity-35"
               >
                 {t('openPrep')}
               </button>
               <button
                 disabled={!canAct || game.phase !== 'main'}
                 onClick={() => dispatch({ type: 'END_TURN' })}
-                className="ms-auto rounded-lg bg-emerald-500/85 px-4 py-1.5 font-bold enabled:hover:bg-emerald-500 disabled:opacity-35"
+                className="ms-auto rounded-xl bg-gradient-to-b from-emerald-400 to-emerald-600 px-5 py-2 text-sm font-black text-black shadow-[0_0_18px_rgba(52,211,153,0.4)] disabled:opacity-35 disabled:shadow-none"
               >
                 {t('endTurn')}
               </button>
@@ -1194,64 +1074,32 @@ export default function GameBoard({
           )}
         </section>
 
-        {/* اليد: الجوال سطر واحد يتمرّر أفقياً؛ الكمبيوتر سطران (قابل كبير / موقوف مصغّر) */}
-        <section data-hand className={`panel min-w-0 overflow-x-hidden rounded-xl p-2 ${focusRing('hand')}`}>
-          <div className="mb-1 flex min-w-0 items-center justify-between gap-2 text-[11px] opacity-70">
-            <span className="shrink-0">{t('yourHand', { n: me.hand.length })}</span>
+        {/*
+          اليد صفٌّ واحد متراكب: يُرى أكثر من خمسة كروت على الهاتف، ويبقى من
+          كل كارتٍ رأسُه (التكلفة والعنصر والاسم) — وهو ما يُختار به. التحويم
+          أو التركيز يرفع الكارت فوق جيرانه ليُقرأ كاملاً.
+        */}
+        <section data-hand className={`hud-panel min-w-0 overflow-x-hidden rounded-2xl px-2 pt-1.5 ${focusRing('hand')}`}>
+          <div className="flex min-w-0 items-center justify-between gap-2 px-1 text-[11px] opacity-70">
+            <span className="shrink-0 font-bold">{t('yourHand', { n: me.hand.length })}</span>
             <span className="min-w-0 truncate">
-              {pending ? (
-                t('finishTargeting')
-              ) : (
-                <>
-                  <span className="lg:hidden">
-                    {t('sortedHintMobile')} · {t('holdForDetails')}
-                  </span>
-                  <span className="hidden lg:inline">
-                    {t('sortedHint')} · {t('holdForDetails')}
-                  </span>
-                </>
-              )}
+              {pending ? t('finishTargeting') : `${t('unitHint')} · ${t('holdForDetails')}`}
             </span>
           </div>
           <div ref={handArea} className="min-w-0">
-            {/* جوال: كل الكروت بنفس الحجم في سطر واحد، وفاصل 🔒 بين المجموعتين */}
             <div
-              data-hand-layout="mobile"
-              data-hand-scroller="mobile"
-              className="thin-scroll flex w-full min-w-0 items-stretch gap-2 overflow-x-auto overscroll-x-contain px-0.5 py-2 lg:hidden"
+              data-hand-scroller
+              className="thin-scroll flex w-full min-w-0 items-end overflow-x-auto overscroll-x-contain px-1 pb-2 pt-4"
             >
-              {playableHand.map((c) => renderHandCard(c, 'md'))}
+              {playableHand.map((c, i) => renderHandCard(c, i === 0))}
               {playableHand.length > 0 && parkedHand.length > 0 && (
-                <HandSplit title={t('cannotPlay')} />
+                <div className="flex shrink-0 self-stretch pe-10 lg:pe-4">
+                  <HandSplit title={t('cannotPlay')} />
+                </div>
               )}
-              {parkedHand.map((c) => renderHandCard(c, 'md'))}
+              {parkedHand.map((c, i) => renderHandCard(c, i === 0))}
               {me.hand.length === 0 && (
                 <div className="p-4 text-xs opacity-60">{t('emptyHand')}</div>
-              )}
-            </div>
-
-            {/* كمبيوتر: القابل للعب كبيراً أعلى، والموقوف مصغّراً أسفل */}
-            <div data-hand-layout="desktop" className="hidden min-w-0 flex-col gap-1.5 lg:flex">
-              {(playableHand.length > 0 || me.hand.length === 0) && (
-                <div
-                  data-hand-scroller="desktop"
-                  className="thin-scroll flex w-full min-w-0 gap-2 overflow-x-auto overscroll-x-contain px-0.5 py-2"
-                >
-                  {playableHand.map((c) => renderHandCard(c, 'md'))}
-                  {me.hand.length === 0 && (
-                    <div className="p-4 text-xs opacity-60">{t('emptyHand')}</div>
-                  )}
-                </div>
-              )}
-              {parkedHand.length > 0 && (
-                <div className="min-w-0 rounded-lg bg-black/25 px-1 py-1">
-                  <div className="mb-0.5 px-1 text-[10px] font-bold opacity-45">
-                    🔒 {t('unplayableRow')} · {parkedHand.length}
-                  </div>
-                  <div className="thin-scroll flex w-full min-w-0 items-end gap-1 overflow-x-auto overscroll-x-contain pb-0.5">
-                    {parkedHand.map((c) => renderHandCard(c, 'xs'))}
-                  </div>
-                </div>
               )}
             </div>
           </div>
@@ -1259,7 +1107,7 @@ export default function GameBoard({
       </main>
 
       {showLog && (
-      <aside className="panel m-2 w-full shrink-0 rounded-xl p-2 lg:m-3 lg:w-72">
+      <aside className="hud-panel m-2 w-full shrink-0 rounded-xl p-2 lg:m-3 lg:w-72">
         <div className="mb-2 flex items-center justify-between gap-2">
           <div className="text-xs font-bold opacity-80">{t('logTitle')}</div>
           <button
@@ -1600,21 +1448,22 @@ export default function GameBoard({
 
 function PlayerStrip({
   state,
-  align,
   face,
   impact = 0,
   current = false,
+  compact = false,
   onFaceClick,
 }: {
   state: GameState['players'][0];
-  align: 'start' | 'end';
   face: string;
   impact?: number;
   current?: boolean;
+  compact?: boolean;
   onFaceClick?: () => void;
 }) {
   const { t: tr, L, name: pn } = useLocale();
   const hpPct = Math.round((state.hp / Math.max(1, state.maxHp)) * 100);
+  const fragmentsFull = state.fragments.length >= TITAN.fragmentsNeeded;
   return (
     <div
       data-face={face}
@@ -1632,54 +1481,57 @@ function PlayerStrip({
             }
           : undefined
       }
-      className={`relative flex flex-wrap items-center gap-2 text-xs ${align === 'end' ? 'justify-end' : ''} ${
-        onFaceClick ? 'cursor-pointer rounded-lg ring-2 ring-orange-400/80' : ''
+      className={`hud-panel relative flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl px-3 py-1.5 text-xs ${
+        current ? 'ring-1 ring-amber-300/60' : ''
+      } ${onFaceClick ? 'glow-pulse cursor-pointer ring-2 ring-orange-400' : ''} ${
+        state.eliminated ? 'opacity-55' : ''
       }`}
     >
-      <span className="font-black">{pn(state.name)}</span>
+      <span className="text-sm font-black">{pn(state.name)}</span>
       {state.eliminated && (
         <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-bold opacity-70">
           {tr('eliminatedTag')}
         </span>
       )}
 
-      <div className="flex items-center gap-1">
+      {/* الحياة أكبر ما في الشريط: هي النتيجة، والباقي مواردُ للوصول إليها */}
+      <div className={`flex items-center gap-1.5 ${compact ? 'min-w-[90px]' : 'min-w-[130px]'} flex-1`}>
         <span className="text-emerald-300">❤</span>
-        <div className="h-2 w-24 overflow-hidden rounded-full bg-black/50">
+        <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-black/60 ring-1 ring-white/10">
           <div
-            className="h-full rounded-full bg-gradient-to-l from-emerald-400 to-emerald-600 transition-all"
+            className="h-full rounded-full bg-gradient-to-l from-emerald-300 to-emerald-600 shadow-[0_0_8px_rgba(52,211,153,0.6)] transition-all duration-500"
             style={{ width: `${hpPct}%` }}
           />
         </div>
-        <b className="tabular-nums">{state.hp}</b>
+        <b className="text-base tabular-nums">{state.hp}</b>
         {impact > 0 && (
-          <span className="damage-pop pointer-events-none absolute start-1/2 top-0 z-40 text-base font-black text-rose-300">
+          <span className="damage-pop pointer-events-none absolute start-1/2 top-0 z-40 text-xl font-black text-rose-300 [text-shadow:0_2px_6px_#000]">
             −{impact}
           </span>
         )}
       </div>
 
-      <span className="rounded bg-yellow-400/20 px-2 py-0.5 font-bold text-yellow-200">
-        ⚡ {state.energy}/{state.energyCap}
-      </span>
-
-      <span className="rounded bg-white/10 px-2 py-0.5">🃏 {state.hand.length}</span>
-
-      <span
-        className={`rounded px-2 py-0.5 ${
-          state.fragments.length >= TITAN.fragmentsNeeded
-            ? 'glow-pulse bg-amber-400 font-black text-black'
-            : 'bg-amber-400/15 text-amber-200'
-        }`}
-        title={state.fragments.map((f) => L(FRAGMENT_NAME[f])).join('، ') || tr('noFragments')}
-      >
-        🗿 {state.fragments.length}/{TITAN.fragmentsNeeded}
-        {state.fragments.length > 0 && (
-          <span className="ms-1 opacity-80">
-            ({state.fragments.map((f) => L(FRAGMENT_NAME[f])).join('،')})
-          </span>
-        )}
-      </span>
+      <div className="flex items-center gap-1.5">
+        <span className="rounded-md bg-yellow-400/20 px-2 py-0.5 font-black tabular-nums text-yellow-200 ring-1 ring-yellow-300/25">
+          ⚡ {state.energy}/{state.energyCap}
+        </span>
+        <span className="rounded-md bg-white/10 px-2 py-0.5 font-bold tabular-nums">🃏 {state.hand.length}</span>
+        <span
+          className={`rounded-md px-2 py-0.5 font-bold tabular-nums ${
+            fragmentsFull
+              ? 'glow-pulse bg-amber-400 font-black text-black'
+              : 'bg-amber-400/15 text-amber-200 ring-1 ring-amber-300/25'
+          }`}
+          title={state.fragments.map((f) => L(FRAGMENT_NAME[f])).join('، ') || tr('noFragments')}
+        >
+          🗿 {state.fragments.length}/{TITAN.fragmentsNeeded}
+          {!compact && state.fragments.length > 0 && (
+            <span className="ms-1 font-normal opacity-80">
+              ({state.fragments.map((f) => L(FRAGMENT_NAME[f])).join('،')})
+            </span>
+          )}
+        </span>
+      </div>
 
       {state.skipNext && (
         <span className="rounded bg-rose-500/25 px-2 py-0.5 text-rose-200">{tr('willLoseTurn')}</span>
@@ -1696,63 +1548,6 @@ function PlayerStrip({
       {state.amplified && (
         <span className="rounded bg-amber-500/25 px-2 py-0.5 text-amber-200">{tr('amplifiedOn')}</span>
       )}
-    </div>
-  );
-}
-
-function TrapRow({
-  traps,
-  hidden,
-  selectable,
-  peekable,
-  onPick,
-  onPeek,
-}: {
-  traps: GameState['players'][0]['traps'];
-  hidden?: boolean;
-  selectable?: boolean;
-  peekable?: boolean;
-  onPick?: (uid: string) => void;
-  onPeek?: (slot: SetTrap) => void;
-}) {
-  const { t: tr } = useLocale();
-  if (traps.length === 0) return null;
-  return (
-    <div className="mt-2 flex items-center gap-2">
-      <span className="text-[10px] opacity-50">{tr('trapsLabel')}</span>
-      {traps.map((slot) => {
-        const canPeek = Boolean(peekable && !hidden && slot.defId !== HIDDEN_CARD_ID);
-        const clickable = Boolean(selectable || canPeek);
-        const label = hidden
-          ? tr('faceDownTrap')
-          : canPeek
-            ? tr('peekTrapHint')
-            : tr('faceDownTrap');
-        return (
-          <button
-            key={slot.uid}
-            type="button"
-            disabled={!clickable}
-            data-trap={hidden ? 'foe' : 'own'}
-            data-trap-uid={slot.uid}
-            onClick={() => {
-              if (selectable) onPick?.(slot.uid);
-              else if (canPeek) onPeek?.(slot);
-            }}
-            className={`rounded-md bg-transparent p-0 disabled:opacity-100 ${
-              selectable
-                ? 'cursor-pointer ring-2 ring-rose-400 glow-pulse'
-                : canPeek
-                  ? 'cursor-pointer ring-1 ring-fuchsia-300/70 hover:ring-2 hover:ring-fuchsia-200 focus-visible:ring-2 focus-visible:ring-fuchsia-200'
-                  : 'cursor-default opacity-90'
-            }`}
-            title={label}
-            aria-label={label}
-          >
-            <CardBack size="xs" label={tr('faceDown')} />
-          </button>
-        );
-      })}
     </div>
   );
 }
@@ -1787,31 +1582,6 @@ function HandSplit({ title }: { title: string }) {
       <div className="w-0 flex-1 border-l border-dashed border-white/25" />
       <span className="my-1 text-base leading-none opacity-40">🔒</span>
       <div className="w-0 flex-1 border-l border-dashed border-white/25" />
-    </div>
-  );
-}
-
-function EmptySlot({ text, onClick }: { text: string; onClick?: () => void }) {
-  return (
-    <div
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onClick={onClick}
-      onKeyDown={
-        onClick
-          ? (e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onClick();
-              }
-            }
-          : undefined
-      }
-      className={`grid h-[92px] flex-1 place-items-center rounded-xl border border-dashed border-white/12 text-[11px] opacity-40 ${
-        onClick ? 'cursor-pointer opacity-90 ring-2 ring-orange-400/70' : ''
-      }`}
-    >
-      {text}
     </div>
   );
 }

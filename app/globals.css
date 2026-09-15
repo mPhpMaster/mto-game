@@ -168,22 +168,26 @@ body {
   animation: glow-pulse 1.6s ease-in-out infinite;
 }
 
-/* إشعاع أصفر هادئ للكروت القابلة للعب — الجوال والكمبيوتر */
+/*
+  إشعاع الكروت القابلة للعب **بلون عنصرها** (`--glow` من CardView). الأصفر
+  الموحّد كان يقول «هذا متاح» فقط؛ لون العنصر يقول معه «ولماذا» — فيطابق
+  اللاعب بين التوهّج وتوهّج بلاطة التدفق دون أن يقرأ شيئاً.
+*/
 @keyframes playable-glow {
   0%,
   100% {
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.18) inset,
       0 10px 24px -12px rgba(0, 0, 0, 0.9),
-      0 0 0 1px rgba(255, 210, 61, 0.4),
-      0 0 10px 2px rgba(255, 210, 61, 0.32);
+      0 0 0 2px color-mix(in srgb, var(--glow, #ffd23d) 70%, transparent),
+      0 0 12px 3px color-mix(in srgb, var(--glow, #ffd23d) 40%, transparent);
   }
   50% {
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.18) inset,
       0 10px 24px -12px rgba(0, 0, 0, 0.9),
-      0 0 0 3px rgba(255, 210, 61, 0.28),
-      0 0 16px 4px rgba(255, 210, 61, 0.48);
+      0 0 0 3px color-mix(in srgb, var(--glow, #ffd23d) 85%, transparent),
+      0 0 22px 6px color-mix(in srgb, var(--glow, #ffd23d) 60%, transparent);
   }
 }
 
@@ -197,7 +201,8 @@ body {
     box-shadow:
       0 1px 0 rgba(255, 255, 255, 0.18) inset,
       0 10px 24px -12px rgba(0, 0, 0, 0.9),
-      0 0 8px 2px rgba(255, 210, 61, 0.38);
+      0 0 0 2px color-mix(in srgb, var(--glow, #ffd23d) 75%, transparent),
+      0 0 12px 3px color-mix(in srgb, var(--glow, #ffd23d) 45%, transparent);
   }
 }
 
@@ -284,6 +289,94 @@ body {
 }
 @media (prefers-reduced-motion: reduce) {
   .float-bob {
+    animation: none;
+  }
+}
+
+/* ===================== ساحة المباراة ===================== */
+
+/*
+  لوحات الواجهة فوق الساحة. `.panel` شفّافٌ بـ4% فقط لأنه صُمّم فوق خلفية
+  داكنة مسطّحة؛ فوق أنقاضٍ وحِمَم يغرق نصّه، فهذه أعتم ولها ظلّ يفصلها.
+*/
+.hud-panel {
+  background: linear-gradient(180deg, rgba(24, 22, 38, 0.84), rgba(10, 10, 18, 0.8));
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow:
+    0 12px 30px -14px rgba(0, 0, 0, 0.85),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(8px);
+}
+
+@keyframes ember-rise {
+  0% { transform: translate(0, 0); opacity: 0; }
+  12% { opacity: 0.9; }
+  100% { transform: translate(24px, -88vh); opacity: 0; }
+}
+.ember {
+  animation: ember-rise 8s linear infinite;
+  box-shadow: 0 0 6px 1px rgba(255, 140, 40, 0.8);
+}
+
+@keyframes lava-flicker {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+.lava-flicker {
+  animation: lava-flicker 3.4s ease-in-out infinite;
+}
+
+@keyframes tile-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+.tile-pulse {
+  animation: tile-pulse 1.8s ease-in-out infinite;
+}
+
+/* تنفّس الوحش واقفاً — صغيرٌ جداً كي لا تتراقص اللوحة كلّها */
+@keyframes unit-idle {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  50% { transform: translateY(-2.5%) scaleY(1.015); }
+}
+.unit-idle {
+  animation: unit-idle 2.8s ease-in-out infinite;
+  transform-origin: 50% 90%;
+}
+
+/* اكتمال القطع: الساحة تعتم قليلاً ويشعّ منها ذهب */
+@keyframes titan-aura {
+  0%, 100% { opacity: 0.6; }
+  50% { opacity: 1; }
+}
+.titan-aura {
+  background:
+    radial-gradient(70% 55% at 50% 48%, rgba(255, 200, 60, 0.2), transparent 70%),
+    rgba(0, 0, 0, 0.22);
+  animation: titan-aura 2.4s ease-in-out infinite;
+}
+
+/* اهتزاز خفيف للساحة لحظة الاصطدام — يتأخّر حتى يصل المهاجم إلى هدفه */
+@keyframes board-shake {
+  0%, 100% { transform: translate(0, 0); }
+  20% { transform: translate(-4px, 2px); }
+  40% { transform: translate(4px, -2px); }
+  60% { transform: translate(-2px, 1px); }
+  80% { transform: translate(2px, 0); }
+}
+.board-shake {
+  animation: board-shake 0.34s ease-out 0.24s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ember {
+    display: none;
+  }
+  .lava-flicker,
+  .tile-pulse,
+  .unit-idle,
+  .titan-aura,
+  .board-shake {
     animation: none;
   }
 }
