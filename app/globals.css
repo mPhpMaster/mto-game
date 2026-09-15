@@ -368,7 +368,18 @@ body {
   animation: board-shake 0.34s ease-out 0.24s both;
 }
 
+/* سهم التصويب من المهاجم إلى الهدف — الخطّ المتقطّع يجري نحو الهدف */
+@keyframes arrow-dash {
+  to { stroke-dashoffset: -18; }
+}
+.arrow-dash {
+  animation: arrow-dash 0.7s linear infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .arrow-dash {
+    animation: none;
+  }
   .ember {
     display: none;
   }

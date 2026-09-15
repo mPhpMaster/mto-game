@@ -32,7 +32,8 @@ export type CardSize = 'xs' | 'sm' | 'md';
 const BOX: Record<CardSize, string> = {
   xs: 'w-[52px] h-[76px] rounded-lg p-[1.5px]',
   sm: 'w-[86px] h-[122px] rounded-xl p-[2px]',
-  md: 'w-[116px] h-[166px] rounded-xl p-[2.5px]',
+  // أكبر من ذي قبل (116×166): الرسم هو أوّل ما يُتعرَّف به على الكارت في اليد
+  md: 'w-[128px] h-[184px] rounded-xl p-[2.5px]',
 };
 
 const SURFACE: Record<CardSize, string> = {
@@ -44,7 +45,7 @@ const SURFACE: Record<CardSize, string> = {
 const ART_H: Record<CardSize, string> = {
   xs: 'h-[20px]',
   sm: 'h-[28px]',
-  md: 'h-[44px]',
+  md: 'h-[60px]',
 };
 
 interface Props {
@@ -306,7 +307,7 @@ export default function CardView({
 const BACK_BOX: Record<CardSize, string> = {
   xs: 'w-[52px] h-[76px] rounded-lg',
   sm: 'w-[86px] h-[122px] rounded-xl',
-  md: 'w-[116px] h-[166px] rounded-xl',
+  md: 'w-[128px] h-[184px] rounded-xl',
 };
 
 export function CardBack({

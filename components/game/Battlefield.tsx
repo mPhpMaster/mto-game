@@ -1,16 +1,16 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ABILITY_NAME, ABILITY_TEXT, ELEMENT_ICON, ELEMENT_NAME, HIDDEN_CARD_ID, def } from '@/lib/game/cards';
-import { ARCHETYPE_PASSIVE, archetypeOf } from '@/lib/game/archetypes';
+import { ELEMENT_ICON, ELEMENT_NAME, HIDDEN_CARD_ID, def } from '@/lib/game/cards';
 import type { BattleFx } from '@/lib/game/battleFx';
-import { GEAR_BY_ID, WEATHER_BY_ID } from '@/lib/game/loadout';
-import { atkOf, strikeOf } from '@/lib/game/loadoutEffects';
+import { WEATHER_BY_ID } from '@/lib/game/loadout';
+import { strikeOf } from '@/lib/game/loadoutEffects';
 import type { FieldMonster, GameState, Seat, SetTrap } from '@/lib/game/types';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { ArenaFloor, Effigy, arenaLayout, type ArenaRow, type TileLight } from './ArenaArt';
 import CardView, { ELEMENT_HEX, numberLabel } from './CardView';
-import { GearIcon, WeatherScene } from './LoadoutArt';
+import { WeatherScene } from './LoadoutArt';
+import { MonsterInfo } from './MatchPanels';
 
 /**
  * الساحة: كل ما على الأرض — الوحوش في خاناتها، والتدفق في الوسط، والفخاخ
@@ -24,10 +24,12 @@ import { GearIcon, WeatherScene } from './LoadoutArt';
 const UNIT_W = 23;
 /**
  * عرض كارت التدفق. كان 19 فغطّى صفّ الخصم الأمامي حين يقف على بلاطته؛
- * 14 يبقيه أكبر من المجسّم ويترك الصفّين المجاورين مكشوفين.
+ * 15 يبقيه أكبر من المجسّم ويترك الصفّين المجاورين مكشوفين.
  */
 const FLOW_W = 15;
 const CARD_SM = { w: 86, h: 122 };
+
+type Slot = { x: number; y: number; s: number };
 
 export interface BattlefieldProps {
   game: GameState;
@@ -39,6 +41,8 @@ export interface BattlefieldProps {
   targeting: string | null;
   battle: BattleFx | null;
   strikeDelta: Record<string, { dx: number; dy: number }>;
+  /** معاينة الهجوم المحدَّد من المحرّك: هل يصحّ، وكم ضرره */
+  attackPreview: { ok: boolean; damage: number } | null;
   onOwnMonster: (uid: string) => void;
   /** فعلُ النقر على وحش خصم إن كان له فعل — وإلا فالنقرة تعرض تفاصيله */
   foeMonsterAction: (uid: string, seat: Seat) => (() => void) | undefined;
@@ -48,6 +52,9 @@ export interface BattlefieldProps {
   onPickTrap: (uid: string) => void;
   peekable: boolean;
   onPeekTrap: (slot: SetTrap) => void;
+  /** الوحش المعروضة تفاصيله — مرفوعٌ إلى اللوحة لأن اللوحة الجانبية تعرضه أيضاً */
+  inspectUid: string | null;
+  onInspect: (uid: string | null) => void;
   /** حلقات التعليم */
   focus: { foe: string; flow: string; mine: string };
   titanReady: boolean;
@@ -62,6 +69,7 @@ export default function Battlefield({
   targeting,
   battle,
   strikeDelta,
+  attackPreview,
   onOwnMonster,
   foeMonsterAction,
   canHitFace,
@@ -70,6 +78,8 @@ export default function Battlefield({
   onPickTrap,
   peekable,
   onPeekTrap,
+  inspectUid,
+  onInspect,
   focus,
   titanReady,
 }: BattlefieldProps) {
@@ -94,20 +104,20 @@ export default function Battlefield({
     return () => ro.disconnect();
   }, []);
 
-  /**
-   * الوحش المعروضة تفاصيله. مربوطٌ برقم الدور بدل مسحه بمؤثّر: ينطفئ وحده
-   * حين يتبدّل الدور أو يغادر الوحش الساحة، بلا setState داخل effect.
-   */
-  const [inspect, setInspect] = useState<{ uid: string; turn: number } | null>(null);
+  /** الهدف الذي يحوم فوقه المؤشّر — يُرسم إليه سهم التصويب */
+  const [aim, setAim] = useState<string | null>(null);
   const longPressed = useRef(false);
 
   const owners: Seat[] = [me, ...foeSeats];
   const meP = game.players[me];
-  const foeTargetable = (attackers.length > 0 && canAct) || targeting === 'enemy_monster';
+  const attackMode = attackers.length > 0 && canAct;
+  const attackValid = attackMode && Boolean(attackPreview?.ok);
   const rowOf = (owner: number, line: 'front' | 'back') =>
     layout.rows.findIndex((r) => r.kind === 'side' && r.owner === owner && r.line === line);
   const middle = layout.rows.findIndex((r) => r.kind === 'middle');
   const middleRow = layout.rows[middle];
+  const slotOf = (owner: number, i: number): Slot =>
+    layout.slot(layout.rows[rowOf(owner, i < 3 ? 'front' : 'back')], i % 3);
 
   // ---------- إضاءة البلاطات ----------
   const lights: Record<string, TileLight> = {};
@@ -119,8 +129,11 @@ export default function Battlefield({
         if (attackers.includes(m.uid)) lights[key] = { color: '#fff4c2', strong: true };
         else if (targeting === 'own_monster') lights[key] = { color: '#fbbf24', pulse: true };
         else if (canAct && !m.sick && !m.exhausted && !meP.attackLocked) lights[key] = { color };
-      } else if (foeTargetable) {
+      } else if (targeting === 'enemy_monster' || attackValid) {
         lights[key] = { color: '#f43f5e', strong: true, pulse: true };
+      } else if (attackMode) {
+        // الهجوم المحدَّد لا يصحّ: البلاطة رمادية كي لا تبدو هدفاً
+        lights[key] = { color: '#64748b' };
       }
     });
   });
@@ -130,8 +143,7 @@ export default function Battlefield({
 
   // ---------- وحدة على الأرض ----------
   function renderUnit(m: FieldMonster, i: number, seat: Seat, owner: number, band: { top: number; bottom: number }) {
-    const row = layout.rows[rowOf(owner, i < 3 ? 'front' : 'back')];
-    const slot = layout.slot(row, i % 3);
+    const slot = slotOf(owner, i);
     const d = def(m.defId);
     const color = ELEMENT_HEX[d.element];
     const isFoe = owner > 0;
@@ -143,9 +155,12 @@ export default function Battlefield({
     const struck = strikeOf(m, game.weather ?? null);
     const hpPct = Math.max(0, Math.round((m.hp / m.maxHp) * 100));
     const action = isFoe ? foeMonsterAction(m.uid, seat) : undefined;
+    const invalidTarget = isFoe && attackMode && !attackValid && targeting !== 'enemy_monster';
+    const validTarget = isFoe && (attackValid || targeting === 'enemy_monster');
+    const stat = `max(10px, ${3.1 * slot.s}cqw)`;
 
     const ringColor = isFoe
-      ? foeTargetable
+      ? validTarget
         ? '#f43f5e'
         : null
       : selected
@@ -159,9 +174,6 @@ export default function Battlefield({
     const status = m.sick ? t('fresh') : m.exhausted ? t('exhausted') : t('ready');
     const label = t('monsterAria', { name: L(d.name), atk: m.atk, hp: m.hp, maxHp: m.maxHp, status });
 
-    const toggleInspect = () =>
-      setInspect((cur) => (cur?.uid === m.uid && cur.turn === game.turn ? null : { uid: m.uid, turn: game.turn }));
-
     const onClick = () => {
       if (longPressed.current) {
         longPressed.current = false;
@@ -169,13 +181,14 @@ export default function Battlefield({
       }
       if (isFoe) {
         if (action) action();
-        else toggleInspect();
+        else onInspect(inspectUid === m.uid ? null : m.uid);
         return;
       }
+      // تحديد وحشك لا يفتح البطاقة المنبثقة: كانت تقع فوق صفّ الخصم فتُخفي
+      // الهدف ومعاينة ضرره في اللحظة التي يُحتاجان فيها. التفاصيل بالضغط المطوّل،
+      // وعلى الشاشة الواسعة تعرض اللوحة الجانبية المهاجمَ المحدَّد تلقائياً.
+      onInspect(null);
       onOwnMonster(m.uid);
-      if (targeting !== 'own_monster') {
-        setInspect(selected ? null : { uid: m.uid, turn: game.turn });
-      }
     };
 
     let timer: number | undefined;
@@ -211,21 +224,67 @@ export default function Battlefield({
             }}
           />
         )}
+
+        {/* شارة الحالة فوق الرأس: جاهز ⚔ / مُنهك 💤 / جديد ⏳ — تُقرأ دون فتح التفاصيل */}
+        {!isFoe && !strike && (
+          <span
+            aria-hidden
+            className={`absolute left-1/2 top-[2%] z-10 grid -translate-x-1/2 place-items-center rounded-full font-black ring-1 ${
+              ready
+                ? 'bg-emerald-500 text-black ring-emerald-200'
+                : m.exhausted
+                  ? 'bg-slate-700 text-slate-200 ring-slate-400/50'
+                  : 'bg-amber-500/90 text-black ring-amber-200'
+            }`}
+            style={{ width: `max(16px, ${4.4 * slot.s}cqw)`, height: `max(16px, ${4.4 * slot.s}cqw)`, fontSize: `max(9px, ${2.4 * slot.s}cqw)` }}
+          >
+            {ready ? '⚔' : m.exhausted ? '💤' : '⏳'}
+          </span>
+        )}
+
+        {/* معاينة الضرر على كل هدفٍ صالح — لا تحتاج تحويماً، فتعمل باللمس */}
+        {validTarget && attackValid && attackPreview && (
+          <span
+            aria-hidden
+            className="tile-pulse absolute left-1/2 top-[-6%] z-20 -translate-x-1/2 whitespace-nowrap rounded-full bg-rose-600 px-[0.5em] font-black text-white shadow-[0_0_12px_#f43f5e]"
+            style={{ fontSize: stat }}
+          >
+            −{attackPreview.damage}
+            {attackPreview.damage >= m.hp ? ' 💀' : ''}
+          </span>
+        )}
+        {invalidTarget && (
+          <span
+            aria-hidden
+            className="absolute left-1/2 top-[20%] z-20 -translate-x-1/2 font-black text-rose-400 [text-shadow:0_0_6px_#000]"
+            style={{ fontSize: `max(18px, ${6 * slot.s}cqw)` }}
+            title={t('invalidTarget')}
+          >
+            ✕
+          </span>
+        )}
+
         <button
           type="button"
           onClick={onClick}
+          onPointerEnter={() => isFoe && setAim(m.uid)}
+          onPointerLeave={() => {
+            cancel();
+            if (isFoe) setAim((cur) => (cur === m.uid ? null : cur));
+          }}
+          onFocus={() => isFoe && setAim(m.uid)}
+          onBlur={() => isFoe && setAim((cur) => (cur === m.uid ? null : cur))}
           onPointerDown={() => {
             timer = window.setTimeout(() => {
               longPressed.current = true;
-              setInspect({ uid: m.uid, turn: game.turn });
+              onInspect(m.uid);
             }, 450);
           }}
           onPointerUp={cancel}
-          onPointerLeave={cancel}
           onPointerCancel={cancel}
           onContextMenu={(e) => {
             e.preventDefault();
-            setInspect({ uid: m.uid, turn: game.turn });
+            onInspect(m.uid);
           }}
           title={label}
           aria-label={label}
@@ -250,23 +309,29 @@ export default function Battlefield({
               translate: selected ? '0 -12%' : undefined,
               filter: selected
                 ? `drop-shadow(0 0 8px ${color}) brightness(1.15)`
-                : foeTargetable && isFoe
+                : validTarget
                   ? 'drop-shadow(0 0 5px #f43f5e)'
-                  : dim
-                    ? 'brightness(0.62) saturate(0.7)'
-                    : undefined,
+                  : invalidTarget
+                    ? 'grayscale(0.6) brightness(0.7)'
+                    : dim
+                      ? 'brightness(0.55) saturate(0.6)'
+                      : undefined,
             }}
           >
             <Effigy m={m} className={`block h-auto w-full ${!strike && !dim ? 'unit-idle' : ''}`} />
           </div>
         </button>
 
-        {/* الأرقام تبقى ظاهرة: الهجوم والحياة قرارُ كل ضربة، والباقي في البطاقة المنبثقة */}
+        {/*
+          الأرقام أكبر ما حول الوحش: الهجوم والحياة قرارُ كل ضربة. شارة العنصر
+          قبلهما كي لا يُعتمد على اللون وحده (عمى الألوان، والشاشات الصغيرة).
+        */}
         <div
-          className="pointer-events-none absolute left-1/2 top-[94%] -translate-x-1/2 whitespace-nowrap rounded-[4px] bg-black/75 px-[0.45em] pb-[2px] font-black leading-tight ring-1 ring-white/15"
-          style={{ fontSize: `max(8px, ${2.25 * slot.s}cqw)` }}
+          className="pointer-events-none absolute left-1/2 top-[92%] -translate-x-1/2 whitespace-nowrap rounded-md bg-black/80 px-[0.4em] pb-[2px] font-black leading-tight shadow-[0_4px_10px_rgba(0,0,0,0.6)]"
+          style={{ fontSize: stat, boxShadow: `inset 0 0 0 1px ${color}88` }}
         >
-          <div className="flex items-center gap-[0.45em]">
+          <div className="flex items-center gap-[0.35em]">
+            <span className="text-[0.8em]">{ELEMENT_ICON[d.element]}</span>
             <span className="text-orange-300">⚔{struck}</span>
             <span className="text-emerald-300">❤{m.hp}</span>
             {(m.poison ?? 0) > 0 && <span className="text-lime-300">☠</span>}
@@ -281,7 +346,7 @@ export default function Battlefield({
         </div>
 
         {hit && battle.damage > 0 && (
-          <span className="damage-pop pointer-events-none absolute start-1/2 top-0 z-40 text-[max(16px,4cqw)] font-black text-rose-300 [text-shadow:0_2px_6px_#000]">
+          <span className="damage-pop pointer-events-none absolute start-1/2 top-0 z-40 text-[max(18px,5cqw)] font-black text-rose-300 [text-shadow:0_2px_6px_#000]">
             −{battle.damage}
           </span>
         )}
@@ -289,69 +354,84 @@ export default function Battlefield({
     );
   }
 
-  // ---------- البطاقة المنبثقة ----------
-  let inspected: { m: FieldMonster; slot: { x: number; y: number; s: number } } | null = null;
-  if (inspect && inspect.turn === game.turn) {
+  // ---------- سهم التصويب ----------
+  function renderAim() {
+    if (!aim || !attackValid) return null;
+    let target: Slot | null = null;
     owners.forEach((seat, owner) => {
-      const i = game.players[seat].field.findIndex((m) => m.uid === inspect.uid);
+      if (owner === 0) return;
+      const i = game.players[seat].field.findIndex((m) => m.uid === aim);
+      if (i >= 0 && i < 6) target = slotOf(owner, i);
+    });
+    if (!target) return null;
+    const tgt: Slot = target;
+    const lift = (s: Slot) => s.y - 0.5 * (UNIT_W / 100) * W * s.s;
+    return (
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        preserveAspectRatio="none"
+        className="pointer-events-none absolute inset-0 z-[65] h-full w-full"
+        aria-hidden
+      >
+        <defs>
+          <marker id="aim-head" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+            <path d="M0 0 10 5 0 10Z" fill="#fb7185" />
+          </marker>
+        </defs>
+        {attackers.map((uid) => {
+          const i = meP.field.findIndex((m) => m.uid === uid);
+          if (i < 0 || i > 5) return null;
+          const from = slotOf(0, i);
+          const a = { x: from.x, y: lift(from) };
+          const b = { x: tgt.x, y: lift(tgt) + 10 };
+          const c = { x: (a.x + b.x) / 2, y: Math.min(a.y, b.y) - 50 };
+          const d = `M${a.x} ${a.y} Q${c.x} ${c.y} ${b.x} ${b.y}`;
+          return (
+            <g key={uid}>
+              <path d={d} stroke="#000" strokeOpacity="0.5" strokeWidth="9" fill="none" strokeLinecap="round" />
+              <path
+                d={d}
+                className="arrow-dash"
+                stroke="#fb7185"
+                strokeWidth="5"
+                strokeDasharray="10 8"
+                fill="none"
+                strokeLinecap="round"
+                markerEnd="url(#aim-head)"
+              />
+            </g>
+          );
+        })}
+      </svg>
+    );
+  }
+
+  // ---------- البطاقة المنبثقة (للهاتف؛ على الشاشة الواسعة تعرضها اللوحة الجانبية) ----------
+  let inspected: { m: FieldMonster; slot: Slot } | null = null;
+  if (inspectUid) {
+    owners.forEach((seat, owner) => {
+      const i = game.players[seat].field.findIndex((m) => m.uid === inspectUid);
       if (i < 0 || i > 5) return;
-      const row = layout.rows[rowOf(owner, i < 3 ? 'front' : 'back')];
-      inspected = { m: game.players[seat].field[i], slot: layout.slot(row, i % 3) };
+      inspected = { m: game.players[seat].field[i], slot: slotOf(owner, i) };
     });
   }
 
-  function renderInspect(m: FieldMonster, slot: { x: number; y: number; s: number }) {
-    const d = def(m.defId);
-    const color = ELEMENT_HEX[d.element];
-    const geared = atkOf(m);
-    const struck = strikeOf(m, game.weather ?? null);
-    const passive = ARCHETYPE_PASSIVE[archetypeOf(d.species) ?? 'beast'];
+  function renderInspect(m: FieldMonster, slot: Slot) {
+    const color = ELEMENT_HEX[def(m.defId).element];
     const figTop = slot.y - 0.88 * (UNIT_W / 100) * W * slot.s;
     const below = slot.y / H < 0.5;
-    const status = m.sick ? t('fresh') : m.exhausted ? t('exhausted') : t('ready');
     return (
       <div
         dir={locale === 'ar' ? 'rtl' : 'ltr'}
-        className="pop-in pointer-events-none absolute z-[70] rounded-xl border bg-[#0c0e1a]/95 p-2 text-[11px] leading-snug shadow-[0_14px_30px_-10px_rgba(0,0,0,0.9)] backdrop-blur"
+        className="pop-in pointer-events-none absolute z-[70] rounded-xl border bg-[#0c0e1a]/95 p-2 shadow-[0_14px_30px_-10px_rgba(0,0,0,0.9)] backdrop-blur xl:hidden"
         style={{
           borderColor: `${color}99`,
-          width: 'max(180px, 44cqw)',
-          left: `clamp(4px, calc(${px(slot.x)} - max(90px, 22cqw)), calc(100% - max(180px, 44cqw) - 4px))`,
-          ...(below
-            ? { top: py(slot.y + 34 * slot.s) }
-            : { bottom: `${((H - figTop) / H) * 100}%` }),
+          width: 'max(190px, 46cqw)',
+          left: `clamp(4px, calc(${px(slot.x)} - max(95px, 23cqw)), calc(100% - max(190px, 46cqw) - 4px))`,
+          ...(below ? { top: py(slot.y + 40 * slot.s) } : { bottom: `${((H - figTop) / H) * 100}%` }),
         }}
       >
-        <div className="flex items-center justify-between gap-2">
-          <b className="truncate text-[13px]">
-            {ELEMENT_ICON[d.element]} {L(d.name)}
-          </b>
-          <span className="shrink-0 rounded bg-white/10 px-1.5 text-[10px] font-bold">{status}</span>
-        </div>
-        <div className="mt-1 flex items-center gap-3 text-[15px] font-black">
-          <span className="text-orange-300">⚔ {struck !== geared ? `${geared}→${struck}` : struck}</span>
-          <span className="text-emerald-300">
-            ❤ {m.hp}/{m.maxHp}
-          </span>
-          {(m.poison ?? 0) > 0 && <span className="text-[11px] text-lime-300">☠ {m.poison}</span>}
-        </div>
-        {d.ability && d.ability !== 'none' && (
-          <p className="mt-1">
-            <b style={{ color }}>{L(ABILITY_NAME[d.ability])}</b> — {L(ABILITY_TEXT[d.ability])}
-          </p>
-        )}
-        <p className="mt-1 opacity-75">
-          <b>{L(passive.name)}</b> — {L(passive.text)}
-        </p>
-        {(m.gear?.length ?? 0) > 0 && (
-          <div className="mt-1 flex flex-wrap gap-1.5">
-            {m.gear!.map((id, k) => (
-              <span key={`${id}-${k}`} className="flex items-center gap-0.5 rounded bg-white/5 pe-1">
-                <GearIcon id={id} size={18} /> {L(GEAR_BY_ID[id].name)}
-              </span>
-            ))}
-          </div>
-        )}
+        <MonsterInfo m={m} weather={game.weather ?? null} />
       </div>
     );
   }
@@ -427,18 +507,15 @@ export default function Battlefield({
         aspectRatio: `${W} / ${H}`,
         containerType: 'inline-size',
         // الساحة تأخذ أكبر ما تسمح به الشاشة دون أن تدفع اليد تحت الطيّة
-        maxWidth: `max(300px, calc((100dvh - 350px) * ${(W / H).toFixed(3)}))`,
+        maxWidth: `max(300px, calc((100dvh - 430px) * ${(W / H).toFixed(3)}))`,
       }}
     >
-      <div className="absolute inset-0" onClick={() => setInspect(null)}>
+      <div className="absolute inset-0" onClick={() => onInspect(null)}>
         <ArenaFloor layout={layout} lights={lights} />
       </div>
 
       {titanReady && (
-        <div
-          aria-hidden
-          className="titan-aura pointer-events-none absolute inset-[-4%] rounded-[40px] mix-blend-screen"
-        />
+        <div aria-hidden className="titan-aura pointer-events-none absolute inset-[-4%] rounded-[40px] mix-blend-screen" />
       )}
 
       {/* السطح */}
@@ -473,9 +550,9 @@ export default function Battlefield({
           top: py(flowSlot.y),
           width: flowCardW,
           height: (flowCardW * CARD_SM.h) / CARD_SM.w,
-          // متمركزٌ على بلاطته: لو وقف عليها لغطّى رأسُه صفَّ الخصم الأمامي
           translate: '-50% -70%',
-          zIndex: 30,
+          // تحت الوحوش كلّها: كان يعلو وحشَ صفّك الأمامي فيخفيه وهو محدَّد
+          zIndex: 8,
         }}
         title={t('flowPile')}
       >
@@ -540,17 +617,15 @@ export default function Battlefield({
             style={{ top: py(band.top), height: py(band.bottom - band.top) }}
           >
             {p.field.length === 0 && !face && (
-              <div
-                className={`absolute inset-x-0 flex justify-center px-2 ${isFoe ? 'top-[2%]' : 'bottom-[2%]'}`}
-              >
+              <div className={`absolute inset-x-0 flex justify-center px-2 ${isFoe ? 'top-[2%]' : 'bottom-[2%]'}`}>
                 <span className="rounded-full bg-black/55 px-2.5 py-0.5 text-center text-[max(9px,1.9cqw)] font-bold text-white/70">
-                {p.eliminated
-                  ? t('eliminatedTag')
-                  : isFoe
-                    ? foeSeats.length > 1
-                      ? pname(p.name)
-                      : t('noFoeMonsters')
-                    : t('summonHint', { n: 6 })}
+                  {p.eliminated
+                    ? t('eliminatedTag')
+                    : isFoe
+                      ? foeSeats.length > 1
+                        ? pname(p.name)
+                        : t('noFoeMonsters')
+                      : t('summonHint', { n: 6 })}
                 </span>
               </div>
             )}
@@ -573,11 +648,10 @@ export default function Battlefield({
         );
       })}
 
+      {renderAim()}
+
       {inspected &&
-        renderInspect(
-          (inspected as { m: FieldMonster }).m,
-          (inspected as { slot: { x: number; y: number; s: number } }).slot
-        )}
+        renderInspect((inspected as { m: FieldMonster }).m, (inspected as { slot: Slot }).slot)}
     </div>
   );
 }

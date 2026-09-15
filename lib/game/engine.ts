@@ -508,6 +508,18 @@ export function matchesFlow(d: CardDef, flow: GameState['flow']): boolean {
   return false;
 }
 
+/**
+ * «مطابقة تامّة»: نفس العنصر **ونفس الرقم** معاً. وسمٌ للعرض فقط — لا مكافأة
+ * عليها في هذه النسخة عمداً، حتى يُختبر التوازن قبل أن تُعطى أثراً.
+ * البري والفخاخ والقطع لا تُعدّ: هي تتخطّى المطابقة لا تحقّقها.
+ */
+export function isPerfectMatch(d: CardDef, flow: GameState['flow']): boolean {
+  if (bypassesFlow(d) || d.element === 'wild') return false;
+  return (
+    d.element === flow.element && d.number !== null && flow.number !== null && d.number === flow.number
+  );
+}
+
 export interface Playability {
   ok: boolean;
   reason?: string;

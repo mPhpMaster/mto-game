@@ -8,7 +8,6 @@ import {
   ELEMENT_ICON,
   ELEMENT_NAME,
   ELEMENTS,
-  FRAGMENT_NAME,
   HAND_KIND_ORDER,
   HIDDEN_CARD_ID,
   TITAN,
@@ -22,6 +21,7 @@ import {
   createGame,
   evaluateAttack,
   hasAnyPlayable,
+  isPerfectMatch,
   matchesFlow,
 } from '@/lib/game/engine';
 import { pickBattleFx, type BattleFx } from '@/lib/game/battleFx';
@@ -47,6 +47,7 @@ import CardDetail from './CardDetail';
 import CardView, { ELEMENT_HEX } from './CardView';
 import Battlefield from './Battlefield';
 import { ArenaBackdrop } from './ArenaArt';
+import { BattleLog, BoardStatus, ElementLegend, FlowBadge, MonsterDetails, QuickGuide, SideCard } from './MatchPanels';
 import LoadoutScreen from './LoadoutScreen';
 import { WEATHER_BY_ID } from '@/lib/game/loadout';
 import TurnClock from './TurnClock';
@@ -188,6 +189,8 @@ export default function GameBoard({
   const [step, setStep] = useState(0);
   const [showHelp, setShowHelp] = useState(false);
   const [showPrep, setShowPrep] = useState(false);
+  /** الوحش المعروضة تفاصيله، مع رقم الدور الذي فُتح فيه */
+  const [inspect, setInspect] = useState<{ uid: string; turn: number } | null>(null);
   /** كارت مفتوح شرحه (ضغط مطوّل أو ضغطة على كارت لا يمكن لعبه أو اطّلاع على فخ) */
   const [detail, setDetail] = useState<{ card: CardDef; reason?: string; peekUid?: string } | null>(
     null
@@ -223,7 +226,6 @@ export default function GameBoard({
   const savedRef = useRef(false);
   /** حصيلة ما لعبتَه — تُجمَّع تزايدياً لأن السجل يُقصّ عند 200 سطر */
   const tallyRef = useRef<MatchTally>(emptyTally());
-  const logEnd = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
 
   const me = game.players[ME];
@@ -446,10 +448,6 @@ export default function GameBoard({
     opponentNames,
     game.players.length,
   ]);
-
-  useEffect(() => {
-    logEnd.current?.scrollIntoView({ block: 'end' });
-  }, [game.log.length, showLog]);
 
   // المتصفّحات لا تسمح بالصوت قبل تفاعل المستخدم
   useEffect(() => primeAudio(), []);
@@ -756,6 +754,15 @@ export default function GameBoard({
               : `${L(d.name)} — ${L(d.text)}\n⛔ ${reason(check.reason)}`
           }
         />
+        {/* وسمٌ لا مكافأة: يُري اللاعب المطابقة التامّة دون أن يغيّر أثر الكارت */}
+        {isPerfectMatch(d, game.flow) && (
+          <span
+            className="pointer-events-none absolute -top-2 start-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full bg-gradient-to-b from-amber-200 to-amber-500 px-1.5 text-[10px] font-black text-black shadow-[0_0_10px_rgba(251,191,36,0.7)]"
+            title={t('perfectMatch')}
+          >
+            ⭐ {t('perfectMatchShort')}
+          </span>
+        )}
       </div>
     );
   }
@@ -783,14 +790,32 @@ export default function GameBoard({
   const faceSeats = foeSeats.filter(
     (seat) => !game.players[seat].eliminated && game.players[seat].field.length === 0
   );
+  // التفاصيل مربوطةٌ برقم الدور: تنطفئ وحدها حين يتبدّل الدور، بلا مؤثّر
+  const inspectUid = inspect && inspect.turn === game.turn ? inspect.uid : null;
+  const onInspect = (uid: string | null) => setInspect(uid ? { uid, turn: game.turn } : null);
+  // اللوحة الجانبية: الوحش المفتوح، وإلا آخر مهاجمٍ حدّدتَه
+  const detailUid = inspectUid ?? attackers[attackers.length - 1] ?? null;
+  const inspected = detailUid
+    ? (game.players.flatMap((p) => p.field).find((m) => m.uid === detailUid) ?? null)
+    : null;
+  const turnText =
+    game.phase === 'ended'
+      ? t('ended')
+      : autoPlaying
+        ? t('autoPlaying')
+        : myTurn
+          ? hotseat
+            ? t('playerTurn', { name: pname(me.name) })
+            : t('yourTurn')
+          : t('playerTurn', { name: pname(game.players[game.current].name) });
 
   return (
-    <div ref={boardRef} data-players={game.players.length} className="relative isolate flex min-h-screen max-w-full flex-col overflow-x-clip lg:flex-row">
+    <div ref={boardRef} data-players={game.players.length} className="relative isolate min-h-screen max-w-full overflow-x-clip">
       {/* isolate: بدونه تُرسم الخلفية ذات z سالب تحت خلفية body فلا تُرى */}
       <ArenaBackdrop titanReady={titanReady} />
-      <main className="mx-auto flex w-full min-w-0 max-w-[860px] flex-1 flex-col gap-2 p-2 sm:p-3">
-        {/* الشريط العلوي — مضغوطٌ عمداً: الساحة هي الشاشة، لا الأزرار */}
-        <header className="hud-panel flex flex-wrap items-center justify-between gap-x-3 gap-y-2 rounded-2xl px-3 py-2 text-xs">
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col gap-2 p-2 sm:p-3">
+        {/* شريط النظام: ما لا يُحتاج في كل حركة، بخطٍّ صغير خارج بطاقات اللاعبين */}
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1.5 text-[11px]">
           <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
             <Link href="/" className="text-sm font-black hover:opacity-80">
               ⚔️ {t('appName')}
@@ -820,27 +845,6 @@ export default function GameBoard({
                 {t('drawPenalty', { n: game.pendingDraw })}
               </span>
             )}
-            <span
-              className={`rounded-lg px-2.5 py-1 font-black ${
-                myTurn
-                  ? 'bg-emerald-500/30 text-emerald-100 shadow-[0_0_14px_rgba(52,211,153,0.45)] ring-1 ring-emerald-300/50'
-                  : 'bg-white/10 opacity-70'
-              }`}
-              data-clock={clockOn ? 'on' : 'off'}
-            >
-              {game.phase === 'ended'
-                ? t('ended')
-                : autoPlaying
-                  ? t('autoPlaying')
-                  : myTurn
-                    ? hotseat
-                      ? t('playerTurn', { name: pname(me.name) })
-                      : t('yourTurn')
-                    : t('playerTurn', { name: pname(game.players[game.current].name) })}
-            </span>
-            {!controlled && clockOn && (
-              <TurnClock deadline={turnDeadline} seconds={turnLimit} isMyTurn={myTurn} />
-            )}
             <SoundToggle />
             <LanguageSwitch compact />
             <button
@@ -862,6 +866,53 @@ export default function GameBoard({
             >
               📜 <span className="hidden sm:inline">{showLog ? t('hideLog') : t('showLog')}</span>
             </button>
+          </div>
+        </div>
+
+        {/*
+          الشريط العلوي: أنت · الدور والتدفق · الخصم. التدفق في الوسط وأكبر
+          عنصرٍ فيه لأنه ما يُقرأ قبل كل كارت. على الهاتف ينزل إلى سطرٍ ثانٍ
+          تحت البطاقتين بدل أن يضغطهما.
+        */}
+        <header className="grid grid-cols-2 items-center gap-2 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]">
+          <SideCard state={me} face={`p${ME}`} you current={myTurn} impact={faceImpact(ME)} />
+          <div className="col-span-2 row-start-2 flex items-center justify-center gap-2 md:col-span-1 md:row-start-auto md:flex-col md:gap-1.5">
+            <div
+              key={`turn-${game.turn}-${game.current}`}
+              data-clock={clockOn ? 'on' : 'off'}
+              className={`pop-in flex items-center gap-2 whitespace-nowrap rounded-xl px-3 py-1.5 text-xs font-black ring-1 ${
+                myTurn
+                  ? 'bg-emerald-500/25 text-emerald-100 shadow-[0_0_16px_rgba(52,211,153,0.4)] ring-emerald-300/60'
+                  : game.phase === 'ended'
+                    ? 'bg-white/10 ring-white/20'
+                    : 'bg-rose-500/20 text-rose-100 ring-rose-300/50'
+              }`}
+            >
+              <span
+                aria-hidden
+                className={`size-2 rounded-full ${myTurn ? 'animate-pulse bg-emerald-400' : 'bg-rose-400'}`}
+              />
+              {turnText}
+              {!controlled && clockOn && (
+                <TurnClock deadline={turnDeadline} seconds={turnLimit} isMyTurn={myTurn} />
+              )}
+            </div>
+            <div className={focusRing('flow')}>
+              <FlowBadge flow={game.flow} />
+            </div>
+          </div>
+          <div data-foes={foeSeats.length} className="flex min-w-0 flex-col gap-1.5">
+            {foeSeats.map((seat) => (
+              <SideCard
+                key={seat}
+                state={game.players[seat]}
+                face={`p${seat}`}
+                current={game.current === seat}
+                impact={faceImpact(seat)}
+                compact={foeSeats.length > 1}
+                onFaceClick={canHitFace(seat) ? () => launchAttack('face', seat) : undefined}
+              />
+            ))}
           </div>
         </header>
 
@@ -929,222 +980,208 @@ export default function GameBoard({
           </section>
         )}
 
-        {/* الخصوم — واحد في 1 ضد 1، واثنان جنباً إلى جنب في 1 ضد 1 ضد 1 */}
-        <div
-          data-foes={foeSeats.length}
-          className={foeSeats.length > 1 ? 'grid min-w-0 grid-cols-2 gap-2' : 'min-w-0'}
-        >
-          {foeSeats.map((seat) => (
-            <PlayerStrip
-              key={seat}
-              state={game.players[seat]}
-              face={`p${seat}`}
-              current={game.current === seat}
-              impact={faceImpact(seat)}
-              compact={foeSeats.length > 1}
-              onFaceClick={canHitFace(seat) ? () => launchAttack('face', seat) : undefined}
+        {/* الساحة بين لوحتين جانبيتين على الشاشة الواسعة، ووحدها على الهاتف */}
+        <div className="grid items-start gap-3 xl:grid-cols-[210px_minmax(0,1fr)_290px]">
+          <aside className="hidden flex-col gap-3 xl:flex">
+            <ElementLegend />
+            <QuickGuide />
+          </aside>
+
+          <main className="flex min-w-0 flex-col gap-2">
+            <Battlefield
+              game={game}
+              me={ME}
+              foeSeats={foeSeats}
+              attackers={attackers}
+              canAct={canAct}
+              targeting={targeting}
+              battle={battle}
+              strikeDelta={strikeDelta}
+              attackPreview={
+                comboPreview ? { ok: comboPreview.ok, damage: comboPreview.ok ? comboPreview.damage : 0 } : null
+              }
+              onOwnMonster={(uid) => (targeting === 'own_monster' ? pickTarget(uid) : toggleAttacker(uid))}
+              foeMonsterAction={foeMonsterAction}
+              canHitFace={canHitFace}
+              onFaceAttack={(seat) => launchAttack('face', seat)}
+              trapSelectable={targeting === 'enemy_trap'}
+              onPickTrap={pickTarget}
+              peekable={!pending}
+              onPeekTrap={peekOwnTrap}
+              inspectUid={inspectUid}
+              onInspect={onInspect}
+              focus={{ foe: focusRing('foeField'), flow: '', mine: focusRing('myField') }}
+              titanReady={titanReady}
             />
-          ))}
-        </div>
 
-        <Battlefield
-          game={game}
-          me={ME}
-          foeSeats={foeSeats}
-          attackers={attackers}
-          canAct={canAct}
-          targeting={targeting}
-          battle={battle}
-          strikeDelta={strikeDelta}
-          onOwnMonster={(uid) => (targeting === 'own_monster' ? pickTarget(uid) : toggleAttacker(uid))}
-          foeMonsterAction={foeMonsterAction}
-          canHitFace={canHitFace}
-          onFaceAttack={(seat) => launchAttack('face', seat)}
-          trapSelectable={targeting === 'enemy_trap'}
-          onPickTrap={pickTarget}
-          peekable={!pending}
-          onPeekTrap={peekOwnTrap}
-          focus={{ foe: focusRing('foeField'), flow: focusRing('flow'), mine: focusRing('myField') }}
-          titanReady={titanReady}
-        />
-
-        <PlayerStrip state={me} face={`p${ME}`} current={myTurn} impact={faceImpact(ME)} />
-
-        {/*
-          شريط الأوامر سياقيّ: يعرض ما يصلح للحظة لا كل ما في اللعبة. تحديد
-          وحشٍ يُبدّل الأزرار إلى أزرار الهجوم، وزرّ الوحش الأعظم لا يظهر إلا
-          حين يصحّ استدعاؤه — فالزرّ المعطَّل الدائم يُعلّم العين أن تتجاهله.
-        */}
-        <section
-          className={`hud-panel flex flex-wrap items-center gap-2 rounded-2xl p-2 text-xs ${focusRing('commands')}`}
-        >
-          {game.phase === 'respond' && myTurn ? (
-            <>
-              <span className="font-bold text-rose-200">
-                {t('mustDraw', { n: game.pendingDraw })}
-              </span>
-              <button
-                disabled={autoPlaying}
-                onClick={() => dispatch({ type: 'ACCEPT_DRAW' })}
-                className="ms-auto rounded-xl bg-gradient-to-b from-rose-400 to-rose-600 px-4 py-2 font-black text-black disabled:opacity-35"
-              >
-                {t('acceptPenalty')}
-              </button>
-            </>
-          ) : !myTurn && game.phase !== 'ended' ? (
-            <span className="flex-1 py-1.5 text-center font-bold opacity-70">
-              {t('foeThinking', { name: pname(game.players[game.current].name) })}
-            </span>
-          ) : attackers.length > 0 ? (
-            <>
-              {faceSeats.map((seat) => (
-                <button
-                  key={seat}
-                  disabled={autoPlaying}
-                  onClick={() => launchAttack('face', seat)}
-                  className="glow-pulse rounded-xl bg-gradient-to-b from-orange-400 to-orange-600 px-4 py-2 font-black text-black disabled:opacity-35"
-                >
-                  {foeSeats.length > 1
-                    ? t('attackFaceNamed', { name: pname(game.players[seat].name) })
-                    : t('attackFace')}
-                </button>
-              ))}
-              <button
-                onClick={() => setAttackers([])}
-                className="rounded-xl bg-white/10 px-3 py-2 font-bold ring-1 ring-white/15 hover:bg-white/20"
-              >
-                {t('clearSelection')}
-              </button>
-              <button
-                disabled={!canAct || game.phase !== 'main'}
-                onClick={() => dispatch({ type: 'END_TURN' })}
-                className="ms-auto rounded-xl bg-emerald-500/25 px-3 py-2 font-bold text-emerald-100 ring-1 ring-emerald-300/40 disabled:opacity-35"
-              >
-                {t('endTurn')}
-              </button>
-            </>
-          ) : (
-            <>
-              {titanCheck.ok && (
-                <button
-                  disabled={autoPlaying}
-                  onClick={() => dispatch({ type: 'SUMMON_TITAN' })}
-                  className="glow-pulse w-full rounded-xl bg-gradient-to-b from-amber-200 via-amber-400 to-amber-600 px-4 py-2.5 text-sm font-black text-black shadow-[0_0_28px_rgba(251,191,36,0.55)] disabled:opacity-35"
-                  title={t('titanReadyBanner')}
-                >
-                  🗿 {t('summonTitan', { titan: L(TITAN.name) })}
-                </button>
-              )}
-              {canRescueDraw && (
-                <button
-                  onClick={() => dispatch({ type: 'DRAW' })}
-                  className="rounded-xl bg-gradient-to-b from-sky-400 to-sky-600 px-4 py-2 font-black text-black"
-                  title={t('drawCardHint')}
-                >
-                  {t('drawCard')}
-                </button>
-              )}
-              <button
-                type="button"
-                disabled={!canAct || game.phase !== 'main'}
-                onClick={() => setShowPrep(true)}
-                title={canAct ? t('prepHint') : t('prepClosed')}
-                className="rounded-xl bg-white/10 px-3 py-2 font-bold ring-1 ring-white/15 hover:bg-white/20 disabled:opacity-35"
-              >
-                {t('openPrep')}
-              </button>
-              <button
-                disabled={!canAct || game.phase !== 'main'}
-                onClick={() => dispatch({ type: 'END_TURN' })}
-                className="ms-auto rounded-xl bg-gradient-to-b from-emerald-400 to-emerald-600 px-5 py-2 text-sm font-black text-black shadow-[0_0_18px_rgba(52,211,153,0.4)] disabled:opacity-35 disabled:shadow-none"
-              >
-                {t('endTurn')}
-              </button>
-            </>
-          )}
-
-          {comboPreview && comboHint && (
-            <span
-              className={`w-full rounded-lg px-2 py-1 ${
-                comboPreview.ok ? 'bg-emerald-500/15 text-emerald-200' : 'bg-rose-500/15 text-rose-200'
-              }`}
+            {/*
+              شريط الأوامر سياقيّ: يعرض ما يصلح للحظة لا كل ما في اللعبة. تحديد
+              وحشٍ يُبدّل الأزرار إلى أزرار الهجوم، وزرّ الوحش الأعظم لا يظهر إلا
+              حين يصحّ استدعاؤه — فالزرّ المعطَّل الدائم يُعلّم العين أن تتجاهله.
+            */}
+            <section
+              className={`hud-panel flex flex-wrap items-center gap-2 rounded-2xl p-2 text-xs ${focusRing('commands')}`}
             >
-              {comboHint}
-            </span>
-          )}
-        </section>
+              {game.phase === 'respond' && myTurn ? (
+                <>
+                  <span className="font-bold text-rose-200">
+                    {t('mustDraw', { n: game.pendingDraw })}
+                  </span>
+                  <button
+                    disabled={autoPlaying}
+                    onClick={() => dispatch({ type: 'ACCEPT_DRAW' })}
+                    className="ms-auto rounded-xl bg-gradient-to-b from-rose-400 to-rose-600 px-4 py-2 font-black text-black disabled:opacity-35"
+                  >
+                    {t('acceptPenalty')}
+                  </button>
+                </>
+              ) : !myTurn && game.phase !== 'ended' ? (
+                <span className="flex-1 py-1.5 text-center font-bold opacity-70">
+                  {t('foeThinking', { name: pname(game.players[game.current].name) })}
+                </span>
+              ) : attackers.length > 0 ? (
+                <>
+                  {faceSeats.map((seat) => (
+                    <button
+                      key={seat}
+                      disabled={autoPlaying}
+                      onClick={() => launchAttack('face', seat)}
+                      className="glow-pulse rounded-xl bg-gradient-to-b from-orange-400 to-orange-600 px-4 py-2 font-black text-black disabled:opacity-35"
+                    >
+                      {foeSeats.length > 1
+                        ? t('attackFaceNamed', { name: pname(game.players[seat].name) })
+                        : t('attackFace')}
+                    </button>
+                  ))}
+                  <button
+                    onClick={() => setAttackers([])}
+                    className="rounded-xl bg-white/10 px-3 py-2 font-bold ring-1 ring-white/15 hover:bg-white/20"
+                  >
+                    {t('clearSelection')}
+                  </button>
+                  <button
+                    disabled={!canAct || game.phase !== 'main'}
+                    onClick={() => dispatch({ type: 'END_TURN' })}
+                    className="ms-auto rounded-xl bg-emerald-500/25 px-3 py-2 font-bold text-emerald-100 ring-1 ring-emerald-300/40 disabled:opacity-35"
+                  >
+                    {t('endTurn')}
+                  </button>
+                </>
+              ) : (
+                <>
+                  {titanCheck.ok && (
+                    <button
+                      disabled={autoPlaying}
+                      onClick={() => dispatch({ type: 'SUMMON_TITAN' })}
+                      className="glow-pulse w-full rounded-xl bg-gradient-to-b from-amber-200 via-amber-400 to-amber-600 px-4 py-2.5 text-sm font-black text-black shadow-[0_0_28px_rgba(251,191,36,0.55)] disabled:opacity-35"
+                      title={t('titanReadyBanner')}
+                    >
+                      🗿 {t('summonTitan', { titan: L(TITAN.name) })}
+                    </button>
+                  )}
+                  {canRescueDraw && (
+                    <button
+                      onClick={() => dispatch({ type: 'DRAW' })}
+                      className="rounded-xl bg-gradient-to-b from-sky-400 to-sky-600 px-4 py-2 font-black text-black"
+                      title={t('drawCardHint')}
+                    >
+                      {t('drawCard')}
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    disabled={!canAct || game.phase !== 'main'}
+                    onClick={() => setShowPrep(true)}
+                    title={canAct ? t('prepHint') : t('prepClosed')}
+                    className="rounded-xl bg-white/10 px-3 py-2 font-bold ring-1 ring-white/15 hover:bg-white/20 disabled:opacity-35"
+                  >
+                    {t('openPrep')}
+                  </button>
+                  <button
+                    disabled={!canAct || game.phase !== 'main'}
+                    onClick={() => dispatch({ type: 'END_TURN' })}
+                    className="ms-auto rounded-xl bg-gradient-to-b from-emerald-400 to-emerald-600 px-5 py-2 text-sm font-black text-black shadow-[0_0_18px_rgba(52,211,153,0.4)] disabled:opacity-35 disabled:shadow-none"
+                  >
+                    {t('endTurn')}
+                  </button>
+                </>
+              )}
 
-        {/*
-          اليد صفٌّ واحد متراكب: يُرى أكثر من خمسة كروت على الهاتف، ويبقى من
-          كل كارتٍ رأسُه (التكلفة والعنصر والاسم) — وهو ما يُختار به. التحويم
-          أو التركيز يرفع الكارت فوق جيرانه ليُقرأ كاملاً.
-        */}
-        <section data-hand className={`hud-panel min-w-0 overflow-x-hidden rounded-2xl px-2 pt-1.5 ${focusRing('hand')}`}>
-          <div className="flex min-w-0 items-center justify-between gap-2 px-1 text-[11px] opacity-70">
-            <span className="shrink-0 font-bold">{t('yourHand', { n: me.hand.length })}</span>
-            <span className="min-w-0 truncate">
-              {pending ? t('finishTargeting') : `${t('unitHint')} · ${t('holdForDetails')}`}
-            </span>
-          </div>
-          <div ref={handArea} className="min-w-0">
-            <div
-              data-hand-scroller
-              className="thin-scroll flex w-full min-w-0 items-end overflow-x-auto overscroll-x-contain px-1 pb-2 pt-4"
-            >
-              {playableHand.map((c, i) => renderHandCard(c, i === 0))}
-              {playableHand.length > 0 && parkedHand.length > 0 && (
-                <div className="flex shrink-0 self-stretch pe-10 lg:pe-4">
-                  <HandSplit title={t('cannotPlay')} />
+              {comboPreview && comboHint && (
+                <span
+                  className={`w-full rounded-lg px-2 py-1 ${
+                    comboPreview.ok ? 'bg-emerald-500/15 text-emerald-200' : 'bg-rose-500/15 text-rose-200'
+                  }`}
+                >
+                  {comboHint}
+                </span>
+              )}
+            </section>
+
+            {/*
+              اليد صفٌّ واحد متراكب: يُرى أكثر من خمسة كروت على الهاتف، ويبقى من
+              كل كارتٍ رأسُه (التكلفة والعنصر والاسم) — وهو ما يُختار به. العدد
+              ظاهرٌ كبيراً، وسهمٌ عند الحافّة يقول إن وراءها كروتاً أخرى.
+            */}
+            <section data-hand className={`hud-panel min-w-0 overflow-x-hidden rounded-2xl px-2 pt-1.5 ${focusRing('hand')}`}>
+              <div className="flex min-w-0 items-center justify-between gap-2 px-1 text-[11px]">
+                <span className="flex shrink-0 items-center gap-1.5 font-bold">
+                  <span className="grid h-6 min-w-8 place-items-center rounded-md bg-white/10 px-1.5 text-[13px] font-black tabular-nums ring-1 ring-white/15">
+                    {me.hand.length}
+                  </span>
+                  <span className="opacity-70">{t('cardsWord')}</span>
+                </span>
+                <span className="min-w-0 truncate opacity-70">
+                  {pending ? t('finishTargeting') : `${t('unitHint')} · ${t('holdForDetails')}`}
+                </span>
+              </div>
+              <div ref={handArea} className="relative min-w-0">
+                <div
+                  data-hand-scroller
+                  className="thin-scroll flex w-full min-w-0 items-end overflow-x-auto overscroll-x-contain px-1 pb-2 pt-4"
+                >
+                  {playableHand.map((c, i) => renderHandCard(c, i === 0))}
+                  {playableHand.length > 0 && parkedHand.length > 0 && (
+                    <div className="flex shrink-0 self-stretch pe-10 lg:pe-4">
+                      <HandSplit title={t('cannotPlay')} />
+                    </div>
+                  )}
+                  {parkedHand.map((c, i) => renderHandCard(c, i === 0))}
+                  {me.hand.length === 0 && (
+                    <div className="p-4 text-xs opacity-60">{t('emptyHand')}</div>
+                  )}
                 </div>
-              )}
-              {parkedHand.map((c, i) => renderHandCard(c, i === 0))}
-              {me.hand.length === 0 && (
-                <div className="p-4 text-xs opacity-60">{t('emptyHand')}</div>
-              )}
-            </div>
-          </div>
-        </section>
-      </main>
+                {me.hand.length > 4 && (
+                  <button
+                    type="button"
+                    aria-label={t('scrollHand')}
+                    title={t('scrollHand')}
+                    onClick={() =>
+                      handArea.current
+                        ?.querySelector('[data-hand-scroller]')
+                        ?.scrollBy({ left: -260, behavior: 'smooth' })
+                    }
+                    className="absolute inset-y-4 end-0 z-30 grid w-8 place-items-center rounded-s-xl bg-gradient-to-r from-[#0b0b14] to-transparent text-2xl font-black text-white/85 hover:text-white"
+                  >
+                    ‹
+                  </button>
+                )}
+              </div>
+            </section>
+          </main>
 
-      {showLog && (
-      <aside className="hud-panel m-2 w-full shrink-0 rounded-xl p-2 lg:m-3 lg:w-72">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <div className="text-xs font-bold opacity-80">{t('logTitle')}</div>
-          <button
-            type="button"
-            onClick={() => writeLogPref(false)}
-            className="rounded-md bg-white/10 px-2 py-0.5 text-[11px] font-bold hover:bg-white/20"
-            title={t('hideLog')}
-            aria-label={t('hideLog')}
-          >
-            {t('hideLog')}
-          </button>
-        </div>
-        <div className="thin-scroll h-[60vh] space-y-1 overflow-y-auto pe-1 text-[11px] leading-snug lg:h-[calc(100vh-6rem)]">
-          {game.log.map((l, i) => (
-            <div
-              key={i}
-              className={`rounded px-2 py-1 ${
-                l.kind === 'win'
-                  ? 'bg-amber-400/20 font-bold text-amber-200'
-                  : l.kind === 'trap'
-                    ? 'bg-fuchsia-500/15 text-fuchsia-200'
-                    : l.kind === 'attack'
-                      ? 'bg-orange-500/12 text-orange-100'
-                      : l.side === ME
-                        ? 'bg-emerald-500/10'
-                        : l.side !== null
-                          ? 'bg-sky-500/10'
-                          : 'bg-white/5 opacity-70'
-              }`}
-            >
-              {logText(l)}
+          <aside className="flex min-w-0 flex-col gap-3">
+            <div className="hidden xl:block">
+              <MonsterDetails m={inspected} weather={game.weather ?? null} />
             </div>
-          ))}
-          <div ref={logEnd} />
+            <div className="hidden xl:block">
+              <BoardStatus player={me} />
+            </div>
+            {showLog && <BattleLog entries={game.log} me={ME} onClose={() => writeLogPref(false)} />}
+          </aside>
         </div>
-      </aside>
-      )}
+      </div>
+
 
       {/* اختيار العنصر للكارت البري */}
       {pending?.kind === 'element' && (
@@ -1445,112 +1482,6 @@ export default function GameBoard({
 }
 
 // ===================== عناصر مساعدة =====================
-
-function PlayerStrip({
-  state,
-  face,
-  impact = 0,
-  current = false,
-  compact = false,
-  onFaceClick,
-}: {
-  state: GameState['players'][0];
-  face: string;
-  impact?: number;
-  current?: boolean;
-  compact?: boolean;
-  onFaceClick?: () => void;
-}) {
-  const { t: tr, L, name: pn } = useLocale();
-  const hpPct = Math.round((state.hp / Math.max(1, state.maxHp)) * 100);
-  const fragmentsFull = state.fragments.length >= TITAN.fragmentsNeeded;
-  return (
-    <div
-      data-face={face}
-      data-current={current ? '1' : undefined}
-      role={onFaceClick ? 'button' : undefined}
-      tabIndex={onFaceClick ? 0 : undefined}
-      onClick={onFaceClick}
-      onKeyDown={
-        onFaceClick
-          ? (e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onFaceClick();
-              }
-            }
-          : undefined
-      }
-      className={`hud-panel relative flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl px-3 py-1.5 text-xs ${
-        current ? 'ring-1 ring-amber-300/60' : ''
-      } ${onFaceClick ? 'glow-pulse cursor-pointer ring-2 ring-orange-400' : ''} ${
-        state.eliminated ? 'opacity-55' : ''
-      }`}
-    >
-      <span className="text-sm font-black">{pn(state.name)}</span>
-      {state.eliminated && (
-        <span className="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-bold opacity-70">
-          {tr('eliminatedTag')}
-        </span>
-      )}
-
-      {/* الحياة أكبر ما في الشريط: هي النتيجة، والباقي مواردُ للوصول إليها */}
-      <div className={`flex items-center gap-1.5 ${compact ? 'min-w-[90px]' : 'min-w-[130px]'} flex-1`}>
-        <span className="text-emerald-300">❤</span>
-        <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-black/60 ring-1 ring-white/10">
-          <div
-            className="h-full rounded-full bg-gradient-to-l from-emerald-300 to-emerald-600 shadow-[0_0_8px_rgba(52,211,153,0.6)] transition-all duration-500"
-            style={{ width: `${hpPct}%` }}
-          />
-        </div>
-        <b className="text-base tabular-nums">{state.hp}</b>
-        {impact > 0 && (
-          <span className="damage-pop pointer-events-none absolute start-1/2 top-0 z-40 text-xl font-black text-rose-300 [text-shadow:0_2px_6px_#000]">
-            −{impact}
-          </span>
-        )}
-      </div>
-
-      <div className="flex items-center gap-1.5">
-        <span className="rounded-md bg-yellow-400/20 px-2 py-0.5 font-black tabular-nums text-yellow-200 ring-1 ring-yellow-300/25">
-          ⚡ {state.energy}/{state.energyCap}
-        </span>
-        <span className="rounded-md bg-white/10 px-2 py-0.5 font-bold tabular-nums">🃏 {state.hand.length}</span>
-        <span
-          className={`rounded-md px-2 py-0.5 font-bold tabular-nums ${
-            fragmentsFull
-              ? 'glow-pulse bg-amber-400 font-black text-black'
-              : 'bg-amber-400/15 text-amber-200 ring-1 ring-amber-300/25'
-          }`}
-          title={state.fragments.map((f) => L(FRAGMENT_NAME[f])).join('، ') || tr('noFragments')}
-        >
-          🗿 {state.fragments.length}/{TITAN.fragmentsNeeded}
-          {!compact && state.fragments.length > 0 && (
-            <span className="ms-1 font-normal opacity-80">
-              ({state.fragments.map((f) => L(FRAGMENT_NAME[f])).join('،')})
-            </span>
-          )}
-        </span>
-      </div>
-
-      {state.skipNext && (
-        <span className="rounded bg-rose-500/25 px-2 py-0.5 text-rose-200">{tr('willLoseTurn')}</span>
-      )}
-      {state.attackLocked && (
-        <span className="rounded bg-fuchsia-500/25 px-2 py-0.5 text-fuchsia-200">{tr('netted')}</span>
-      )}
-      {state.barrier && (
-        <span className="rounded bg-sky-500/25 px-2 py-0.5 text-sky-200">{tr('barrierOn')}</span>
-      )}
-      {state.mirror && (
-        <span className="rounded bg-purple-500/25 px-2 py-0.5 text-purple-200">{tr('mirrorOn')}</span>
-      )}
-      {state.amplified && (
-        <span className="rounded bg-amber-500/25 px-2 py-0.5 text-amber-200">{tr('amplifiedOn')}</span>
-      )}
-    </div>
-  );
-}
 
 function HelpRow({
   icon,
