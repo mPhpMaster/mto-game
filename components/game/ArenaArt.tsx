@@ -23,7 +23,7 @@ export function Effigy({ m, className }: { m: FieldMonster; className?: string }
   const arch = archetypeOf(d.species) ?? 'beast';
   const Body = ARCHETYPE_BODY[arch];
   const pal = ART_PALETTE[d.element];
-  const ink: Ink = { ...pal, evolved: d.stage === 2, seed: artSeed(d) };
+  const ink: Ink = { ...pal, evolved: d.stage === 2, seed: artSeed(d), ability: d.ability };
   return (
     <svg
       viewBox="0 0 100 100"

@@ -1,4 +1,4 @@
-import type { CardDef, Element } from '@/lib/game/types';
+import type { Ability, CardDef, Element } from '@/lib/game/types';
 import { type Archetype, archetypeOf } from '@/lib/game/archetypes';
 import { artPathOf } from '@/lib/game/artManifest';
 
@@ -38,258 +38,475 @@ export interface Ink {
   /** المرحلة الثانية أضخم وأكثر زينة */
   evolved: boolean;
   seed: number;
+  /** خاصية الوحش — تُرسم علامتها على جسده */
+  ability?: Ability;
 }
 
 // ===================== الوحوش =====================
 
-function Beast({ ink }: { ink: Ink }) {
-  const { main, deep, glow, evolved, seed } = ink;
-  const horns = evolved ? 3 : seed % 2 ? 2 : 1;
+/*
+  الأسلوب: فانتازيا مُنمّقة مفترسة، لا دمى. ثلاثة أشياء صنعت الفرق عن
+  الرسوم السابقة، وتتكرّر في كل طراز عمداً:
+  - **العين الشقّية المتوهّجة** بدل الدائرة السوداء: البؤبؤ المستدير لطيف،
+    والشقّ مفترس.
+  - **الحوافّ الحادّة** (أشواك، مخالب، أنياب) بدل الأطراف المستديرة.
+  - **التدرّج من اللون إلى عمقه** بدل اللون المسطّح: يعطي الجسد كتلة.
+  والهيئة تختلف بين الطُّرُز لا اللونُ وحده، فيُعرف الوحش من ظلّه.
+*/
+
+function Shade({ id, top, bottom }: { id: string; top: string; bottom: string }) {
+  return (
+    <linearGradient id={id} x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stopColor={top} />
+      <stop offset="1" stopColor={bottom} />
+    </linearGradient>
+  );
+}
+
+/** معرّف تدرّجٍ ثابت من البذرة — النسختان من البطاقة نفسها تتشاركانه بلا تعارض */
+const gradId = (ink: Ink, name: string) => `${name}-${ink.seed % 100000}-${ink.evolved ? 2 : 1}`;
+
+function SlitEye({ cx, cy, r = 3, glow }: { cx: number; cy: number; r?: number; glow: string }) {
   return (
     <g>
-      {/* الذيل */}
-      <path
-        d={`M28 56 Q12 54 ${evolved ? 8 : 14} ${evolved ? 38 : 44}`}
-        stroke={deep}
-        strokeWidth={evolved ? 7 : 5}
-        strokeLinecap="round"
-        fill="none"
-      />
-      {/* الجسم */}
-      <ellipse cx="52" cy="52" rx={evolved ? 24 : 20} ry={evolved ? 17 : 14} fill={main} />
-      <ellipse cx="52" cy="57" rx={evolved ? 20 : 16} ry={evolved ? 10 : 8} fill={deep} opacity="0.45" />
-      {/* الأرجل */}
-      {[38, 50, 62].slice(0, evolved ? 3 : 2).map((x) => (
-        <rect key={x} x={x} y={62} width={evolved ? 8 : 6} height={evolved ? 14 : 11} rx="3" fill={deep} />
+      <ellipse cx={cx} cy={cy} rx={r * 1.7} ry={r * 1.2} fill={glow} opacity="0.35" />
+      <ellipse cx={cx} cy={cy} rx={r} ry={r * 0.62} fill={glow} />
+      <ellipse cx={cx} cy={cy} rx={r * 0.22} ry={r * 0.58} fill="#0b0e1c" />
+    </g>
+  );
+}
+
+function Beast({ ink }: { ink: Ink }) {
+  const { main, deep, glow, evolved, seed } = ink;
+  const g = gradId(ink, 'bst');
+  const spikes = evolved ? 6 : 3 + (seed % 3);
+  return (
+    <g>
+      <defs>
+        <Shade id={g} top={main} bottom={deep} />
+      </defs>
+      {/* ذيلٌ ينتهي بشوكة */}
+      <path d="M26 56 Q10 58 8 44 Q7 36 14 32" stroke={deep} strokeWidth={evolved ? 6 : 5} fill="none" strokeLinecap="round" />
+      <path d="M14 32 L8 23 L20 29 Z" fill={glow} />
+      {/* الساقان البعيدتان في الظلّ */}
+      <path d="M30 60 L24 78 L30 79 L36 64 Z" fill={deep} />
+      <path d="M64 60 L60 79 L66 79 L72 62 Z" fill={deep} />
+      {/* جسدٌ منحنٍ متأهّب للانقضاض */}
+      <path d="M20 56 Q22 38 42 36 Q58 33 72 40 L80 50 Q76 64 62 66 L36 67 Q22 66 20 56 Z" fill={`url(#${g})`} />
+      <path d="M30 62 Q48 70 70 60" stroke="#000" strokeOpacity="0.35" strokeWidth="5" fill="none" />
+      {[38, 46, 54].map((x) => (
+        <path key={x} d={`M${x} 47 q3 6 1 12`} stroke={deep} strokeWidth="1.4" fill="none" opacity="0.75" />
       ))}
-      {/* الرأس */}
-      <circle cx="70" cy="36" r={evolved ? 16 : 13} fill={main} />
-      <circle cx="70" cy="36" r={evolved ? 16 : 13} fill="none" stroke={deep} strokeWidth="1.5" opacity="0.6" />
-      {/* القرون */}
-      {Array.from({ length: horns }, (_, i) => (
-        <path
-          key={i}
-          d={`M${62 + i * 8} 25 L${64 + i * 8} ${evolved ? 10 : 16} L${68 + i * 8} 25 Z`}
-          fill={glow}
-        />
+      {/* أشواك الظهر — عددها وطولها من البذرة، فتختلف الفصائل داخل الطراز */}
+      {Array.from({ length: spikes }, (_, i) => {
+        const x = 26 + i * (42 / spikes);
+        const h = 8 + ((seed >> i) & 3) * 2 + (evolved ? 4 : 0);
+        return <path key={i} d={`M${x} 40 L${x + 3} ${38 - h} L${x + 7} 39 Z`} fill={glow} opacity="0.92" />;
+      })}
+      {/* الساقان القريبتان بمخالب */}
+      <path d="M40 62 L36 80 L43 80 L47 64 Z" fill={`url(#${g})`} />
+      <path d="M70 58 L68 80 L75 80 L78 58 Z" fill={`url(#${g})`} />
+      {[36, 68].map((x) => (
+        <path key={x} d={`M${x} 80 l-2 3 l3 -1 l1 3 l2 -3 l2 2 l0 -4 Z`} fill="#f1f5f9" />
       ))}
-      {/* العينان */}
-      <circle cx="65" cy="34" r="3" fill="#0b0e1c" />
-      <circle cx="76" cy="34" r="3" fill="#0b0e1c" />
-      <circle cx="66" cy="33" r="1" fill={glow} />
-      <circle cx="77" cy="33" r="1" fill={glow} />
-      {/* الأنياب */}
-      <path d="M65 44 L67 49 L69 44 Z" fill="#fff" opacity="0.9" />
-      <path d="M73 44 L75 49 L77 44 Z" fill="#fff" opacity="0.9" />
+      {/* الرأس: خطمٌ حادّ وفكٌّ مفتوح */}
+      <path d="M68 38 Q74 26 86 28 L98 38 Q94 44 86 44 L74 48 Z" fill={`url(#${g})`} />
+      <path d="M76 46 L96 42 L90 52 L78 52 Z" fill="#1a0b0b" />
+      {[80, 84, 88, 92].map((x) => (
+        <path key={x} d={`M${x} 43.5 l1.4 3.5 l1.4 -3.8 Z`} fill="#fff" />
+      ))}
+      {[82, 88].map((x) => (
+        <path key={x} d={`M${x} 52 l1.4 -3.2 l1.4 3.2 Z`} fill="#fff" />
+      ))}
+      {/* قرنان مائلان للخلف */}
+      <path d={`M76 30 Q70 ${evolved ? 10 : 16} ${evolved ? 56 : 60} ${evolved ? 12 : 16} Q68 22 72 34 Z`} fill={glow} />
+      {evolved && <path d="M82 28 Q80 14 70 8 Q78 18 78 30 Z" fill={glow} opacity="0.8" />}
+      <SlitEye cx={86} cy={34} r={3} glow={glow} />
+      <path d="M80 30.5 L91 32.5" stroke="#000" strokeWidth="1.6" opacity="0.6" />
     </g>
   );
 }
 
 function Serpent({ ink }: { ink: Ink }) {
   const { main, deep, glow, evolved } = ink;
+  const g = gradId(ink, 'srp');
+  const body = 'M10 76 Q20 50 40 62 Q58 74 66 52 Q72 36 80 34';
   return (
     <g>
-      <path
-        d="M18 68 Q34 46 50 60 Q66 74 82 48"
-        stroke={deep}
-        strokeWidth={evolved ? 18 : 14}
-        strokeLinecap="round"
-        fill="none"
-      />
-      <path
-        d="M18 68 Q34 46 50 60 Q66 74 82 48"
-        stroke={main}
-        strokeWidth={evolved ? 12 : 9}
-        strokeLinecap="round"
-        fill="none"
-      />
-      {/* الزعانف — مثبّتة على منحنى الجسد لا طافية بجانبه */}
-      {evolved && (
-        <>
-          <path d="M28 53 L34 38 L42 51 Z" fill={glow} opacity="0.85" />
-          <path d="M60 66 L66 80 L74 65 Z" fill={glow} opacity="0.7" />
-        </>
-      )}
-      {/* الرأس */}
-      <ellipse cx="84" cy="42" rx={evolved ? 15 : 12} ry={evolved ? 12 : 10} fill={main} />
-      <ellipse cx="84" cy="46" rx={evolved ? 12 : 9} ry={evolved ? 6 : 5} fill={deep} opacity="0.4" />
-      <circle cx="80" cy="39" r="2.8" fill="#0b0e1c" />
-      <circle cx="90" cy="39" r="2.8" fill="#0b0e1c" />
-      <circle cx="81" cy="38" r="0.9" fill={glow} />
-      <path d="M84 52 L84 60" stroke={glow} strokeWidth="2" strokeLinecap="round" />
+      <defs>
+        <Shade id={g} top={main} bottom={deep} />
+      </defs>
+      {/* زعانف الظهر المسنّنة على طول الجسد */}
+      {[
+        [18, 58],
+        [30, 55],
+        [46, 66],
+        [58, 62],
+        [65, 46],
+      ].map(([x, y], i) => (
+        <path key={i} d={`M${x} ${y} l-3 ${evolved ? -13 : -9} l9 6 Z`} fill={glow} opacity="0.9" />
+      ))}
+      <path d={body} stroke={deep} strokeWidth={evolved ? 21 : 17} strokeLinecap="round" fill="none" />
+      <path d={body} stroke={`url(#${g})`} strokeWidth={evolved ? 15 : 12} strokeLinecap="round" fill="none" />
+      {/* حراشف البطن */}
+      <path d={body} stroke={glow} strokeOpacity="0.4" strokeWidth="3" strokeDasharray="2 4" fill="none" />
+      {evolved && <path d="M36 62 Q30 78 44 82 Q42 72 48 66 Z" fill={glow} opacity="0.55" />}
+      {/* الرأس: عُرفٌ مسنّن وفكّان مفتوحان بنابين طويلين */}
+      <path d="M74 26 L62 12 L80 21 Z" fill={glow} />
+      <path d="M80 22 L74 6 L88 20 Z" fill={glow} opacity={evolved ? 1 : 0.7} />
+      <path d="M72 26 Q84 18 96 26 L100 34 Q94 40 86 40 L74 42 Q68 36 72 26 Z" fill={`url(#${g})`} />
+      <path d="M78 40 L98 36 L92 49 L80 46 Z" fill="#120712" />
+      <path d="M84 39 l2 8 l2 -8 Z" fill="#fff" />
+      <path d="M92 37.5 l1.6 7 l1.6 -7 Z" fill="#fff" />
+      <path d="M86 47 l1.4 -4 l1.4 4 Z" fill="#fff" opacity="0.9" />
+      <SlitEye cx={88} cy={30} r={2.8} glow={glow} />
     </g>
   );
 }
 
 function Avian({ ink }: { ink: Ink }) {
   const { main, deep, glow, evolved } = ink;
-  const span = evolved ? 34 : 26;
+  const g = gradId(ink, 'avn');
+  const tip = evolved ? 2 : 8;
   return (
     <g>
-      {/* الجناحان */}
-      <path
-        d={`M48 46 Q${48 - span} ${28} ${48 - span + 6} ${58} Q${48 - span / 2} 52 48 52 Z`}
-        fill={main}
-        opacity="0.95"
-      />
-      <path
-        d={`M56 46 Q${56 + span} ${28} ${56 + span - 6} ${58} Q${56 + span / 2} 52 56 52 Z`}
-        fill={main}
-        opacity="0.95"
-      />
-      <path
-        d={`M48 46 Q${48 - span} ${28} ${48 - span + 6} ${58}`}
-        stroke={deep}
-        strokeWidth="1.5"
-        fill="none"
-        opacity="0.6"
-      />
-      {/* الجسم */}
-      <ellipse cx="52" cy="52" rx={evolved ? 13 : 10} ry={evolved ? 19 : 15} fill={deep} />
-      <ellipse cx="52" cy="50" rx={evolved ? 8 : 6} ry={evolved ? 13 : 10} fill={main} opacity="0.7" />
-      {/* الرأس */}
-      <circle cx="52" cy="28" r={evolved ? 12 : 10} fill={main} />
-      <path d={`M52 ${evolved ? 16 : 18} L58 ${evolved ? 6 : 10} L46 ${evolved ? 6 : 10} Z`} fill={glow} />
-      <circle cx="48" cy="27" r="2.6" fill="#0b0e1c" />
-      <circle cx="57" cy="27" r="2.6" fill="#0b0e1c" />
-      {/* المنقار */}
-      <path d="M52 33 L48 40 L56 40 Z" fill={glow} />
-      {/* الذيل */}
-      <path d="M52 70 L44 82 L60 82 Z" fill={deep} />
+      <defs>
+        <Shade id={g} top={main} bottom={deep} />
+      </defs>
+      {/* جناحان غشائيان حادّا الأطراف — هيئة الوايفرن لا العصفور */}
+      <path d={`M46 40 L${tip} 12 L14 30 L3 34 L16 44 L8 54 L30 50 Z`} fill={deep} />
+      <path d={`M58 40 L${104 - tip} 12 L90 30 L101 34 L88 44 L96 54 L74 50 Z`} fill={deep} />
+      {[
+        [tip, 12],
+        [3, 34],
+        [8, 54],
+      ].map(([x, y], i) => (
+        <path key={`l${i}`} d={`M46 40 L${x} ${y}`} stroke={glow} strokeWidth="1.2" opacity="0.45" />
+      ))}
+      {[
+        [104 - tip, 12],
+        [101, 34],
+        [96, 54],
+      ].map(([x, y], i) => (
+        <path key={`r${i}`} d={`M58 40 L${x} ${y}`} stroke={glow} strokeWidth="1.2" opacity="0.45" />
+      ))}
+      {/* ذيلٌ بثلاث شفرات */}
+      <path d="M47 62 L40 84 L51 72 L57 85 L57 62 Z" fill={glow} opacity="0.85" />
+      {/* الجذع والصدر */}
+      <path d="M43 38 Q52 29 61 38 L63 60 Q52 71 41 60 Z" fill={`url(#${g})`} />
+      {[44, 50, 56].map((y) => (
+        <path key={y} d={`M46 ${y} L52 ${y + 4} L58 ${y}`} stroke={deep} strokeWidth="1.3" fill="none" opacity="0.8" />
+      ))}
+      {/* المخالب */}
+      <path d="M45 64 l-3 9 l2 0 l1 -3 l1 4 l2 -4 l1 3 l0 -9 Z" fill="#f1f5f9" />
+      <path d="M55 64 l0 9 l1 -3 l2 4 l1 -4 l1 3 l2 0 l-3 -9 Z" fill="#f1f5f9" />
+      {/* الرأس: عُرفٌ وتاجٌ من الريش ومنقارٌ معقوف */}
+      <path d="M48 20 L39 4 L53 16 Z" fill={glow} />
+      <path d="M56 20 L64 3 L58 18 Z" fill={glow} />
+      {evolved && <path d="M52 16 L52 0 L55 15 Z" fill={glow} />}
+      <path d="M43 31 Q52 13 62 29 L60 37 L44 37 Z" fill={`url(#${g})`} />
+      <path d="M49 33 L53 46 L58 33 Q53 30 49 33 Z" fill={glow} />
+      <path d="M53 46 L51.5 42 L55 41 Z" fill="#1a1208" />
+      <SlitEye cx={47.5} cy={28.5} r={2.3} glow={glow} />
+      <SlitEye cx={57.5} cy={28.5} r={2.3} glow={glow} />
     </g>
   );
 }
 
 function Orb({ ink }: { ink: Ink }) {
   const { main, deep, glow, evolved, seed } = ink;
-  const rings = evolved ? 3 : 2;
+  const g = gradId(ink, 'orb');
+  const spikes = evolved ? 14 : 10;
   return (
     <g>
-      {Array.from({ length: rings }, (_, i) => (
-        <ellipse
-          key={i}
-          cx="52"
-          cy="48"
-          rx={30 - i * 5}
-          ry={11 - i * 2.5}
+      <defs>
+        <radialGradient id={g} cx="0.4" cy="0.35" r="0.7">
+          <stop offset="0" stopColor={main} />
+          <stop offset="1" stopColor={deep} />
+        </radialGradient>
+      </defs>
+      {/* مجسّات تتلوّى تحت الكرة */}
+      {[36, 46, 58, 68].map((x, i) => (
+        <path
+          key={x}
+          d={`M${x} 60 Q${x + (i % 2 ? 8 : -8)} 70 ${x + (i % 2 ? -2 : 2)} 84`}
+          stroke={deep}
+          strokeWidth={4 - i * 0.3}
+          strokeLinecap="round"
           fill="none"
-          stroke={glow}
-          strokeWidth="1.6"
-          opacity={0.55 - i * 0.12}
-          transform={`rotate(${-28 + i * 26 + (seed % 20)} 52 48)`}
         />
       ))}
-      <circle cx="52" cy="48" r={evolved ? 21 : 17} fill={deep} />
-      <circle cx="52" cy="48" r={evolved ? 17 : 13} fill={main} />
-      <circle cx="47" cy="43" r={evolved ? 7 : 5} fill={glow} opacity="0.75" />
-      {/* عين مركزية */}
-      <ellipse cx="52" cy="48" rx={evolved ? 7 : 5.5} ry={evolved ? 10 : 8} fill="#0b0e1c" />
-      <ellipse cx="52" cy="48" rx={evolved ? 3 : 2.4} ry={evolved ? 6 : 4.6} fill={glow} />
-      {evolved &&
-        [0, 72, 144, 216, 288].map((a) => (
-          <circle
-            key={a}
-            cx={52 + 30 * Math.cos((a * Math.PI) / 180)}
-            cy={48 + 30 * Math.sin((a * Math.PI) / 180)}
-            r="2.6"
+      {/* أشواكٌ تشعّ من الكرة */}
+      {Array.from({ length: spikes }, (_, i) => {
+        const a = (i / spikes) * Math.PI * 2 + (seed % 7) * 0.1;
+        const b = a + 0.16;
+        const c = a - 0.16;
+        const R = i % 2 ? 30 : 34;
+        return (
+          <path
+            key={i}
+            d={`M${(52 + 20 * Math.cos(b)).toFixed(1)} ${(44 + 20 * Math.sin(b)).toFixed(1)} L${(52 + R * Math.cos(a)).toFixed(1)} ${(44 + R * Math.sin(a)).toFixed(1)} L${(52 + 20 * Math.cos(c)).toFixed(1)} ${(44 + 20 * Math.sin(c)).toFixed(1)} Z`}
             fill={glow}
             opacity="0.8"
           />
-        ))}
+        );
+      })}
+      <circle cx="52" cy="44" r="22" fill={`url(#${g})`} stroke="#05060c" strokeOpacity="0.6" strokeWidth="2" />
+      {/* فمٌ مسنّن تحت العين */}
+      <path d="M38 55 Q52 64 66 55 L62 58 Q52 62 42 58 Z" fill="#12050f" />
+      {[42, 47, 52, 57, 62].map((x) => (
+        <path key={x} d={`M${x - 1.5} 56.5 l1.5 3.4 l1.5 -3.4 Z`} fill="#fff" opacity="0.9" />
+      ))}
+      {/* عينٌ مركزية واحدة — هي الوحش كلّه */}
+      <ellipse cx="52" cy="40" rx="12" ry="8.5" fill="#f8fafc" opacity="0.85" />
+      <circle cx="52" cy="40" r="6.5" fill={glow} />
+      <ellipse cx="52" cy="40" rx="1.6" ry="6" fill="#0b0e1c" />
+      <path d="M39 36 Q52 28 65 36" stroke="#05060c" strokeWidth="2.2" fill="none" opacity="0.7" />
+      {/* شظايا تدور حولها */}
+      {[0, 1, 2].map((i) => {
+        const a = ((seed % 360) / 57.3) + i * 2.1;
+        const x = 52 + 40 * Math.cos(a);
+        const y = 44 + 30 * Math.sin(a);
+        return (
+          <path
+            key={i}
+            d={`M${x.toFixed(1)} ${(y - 4).toFixed(1)} l3 4 l-3 4 l-3 -4 Z`}
+            fill={glow}
+            opacity="0.85"
+          />
+        );
+      })}
     </g>
   );
 }
 
 function Golem({ ink }: { ink: Ink }) {
   const { main, deep, glow, evolved } = ink;
-  const w = evolved ? 40 : 32;
+  const g = gradId(ink, 'glm');
   return (
     <g>
-      {/* الذراعان */}
-      <rect x={52 - w / 2 - 11} y="44" width="10" height={evolved ? 28 : 22} rx="4" fill={deep} />
-      <rect x={52 + w / 2 + 1} y="44" width="10" height={evolved ? 28 : 22} rx="4" fill={deep} />
-      {/* الجذع */}
-      <rect x={52 - w / 2} y="38" width={w} height={evolved ? 34 : 28} rx="6" fill={main} />
-      <rect
-        x={52 - w / 2 + 5}
-        y="46"
-        width={w - 10}
-        height={evolved ? 16 : 12}
-        rx="3"
-        fill={glow}
-        opacity="0.28"
-      />
-      {/* الرأس */}
-      <rect x={52 - (evolved ? 14 : 11)} y={evolved ? 12 : 16} width={evolved ? 28 : 22} height={evolved ? 24 : 20} rx="5" fill={main} />
-      <rect x={52 - (evolved ? 9 : 7)} y={evolved ? 20 : 23} width={evolved ? 18 : 14} height="6" rx="3" fill="#0b0e1c" />
-      <circle cx={52 - (evolved ? 5 : 4)} cy={evolved ? 23 : 26} r="1.8" fill={glow} />
-      <circle cx={52 + (evolved ? 5 : 4)} cy={evolved ? 23 : 26} r="1.8" fill={glow} />
-      {/* الأقدام */}
-      <rect x={52 - w / 2 + 2} y={evolved ? 72 : 66} width="12" height="9" rx="3" fill={deep} />
-      <rect x={52 + w / 2 - 14} y={evolved ? 72 : 66} width="12" height="9" rx="3" fill={deep} />
-      {evolved && <path d="M52 6 L58 14 L46 14 Z" fill={glow} />}
-    </g>
-  );
-}
-
-function Wraith({ ink }: { ink: Ink }) {
-  const { main, deep, glow, evolved } = ink;
-  return (
-    <g>
-      {/* الهالة */}
-      <ellipse cx="52" cy="46" rx={evolved ? 30 : 24} ry={evolved ? 32 : 26} fill={main} opacity="0.16" />
-      {/* الجسد المتموّج */}
-      <path
-        d={
-          evolved
-            ? 'M52 12 Q78 22 76 50 Q74 74 52 82 Q30 74 28 50 Q26 22 52 12 Z'
-            : 'M52 18 Q73 27 71 50 Q69 70 52 77 Q35 70 33 50 Q31 27 52 18 Z'
-        }
-        fill={deep}
-      />
-      <path
-        d={
-          evolved
-            ? 'M52 20 Q70 28 69 50 Q68 68 52 74 Q36 68 35 50 Q34 28 52 20 Z'
-            : 'M52 25 Q66 32 65 50 Q64 64 52 70 Q40 64 39 50 Q38 32 52 25 Z'
-        }
-        fill={main}
-        opacity="0.55"
-      />
-      {/* أذيال دخانية */}
-      {[38, 52, 66].map((x, i) => (
-        <path
-          key={x}
-          d={`M${x} ${evolved ? 78 : 72} q-3 8 2 ${evolved ? 14 : 10}`}
-          stroke={main}
-          strokeWidth="3"
-          strokeLinecap="round"
-          fill="none"
-          opacity={0.5 - i * 0.1}
-        />
+      <defs>
+        <Shade id={g} top={main} bottom={deep} />
+      </defs>
+      {/* ساقان ثقيلتان */}
+      <path d="M34 64 L30 84 L45 84 L46 64 Z" fill={deep} />
+      <path d="M58 64 L59 84 L74 84 L70 64 Z" fill={deep} />
+      {/* الجذع العريض */}
+      <path d="M26 32 L78 32 L72 66 L32 66 Z" fill={`url(#${g})`} />
+      {/* شقوقٌ متوهّجة: طاقةٌ حبيسة في الصخر */}
+      {['M36 38 L42 46 L38 54 L44 62', 'M66 36 L60 44 L66 52 L62 60'].map((d) => (
+        <g key={d}>
+          <path d={d} stroke={glow} strokeWidth="4" fill="none" opacity="0.35" />
+          <path d={d} stroke={glow} strokeWidth="1.5" fill="none" />
+        </g>
       ))}
-      {/* العينان */}
-      <ellipse cx="45" cy="42" rx="4" ry={evolved ? 7 : 5.5} fill={glow} />
-      <ellipse cx="59" cy="42" rx="4" ry={evolved ? 7 : 5.5} fill={glow} />
-      <ellipse cx="45" cy="43" rx="1.6" ry="3" fill="#0b0e1c" />
-      <ellipse cx="59" cy="43" rx="1.6" ry="3" fill="#0b0e1c" />
+      <path d="M52 42 L59 50 L52 58 L45 50 Z" fill={glow} />
+      <path d="M52 46 L55 50 L52 54 L49 50 Z" fill="#fff" opacity="0.7" />
+      {/* كتفان صخريتان وقبضتان ضخمتان — الطراز الذي يُضرب ولا يسقط */}
+      <path d="M8 30 L26 20 L38 32 L30 46 L12 46 Z" fill={main} stroke={deep} strokeWidth="1.5" />
+      <path d="M96 30 L78 20 L66 32 L74 46 L92 46 Z" fill={main} stroke={deep} strokeWidth="1.5" />
+      <path d="M12 46 L28 46 L30 64 L14 68 Z" fill={deep} />
+      <path d="M92 46 L76 46 L74 64 L90 68 Z" fill={deep} />
+      <path d="M8 64 L32 62 L30 78 L10 80 Z" fill={`url(#${g})`} stroke={deep} strokeWidth="1.2" />
+      <path d="M96 64 L72 62 L74 78 L94 80 Z" fill={`url(#${g})`} stroke={deep} strokeWidth="1.2" />
+      {/* رأسٌ غائرٌ بين الكتفين بخوذةٍ وشقّ نظر */}
+      <path d="M41 16 L63 16 L66 32 L38 32 Z" fill={deep} />
+      <rect x="44" y="23" width="16" height="3.6" rx="1.2" fill={glow} />
       {evolved && (
         <>
-          <path d="M34 24 L30 8 L44 20 Z" fill={glow} opacity="0.7" />
-          <path d="M70 24 L74 8 L60 20 Z" fill={glow} opacity="0.7" />
+          <path d="M42 17 L34 2 L47 15 Z" fill={glow} />
+          <path d="M62 17 L70 2 L57 15 Z" fill={glow} />
         </>
       )}
     </g>
   );
 }
 
+function Wraith({ ink }: { ink: Ink }) {
+  const { main, deep, glow, evolved } = ink;
+  const g = gradId(ink, 'wrt');
+  return (
+    <g>
+      <defs>
+        <Shade id={g} top={main} bottom="#05060c" />
+      </defs>
+      {/* عباءةٌ ممزّقة الحافّة */}
+      <path
+        d="M52 8 Q76 16 78 42 L84 80 L74 72 L68 84 L58 74 L52 86 L46 74 L36 84 L30 72 L20 80 L26 42 Q28 16 52 8 Z"
+        fill={`url(#${g})`}
+      />
+      <path d="M52 8 Q66 20 62 60" stroke={deep} strokeWidth="2" fill="none" opacity="0.6" />
+      <path d="M52 8 Q38 20 42 60" stroke={deep} strokeWidth="2" fill="none" opacity="0.6" />
+      {evolved && (
+        <>
+          <path d="M40 18 L28 0 L47 13 Z" fill={glow} opacity="0.85" />
+          <path d="M64 18 L76 0 L57 13 Z" fill={glow} opacity="0.85" />
+        </>
+      )}
+      {/* فراغ القلنسوة: لا وجه، عينان فقط */}
+      <path d="M52 16 Q68 22 68 40 Q60 48 52 48 Q44 48 36 40 Q36 22 52 16 Z" fill="#04050a" />
+      <SlitEye cx={45} cy={34} r={3.3} glow={glow} />
+      <SlitEye cx={59} cy={34} r={3.3} glow={glow} />
+      {/* يدان بمخالب طويلة */}
+      <path d="M24 50 L10 56 L15 58 L6 62 L15 63 L9 70 L25 60 Z" fill={deep} />
+      <path d="M80 50 L94 56 L89 58 L98 62 L89 63 L95 70 L79 60 Z" fill={deep} />
+      {[
+        [10, 56],
+        [6, 62],
+        [9, 70],
+        [94, 56],
+        [98, 62],
+        [95, 70],
+      ].map(([x, y]) => (
+        <circle key={`${x}-${y}`} cx={x} cy={y} r="1.2" fill={glow} />
+      ))}
+      {/* خيوط دخان تتبعه */}
+      {[40, 52, 64].map((x, i) => (
+        <path
+          key={x}
+          d={`M${x} 80 q-4 5 1 9`}
+          stroke={main}
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          fill="none"
+          opacity={0.55 - i * 0.12}
+        />
+      ))}
+    </g>
+  );
+}
+
+/** هالة المرحلة الثانية: توهّجٌ خلف الجسد وتاجٌ من الأشواك الخافتة */
+function EvolvedAura({ ink }: { ink: Ink }) {
+  return (
+    <g opacity="0.9">
+      <ellipse cx="52" cy="46" rx="46" ry="38" fill={ink.glow} opacity="0.13" />
+      {Array.from({ length: 10 }, (_, i) => {
+        const a = (i / 10) * Math.PI * 2;
+        const x = 52 + 42 * Math.cos(a);
+        const y = 46 + 34 * Math.sin(a);
+        return <circle key={i} cx={x.toFixed(1)} cy={y.toFixed(1)} r="1.3" fill={ink.glow} opacity="0.5" />;
+      })}
+    </g>
+  );
+}
+
+/**
+ * علامة الخاصية فوق الجسد: الشكل يقول ما يفعله الوحش قبل قراءة كلمة —
+ * «اندفاع» خطوطُ سرعة، «حراسة» درعٌ على الصدر، «امتصاص» خيوطٌ حمراء
+ * تُسحب إليه، «سُمّ» قطراتٌ خضراء تتساقط منه.
+ */
+function AbilityMark({ ink }: { ink: Ink }) {
+  const { glow, deep } = ink;
+  switch (ink.ability) {
+    case 'rush':
+      return (
+        <g stroke={glow} strokeLinecap="round" opacity="0.8">
+          <path d="M2 38 L18 38" strokeWidth="2.4" />
+          <path d="M0 48 L22 48" strokeWidth="3" />
+          <path d="M4 58 L16 58" strokeWidth="2" />
+        </g>
+      );
+    case 'charge':
+      return (
+        <g fill="#fde047" opacity="0.95">
+          <path d="M10 10 L16 10 L12 18 L18 18 L8 30 L11 20 L6 20 Z" />
+          <path d="M92 58 L98 58 L94 66 L100 66 L90 78 L93 68 L88 68 Z" />
+        </g>
+      );
+    case 'guard':
+      return (
+        <g>
+          <path d="M44 44 L60 44 L60 54 Q60 62 52 66 Q44 62 44 54 Z" fill={deep} stroke={glow} strokeWidth="2" />
+          <path d="M52 47 L52 62 M46.5 52 L57.5 52" stroke={glow} strokeWidth="1.6" />
+        </g>
+      );
+    case 'pierce':
+      return (
+        <g>
+          <path d="M22 44 L4 6 L28 38 Z" fill="#e2e8f0" />
+          <path d="M22 44 L4 6" stroke={glow} strokeWidth="1.2" />
+        </g>
+      );
+    case 'drain':
+      return (
+        <g stroke="#f43f5e" fill="none" strokeLinecap="round" opacity="0.85">
+          <path d="M104 12 Q86 16 80 30" strokeWidth="2" />
+          <path d="M104 30 Q92 30 84 38" strokeWidth="1.6" />
+          <path d="M100 50 Q90 44 84 42" strokeWidth="1.4" />
+          <circle cx="96" cy="14" r="1.8" fill="#f43f5e" />
+          <circle cx="98" cy="31" r="1.4" fill="#f43f5e" />
+        </g>
+      );
+    case 'link':
+      return (
+        <g fill="none" stroke={glow} strokeWidth="2" opacity="0.75">
+          <ellipse cx="52" cy="82" rx="30" ry="5" strokeDasharray="6 4" />
+        </g>
+      );
+    case 'scout':
+      return (
+        <g>
+          <ellipse cx="14" cy="14" rx="8" ry="5" fill="#04050a" stroke={glow} strokeWidth="1.5" />
+          <circle cx="14" cy="14" r="2.6" fill={glow} />
+        </g>
+      );
+    case 'venom':
+      return (
+        <g fill="#a3e635">
+          {[
+            [30, 72],
+            [52, 76],
+            [74, 70],
+          ].map(([x, y]) => (
+            <path key={x} d={`M${x} ${y} q2.6 4 0 6.4 a3 3 0 0 1 -3 -3 q0 -1.6 3 -3.4 Z`} opacity="0.9" />
+          ))}
+          <circle cx="40" cy="82" r="1.6" opacity="0.7" />
+          <circle cx="64" cy="84" r="1.2" opacity="0.6" />
+        </g>
+      );
+    default:
+      return null;
+  }
+}
+
+/** الوحش كاملاً: هالة التطوّر خلفه، ثم جسده، ثم علامة خاصيته فوقه */
+function framed(Body: (p: { ink: Ink }) => React.JSX.Element, ink: Ink) {
+  return (
+    <g>
+      {ink.evolved && <EvolvedAura ink={ink} />}
+      <Body ink={ink} />
+      <AbilityMark ink={ink} />
+    </g>
+  );
+}
+
+function BeastArt({ ink }: { ink: Ink }) {
+  return framed(Beast, ink);
+}
+function SerpentArt({ ink }: { ink: Ink }) {
+  return framed(Serpent, ink);
+}
+function AvianArt({ ink }: { ink: Ink }) {
+  return framed(Avian, ink);
+}
+function OrbArt({ ink }: { ink: Ink }) {
+  return framed(Orb, ink);
+}
+function GolemArt({ ink }: { ink: Ink }) {
+  return framed(Golem, ink);
+}
+function WraithArt({ ink }: { ink: Ink }) {
+  return framed(Wraith, ink);
+}
+
 const BODY: Record<Archetype, (p: { ink: Ink }) => React.JSX.Element> = {
-  beast: Beast,
-  serpent: Serpent,
-  avian: Avian,
-  orb: Orb,
-  golem: Golem,
-  wraith: Wraith,
+  beast: BeastArt,
+  serpent: SerpentArt,
+  avian: AvianArt,
+  orb: OrbArt,
+  golem: GolemArt,
+  wraith: WraithArt,
 };
 
 // ===================== الكروت غير الوحوش =====================
@@ -1022,7 +1239,7 @@ export default function CardArt({ card, className }: { card: CardDef; className?
 
   const pal = PALETTE[card.element];
   const seed = hash(card.species ?? card.id);
-  const ink: Ink = { ...pal, evolved: card.stage === 2, seed };
+  const ink: Ink = { ...pal, evolved: card.stage === 2, seed, ability: card.ability };
   const gid = `art-${card.id}`;
 
   let body: React.JSX.Element;
