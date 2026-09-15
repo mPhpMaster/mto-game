@@ -445,7 +445,11 @@ export function aiChooseAction(s: GameState): GameAction {
   const atk = chooseAttack(s, side);
   if (atk) return atk;
 
-  // 5) كروت تُنهي الدور (تخطي / سحب / انعكاس) كحركة أخيرة
+  // 5) السحب الإضافي مجانيّ فلا سبب لتركه. يسبق كروت إنهاء الدور لأنها
+  // تُنهيه قبل أن يُسحب، ويسبق الإنهاء لأن الكارت المسحوب قد يُلعب فوراً.
+  if (!me.extraDrawUsed) return { type: 'DRAW' };
+
+  // 6) كروت تُنهي الدور (تخطي / سحب / انعكاس) كحركة أخيرة
   const ending = playable
     .filter((x) => isTurnEnding(x.d))
     .map((x) => ({ ...x, score: scoreCard(s, side, x.d) }))
@@ -459,9 +463,6 @@ export function aiChooseAction(s: GameState): GameAction {
       chosenElement: pick.d.element === 'wild' ? bestElement(s, side) : undefined,
     };
   }
-
-  // 6) سحب إنقاذ
-  if (!me.extraDrawUsed && !hasAnyPlayable(s, side)) return { type: 'DRAW' };
 
   return { type: 'END_TURN' };
 }

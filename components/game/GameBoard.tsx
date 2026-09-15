@@ -20,7 +20,6 @@ import {
   canSummonTitan,
   createGame,
   evaluateAttack,
-  hasAnyPlayable,
   isPerfectMatch,
   matchesFlow,
 } from '@/lib/game/engine';
@@ -585,8 +584,11 @@ export default function GameBoard({
    * اليد مرتّبة بالقابل للعب أولاً، فالبداية هي أهمّ ما تحتاج رؤيته —
    * ولو بقي الشريط حيث تركته لبدأ الدور على كارت لا يعنيك.
    */
+  /** لحظة بداية دورك — يُستعمل ليُسكِت تمرير «الكارت الجديد» في اللحظة نفسها */
+  const turnStartAt = useRef(0);
   useEffect(() => {
     if (!myTurn) return;
+    turnStartAt.current = Date.now();
     const scroller = handArea.current?.querySelector(
       '[data-hand-scroller]'
     );
@@ -603,7 +605,15 @@ export default function GameBoard({
     const node = handArea.current?.querySelector<HTMLElement>(
       '[data-hand-scroller] [data-fresh="1"]'
     );
-    node?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    /*
+      في بداية الدور يُسحب كارتٌ جديد، وكان هذا التمرير يلحق به فيسحب اليد
+      نحو اليسار — إلى آخرها حيث يقع الكارت المسحوب — بعد أن أعادها المؤثّر
+      السابق إلى أوّلها يميناً. فيبدأ الدور على الكروت الموقوفة لا القابلة
+      للعب. عند بداية الدور يكفي الإبراز، ويبقى الشريط على أوّله.
+    */
+    if (Date.now() - turnStartAt.current > 1200) {
+      node?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+    }
     const timer = window.setTimeout(() => setFreshUids([]), 2200);
     return () => window.clearTimeout(timer);
     // freshKey يمثّل المجموعة نفسها بصورة قابلة للمقارنة
@@ -616,8 +626,8 @@ export default function GameBoard({
   );
 
   const titanCheck = canSummonTitan(game, ME);
-  const canRescueDraw =
-    canAct && game.phase === 'main' && !me.extraDrawUsed && !hasAnyPlayable(game, ME);
+  // مرة كل دور، سواءٌ أكان في اليد ما يُلعب أم لا
+  const canRescueDraw = canAct && game.phase === 'main' && !me.extraDrawUsed;
 
   const discardMonsters = useMemo(
     () => game.discard.filter((c) => def(c.defId).kind === 'monster'),

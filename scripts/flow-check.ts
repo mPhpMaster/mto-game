@@ -8,7 +8,7 @@
  *   npm run check:flow
  */
 import { CATALOG } from '../lib/game/cards';
-import { isPerfectMatch, matchesFlow } from '../lib/game/engine';
+import { applyGameAction, createGame, hasAnyPlayable, isPerfectMatch, matchesFlow } from '../lib/game/engine';
 import type { CardDef, Element, GameState } from '../lib/game/types';
 
 let failures = 0;
@@ -39,6 +39,25 @@ expect('💧5 ليست تامّة', isPerfectMatch(card('water', 5), flow), fals
 expect('كارتٌ بلا رقم لا يكون تامّاً', isPerfectMatch(card('fire', null), flow), false);
 const wild = CATALOG.find((c) => c.element === 'wild');
 if (wild) expect('البري يتخطّى المطابقة ولا يُعدّ تامّاً', isPerfectMatch({ ...wild, number: 5 }, flow), false);
+
+console.log('\nالسحب الإضافي — مرة كل دور حتى مع وجود كارت قابل للعب:\n');
+{
+  let s = createGame({ seed: 20260916, firstPlayer: 0 });
+  // دورٌ لصاحبه كارتٌ قابل للعب: هذه هي الحالة التي كان السحب ممنوعاً فيها
+  for (let i = 0; i < 30 && !(s.phase === 'main' && hasAnyPlayable(s, s.current)); i++) {
+    s = applyGameAction(s, { type: 'END_TURN' });
+  }
+  const side = s.current;
+  const before = s.players[side].hand.length;
+  expect('في يده كارتٌ قابل للعب', hasAnyPlayable(s, side), true);
+  const once = applyGameAction(s, { type: 'DRAW' });
+  expect('يسحب كارتاً رغم ذلك', once.players[side].hand.length === before + 1, true);
+  expect('السحب لا يُنهي الدور', once.current === side, true);
+  const twice = applyGameAction(once, { type: 'DRAW' });
+  expect('لا سحب ثانٍ في الدور نفسه', twice.players[side].hand.length === before + 1, true);
+  const next = applyGameAction(applyGameAction(twice, { type: 'END_TURN' }), { type: 'END_TURN' });
+  expect('يعود السحب متاحاً في دوره التالي', next.current === side && !next.players[side].extraDrawUsed, true);
+}
 
 console.log(failures === 0 ? '\n✓ القانون كما وُصف.' : `\n✗ ${failures} مخالفة للقانون.`);
 process.exit(failures > 0 ? 1 : 0);

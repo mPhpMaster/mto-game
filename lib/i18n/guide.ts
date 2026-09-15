@@ -211,7 +211,7 @@ export const GUIDE: GuideSection[] = [
       { ar: 'خاصية «شحن» تعطيك +1 طاقة **فوق السقف** كل دور — وحش شحن مبكّر يساوي دوراً كاملاً لاحقاً.', en: 'The Charge ability gives +1 energy **above the cap** every turn — an early Charge monster is worth a whole turn later.' },
       { ar: '«حراسة» تقلّل كل ضربة بمقدار 1، فهي قاتلة أمام الضربات الصغيرة المتكرّرة وعديمة الأثر أمام ضربة مجمّعة واحدة.', en: 'Guard reduces every hit by 1 — brutal against many small strikes, useless against one big merged strike.' },
       { ar: '«اختراق» يمرّر الضرر الزائد إلى حياة الخصم مباشرة، فلا يضيع منه شيء.', en: 'Pierce passes excess damage straight to the opponent’s life — nothing is wasted.' },
-      { ar: 'إن لم يكن لديك كارت قابل للعب، يصبح زر «اسحب كارتاً» متاحاً — مرة واحدة في الدور.', en: 'If nothing is playable, the “Draw a card” button unlocks — once per turn.' },
+      { ar: 'زر «اسحب كارتاً» متاح مرة واحدة في كل دور، حتى لو كان في يدك ما يُلعب — والسحب لا يُنهي دورك.', en: 'The “Draw a card” button works once every turn, even when you hold something playable — and drawing does not end your turn.' },
     ],
     secret: {
       ar: 'السرّ الأخير: لا تستدعِ وحوشك واحداً واحداً كلّما استطعت. الوحش الوحيد على الساحة يُقتَل بسهولة، أما وحشان يُستدعيان في دور واحد فيصبحان في الدور التالي هجوماً مشتركاً يقصم الظهر. اصبر دوراً — الصبر في هذه اللعبة يُقاس بالضرر.',

@@ -1807,9 +1807,14 @@ export function applyGameAction(state: GameState, action: GameAction): GameState
       break;
 
     case 'DRAW': {
-      // سحب إنقاذ: مرة واحدة في الدور وفقط عند تعذّر لعب أي كارت
+      /*
+        سحبٌ إضافي مرة واحدة في كل دور — **حتى لو كان في اليد ما يُلعب**.
+        كان مشروطاً بتعذّر اللعب، فصار زرّاً لا يُرى إلا في الأدوار الميتة،
+        ويُعاقَب اللاعب الذي يملك خياراً واحداً ضعيفاً بحرمانه من البحث عن
+        أفضل منه. السحب لا يُنهي الدور.
+      */
       if (s.phase !== 'main') break;
-      if (p.extraDrawUsed || hasAnyPlayable(s, side)) break;
+      if (p.extraDrawUsed) break;
       p.extraDrawUsed = true;
       drawCards(s, side, 1);
       break;
