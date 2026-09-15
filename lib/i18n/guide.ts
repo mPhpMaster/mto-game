@@ -28,7 +28,7 @@ export const GUIDE: GuideSection[] = [
       },
     ],
     points: [
-      { ar: 'الإطار الأخضر في يدك = مطابق وطاقتك تكفيه.', en: 'A green outline in your hand = it matches and you can afford it.' },
+      { ar: 'الكارت المتوهّج بلون عنصره في يدك = مطابق وطاقتك تكفيه، ووسم ⭐ «تامّة» = يطابق العنصر والرقم معاً (وسمٌ بلا مكافأة).', en: 'A card glowing in its element colour = it matches and you can afford it; a ⭐ Perfect tag = it matches element and number at once (a tag, no bonus).' },
       { ar: 'الكارت الباهت = لا يطابق، أو الطاقة لا تكفي (حرّك المؤشّر فوقه ليخبرك السبب).', en: 'A dimmed card = no match, or not enough energy (hover it and it tells you which).' },
       { ar: 'الفخاخ وقطع الوحش الأعظم **لا تحتاج مطابقة إطلاقاً** — وهي مخرجك حين تُسدّ عليك الطرق.', en: 'Traps and Titan fragments **need no match at all** — your escape hatch when everything is blocked.' },
     ],
@@ -43,8 +43,8 @@ export const GUIDE: GuideSection[] = [
     title: { ar: 'العنصر الفعّال — والكروت البرية', en: 'The active element — and wild cards' },
     body: [
       {
-        ar: 'العنصر الفعّال هو عنصر أعلى الطابور، ويظهر في مربّع كبير في وسط اللوحة. لا يوجد «عنصر يتفوّق على عنصر» في هذه اللعبة — العناصر ليست حجراً ورقةً مقصاً، بل **مفاتيح**: العنصر يقرّر من يستطيع اللعب، لا من يُلحق ضرراً أكبر.',
-        en: 'The active element is the element on top of the pile, shown in the large box in the middle. There is no elemental advantage table here — elements are not rock-paper-scissors, they are **keys**: the element decides who can play, not who hits harder.',
+        ar: 'العنصر الفعّال هو عنصر أعلى الطابور، ويظهر في شارة «التدفق» أعلى الشاشة وعلى بلاطة وسط الساحة. لا يوجد «عنصر يتفوّق على عنصر» في هذه اللعبة — العناصر ليست حجراً ورقةً مقصاً، بل **مفاتيح**: العنصر يقرّر من يستطيع اللعب، لا من يُلحق ضرراً أكبر.',
+        en: 'The active element is the element on top of the pile, shown in the Flow badge at the top and on the centre tile of the arena. There is no elemental advantage table here — elements are not rock-paper-scissors, they are **keys**: the element decides who can play, not who hits harder.',
       },
       {
         ar: 'الكارت البري (🌈) يطابق أي شيء، وحين تلعبه **تختار أنت** العنصر الفعّال الجديد. هذا أقوى مما يبدو: يمكنك فتح الطريق لنفسك وإغلاقه على خصمك بحركة واحدة.',
@@ -82,6 +82,7 @@ export const GUIDE: GuideSection[] = [
       { ar: 'الضرر = مجموع هجوم الوحوش + 2 لكل وحش إضافي. ثلاثة وحوش بـ4 هجوم = 12 + 4 = 16.', en: 'Damage = sum of attack + 2 per extra monster. Three 4-attack monsters = 12 + 4 = 16.' },
       { ar: 'مرة واحدة في الدور فقط. والوحوش المشاركة كلّها تصبح مُنهكة.', en: 'Once per turn only. Every participating monster becomes exhausted.' },
       { ar: 'الوحش المكتوب عليه «جديد» لا يشارك — إلا إن كان يحمل «اندفاع».', en: 'A monster marked “New” cannot join — unless it has **Rush**.' },
+      { ar: 'قبل أن تضرب: الأهداف الصالحة تتوهّج بالأحمر وفوقها الضرر المتوقّع (💀 إن كان قاتلاً)، وتبهت بعلامة ✕ إن كان الدمج غير صالح — فلا تكتشف الخطأ بعد النقر.', en: 'Before you strike: valid targets glow red with the expected damage above them (💀 if lethal), and grey out with an ✕ if the combo is invalid — so you never find out after the tap.' },
       { ar: 'كارت «تضخيم» يضاعف الهجوم المشترك القادم في نفس الدور.', en: 'The **Amplify** spell doubles your next combo attack that turn.' },
       { ar: 'سقف الساحة 6 وحوش — فالتشكيلة الكبيرة للدمج لم تعد تُقطَع عند الرابع.', en: 'The field holds 6 monsters — a wide combo line is no longer cut off at four.' },
     ],
@@ -147,6 +148,53 @@ export const GUIDE: GuideSection[] = [
     secret: {
       ar: 'السرّ: إن رأيت عدّاد خصمك يبلغ 3/4، فجهّز «تحطيم الأثر» فوراً — هي طريقتك الوحيدة لإيقافه. وبالمقابل: إن بلغتَ 4 قطع فلا تستدعِ الوحش وطاقتك 6 بالضبط، انتظر دوراً حتى تملك فائضاً؛ فلو انفجر عليك فخّ سرقة طاقة ضاعت الفرصة كلها.',
       en: 'Secret: if their counter hits 3/4, set Relic Break immediately — it is your only way to stop them. Conversely: once you hold all four, don’t summon on exactly 6 energy. Wait a turn for a surplus; if an Energy Siphon fires first, the whole plan evaporates.',
+    },
+  },
+  {
+    id: 'prep',
+    icon: '⚙️',
+    title: { ar: 'التحضير: التجهيزات والطقس', en: 'Preparation: gear and weather' },
+    body: [
+      {
+        ar: 'زر «⚙ التحضير» في دورك يفتح لوحتين: **التجهيزات** و**الطقس**. كلاهما يُدفع من طاقة الدور نفسها، فالتحضير ليس مجانياً: كل نقطة تنفقها هنا نقطةٌ لم تلعب بها كارتاً.',
+        en: 'The ⚙ Prepare button on your turn opens two panels: **gear** and **weather**. Both are paid from that turn’s energy, so preparation is never free: every point spent here is a point not spent on a card.',
+      },
+      {
+        ar: 'التجهيزة تُركَّب على **وحشٍ واحد** وتبقى معه ما دام حيّاً. أما الطقس فهو **أثرٌ واحد على الساحة كلّها** يصيب الطرفين — فالعاصفة التي تقوّي كهرباءك تقوّي كهرباء خصمك أيضاً.',
+        en: 'Gear attaches to **one monster** and stays with it while it lives. Weather is **a single effect across the whole arena** and hits both sides — the storm that powers your Electric monsters powers your opponent’s too.',
+      },
+    ],
+    points: [
+      { ar: 'درع الصخر يقلّل كل ضربة، ونصل البرق للكهرباء وحدها ويخترق، وتميمة الشفاء ترمّم كل دور، وجوهرة السرعة تُهاجم فوراً.', en: 'Rock Shield trims every hit, Lightning Blade (Electric only) adds attack and pierces, Healing Amulet heals every turn, Speed Jewel lets a new monster attack at once.' },
+      { ar: 'العاصفة ترفع هجوم الكهرباء، والمطر الحمضي يؤذي كل الوحوش ويضاعف السم، والضباب يُضيع بعض الضربات.', en: 'Thunderstorm boosts Electric attacks, Acid Rain hurts every monster and doubles poison, Heavy Fog makes some strikes miss.' },
+      { ar: 'الدروع لا تحمي من المطر الحمضي ولا من السم: هما ضررٌ يصيب الجسد لا الضربة.', en: 'Armour does not stop acid rain or poison: they wear down the body, not a strike.' },
+    ],
+    secret: {
+      ar: 'السرّ: الطقس سلاحٌ ذو حدّين، فلا تفعّله إلا حين تكون ساحتك أكثر استفادةً منه من ساحة خصمك. وإن فعّل الخصم طقساً يخدمه، فإزاحته بطاقة واحدة أرخص غالباً من محاربته دوراً كاملاً.',
+      en: 'Secret: weather cuts both ways — only call it when your field gains more from it than your opponent’s. And if they call weather that serves them, dispelling it for one energy is usually cheaper than fighting it for a whole turn.',
+    },
+  },
+  {
+    id: 'passives',
+    icon: '🧬',
+    title: { ar: 'قدرات الطُّرُز — ما يفعله الوحش دون أن تطلب', en: 'Archetype passives — what a monster does unasked' },
+    body: [
+      {
+        ar: 'لكل وحش **طراز** يُعرف من شكله، ولكل طراز قدرةٌ تعمل دائماً دون تفعيل ولا تكلفة. القدرة تُورَّث: الفصائل الخمس من الطراز نفسه تحملها كلّها.',
+        en: 'Every monster has an **archetype** you can tell from its shape, and each archetype has a passive that is always on, with no activation and no cost. It is inherited: every species of that archetype carries it.',
+      },
+    ],
+    points: [
+      { ar: 'العملاق — درع حراري: يردّ نقطة ضرر على كل من يهاجمه.', en: 'Golem — Thermal Shield: reflects 1 damage onto anything that attacks it.' },
+      { ar: 'الأفعى — أثر سام: يسمّم من يضربه.', en: 'Serpent — Venom Trail: poisons what it strikes.' },
+      { ar: 'الكرة — حلقة امتصاص: تمتصّ أول ضرر من سحرٍ أو طقس.', en: 'Orb — Absorb Ring: soaks the first damage from a spell or weather.' },
+      { ar: 'الوحش — صاعقة خارقة: تتجاهل نصف درع الهدف.', en: 'Beast — Surge Strike: ignores half of the target’s armour.' },
+      { ar: 'الطائر — تفادٍ هوائي: فرصةٌ لتفادي الضربة كلّها.', en: 'Avian — Air Dodge: a chance to evade a strike entirely.' },
+      { ar: 'الشبح — عودة الطيف: ينجو مرّة من ضربةٍ قاتلة.', en: 'Wraith — Spectral Return: survives one killing blow.' },
+    ],
+    secret: {
+      ar: 'السرّ: اضغط مطوّلاً على وحوش خصمك قبل أن تهاجم. ضرب عملاقٍ بوحوشٍ ضعيفة الحياة يُهلكها بدرعه الحراري، والضربة القاضية على شبحٍ لم يستعمل عودته تذهب هدراً.',
+      en: 'Secret: hold your opponent’s monsters before you attack. Hitting a Golem with fragile attackers burns them on its thermal shield, and a killing blow on a Wraith that still has its return is wasted.',
     },
   },
   {

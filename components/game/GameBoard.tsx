@@ -1500,32 +1500,16 @@ export default function GameBoard({
       {showHelp && (
         <Modal title={t('howToPlay')} onClose={() => setShowHelp(false)}>
           <div className="thin-scroll max-h-[70vh] space-y-3 overflow-y-auto text-[13px] leading-relaxed">
-            <HelpRow icon="🎨" title={t('help1')}>
-              انظر «العنصر الفعّال» و«الرقم» في وسط اللوحة. أي كارت تلعبه يجب أن يطابق أحدهما.
-              الكروت ذات الإطار الأخضر في يدك هي القابلة للعب الآن، والباهتة غير مطابقة أو طاقتك
-              لا تكفيها. الفخاخ وقطع الوحش استثناء: تُوضع دون مطابقة.
-            </HelpRow>
-            <HelpRow icon="⚡" title={t('help2')}>
-              الرقم في الدائرة أعلى الكارت هو تكلفته. سقف الطاقة يرتفع +1 كل دور، فالكروت
-              القوية تصبح متاحة تدريجياً.
-            </HelpRow>
-            <HelpRow icon="🐾" title={t('help3')}>
-              {t('help3Body', { field: RULES.MAX_FIELD })}
-            </HelpRow>
-            <HelpRow icon="💥" title={t('help4')}>
-              حدّد وحشين أو أكثر يشتركان في العنصر أو الرقم (أو أحدهما بخاصية «رابط») لتضربهما
-              معاً بمكافأة +{RULES.COMBO_BONUS_PER_EXTRA} لكل وحش إضافي. مرة واحدة كل دور.
-            </HelpRow>
-            <HelpRow icon="🎯" title={t('help5')}>
-              حين يلعب الخصم «اسحب كرتين»، إمّا أن تردّ بكارت سحب مطابق فتتضاعف العقوبة وتنتقل
-              إليه، وإمّا أن تقبل فتسحب وتفقد دورك.
-            </HelpRow>
-            <HelpRow icon="🗿" title={t('help6')}>
-              اجمع قطع الوحش الأعظم الأربع وادفع {TITAN.cost} طاقة → فوز فوري.
-            </HelpRow>
-            <HelpRow icon="🚫" title={t('helpStuck')}>
-              إن لم يكن لديك أي كارت قابل للعب، يصبح زر «اسحب كارتاً» متاحاً — مرة واحدة في الدور.
-            </HelpRow>
+            {/* النصوص من ui.ts لا مكتوبةً هنا: كانت عربيةً ثابتة فتظهر بالعربية للاعبٍ اختار الإنجليزية */}
+            <HelpRow icon="🎨" title={t('help1')}>{t('help1Body')}</HelpRow>
+            <HelpRow icon="⚡" title={t('help2')}>{t('help2Body')}</HelpRow>
+            <HelpRow icon="🐾" title={t('help3')}>{t('help3Body', { field: RULES.MAX_FIELD })}</HelpRow>
+            <HelpRow icon="💥" title={t('help4')}>{t('help4Body', { bonus: RULES.COMBO_BONUS_PER_EXTRA })}</HelpRow>
+            <HelpRow icon="🎯" title={t('help5')}>{t('help5Body')}</HelpRow>
+            <HelpRow icon="🗿" title={t('help6')}>{t('help6Body', { cost: TITAN.cost })}</HelpRow>
+            <HelpRow icon="⚙" title={t('help7')}>{t('help7Body')}</HelpRow>
+            <HelpRow icon="👁" title={t('help8')}>{t('help8Body')}</HelpRow>
+            <HelpRow icon="🚫" title={t('helpStuck')}>{t('helpStuckBody')}</HelpRow>
           </div>
           <div className="mt-4 flex gap-2">
             <Link

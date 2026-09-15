@@ -71,8 +71,8 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     title: { ar: 'القاعدة الأهم: المطابقة', en: 'The key rule: matching' },
     body: {
-      ar: 'طابور التدفق الآن 🔥 نار · رقم 1. لا يمكنك لعب كارت إلا إذا طابَق العنصر أو الرقم. لهذا ترى «لهيبو» و«ناريكس» بإطار أخضر (كلاهما نار)، بينما «تسونا» باهت لأنه ماء ورقمه 2 — لا العنصر ولا الرقم يطابق.',
-      en: 'The flow pile is 🔥 Fire · number 1. You can only play a card that matches the element or the number. That’s why Blazlet and Narix have green outlines (both Fire), while Tsuna is dimmed — it’s Water with number 2, so neither matches.',
+      ar: 'طابور التدفق الآن 🔥 نار · رقم 1. لا يمكنك لعب كارت إلا إذا طابَق العنصر أو الرقم. لهذا ترى «لهيبو» و«ناريكس» متوهّجين بلون عنصرهما (كلاهما نار)، بينما «تسونا» باهت لأنه ماء ورقمه 2 — لا العنصر ولا الرقم يطابق.',
+      en: 'The flow pile is 🔥 Fire · number 1. You can only play a card that matches the element or the number. That’s why Blazlet and Narix glow in their element colour (both Fire), while Tsuna is dimmed — it’s Water with number 2, so neither matches.',
     },
     focus: 'flow',
     manual: true,

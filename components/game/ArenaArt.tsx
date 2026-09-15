@@ -5,6 +5,7 @@ import { archetypeOf } from '@/lib/game/archetypes';
 import { TITAN, def } from '@/lib/game/cards';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
 import { ARCHETYPE_BODY, ART_PALETTE, artSeed, type Ink } from './CardArt';
+import { artPathOf } from '@/lib/game/artManifest';
 import { SunsetRuins } from './LoadoutArt';
 
 /**
@@ -18,9 +19,30 @@ import { SunsetRuins } from './LoadoutArt';
 
 // ===================== المجسّم =====================
 
-/** مجسّم الوحش — نفس أشكال البطاقة، فالشكل هويةٌ واحدة في اليد وعلى الأرض */
+/**
+ * قناعٌ يُذيب خلفية الرسم المُصوَّر. الصور مقصوصة من لوحاتٍ لها أرضيّاتها
+ * الملوّنة، ومربّعٌ بخلفيته فوق البلاطة يبدو كارتاً ملقى لا مخلوقاً واقفاً.
+ */
+const EFFIGY_MASK = 'radial-gradient(ellipse 56% 60% at 50% 48%, #000 52%, transparent 78%)';
+
+/** مجسّم الوحش — نفس رسم البطاقة، فالشكل هويةٌ واحدة في اليد وعلى الأرض */
 export function Effigy({ m, className }: { m: FieldMonster; className?: string }) {
   const d = def(m.defId);
+  const art = artPathOf(d.id);
+  if (art) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element -- ملفّ محلّي بمقاس ثابت، لا يحتاج مُحسّن الصور
+      <img
+        src={art}
+        alt=""
+        aria-hidden
+        draggable={false}
+        decoding="async"
+        className={`aspect-square object-cover object-[50%_42%] drop-shadow-[0_8px_16px_rgba(0,0,0,0.55)] ${className ?? ''}`}
+        style={{ maskImage: EFFIGY_MASK, WebkitMaskImage: EFFIGY_MASK }}
+      />
+    );
+  }
   const arch = archetypeOf(d.species) ?? 'beast';
   const Body = ARCHETYPE_BODY[arch];
   const pal = ART_PALETTE[d.element];

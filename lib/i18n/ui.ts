@@ -161,13 +161,13 @@ export const UI = {
     en: 'Your set trap — click to close so it does not stay revealed.',
   },
   yourHand: { ar: 'يدك ({n})', en: 'Your hand ({n})' },
-  greenPlayable: { ar: 'الأخضر = قابل للعب الآن', en: 'Green = playable now' },
+  greenPlayable: { ar: 'المتوهّج = قابل للعب الآن', en: 'Glowing = playable now' },
   finishTargeting: { ar: 'أكمل اختيار الهدف أولاً', en: 'Finish choosing a target first' },
   emptyHand: { ar: 'يدك فارغة.', en: 'Your hand is empty.' },
   sortedHint: { ar: 'القابل للعب أعلى — والباقي صغير أسفل', en: 'Playable on top — the rest small below' },
   sortedHintMobile: {
-    ar: 'الأصفر = قابل للعب — والقفل يفصل الباقي',
-    en: 'Yellow = playable — the lock splits the rest',
+    ar: 'المتوهّج = قابل للعب — والقفل يفصل الباقي',
+    en: 'Glowing = playable — the lock splits the rest',
   },
   unplayableRow: { ar: 'غير قابلة للعب', en: 'Not playable' },
 
@@ -220,8 +220,8 @@ export const UI = {
   // --- المرجع السريع ---
   help1: { ar: '1 · طابِق قبل أن تلعب', en: '1 · Match before you play' },
   help1Body: {
-    ar: 'انظر «العنصر الفعّال» و«الرقم» في وسط اللوحة. أي كارت تلعبه يجب أن يطابق أحدهما. الكروت ذات الإطار الأخضر في يدك هي القابلة للعب الآن، والباهتة غير مطابقة أو طاقتك لا تكفيها. الفخاخ وقطع الوحش استثناء: تُوضع دون مطابقة.',
-    en: 'Look at the active element and number in the middle of the board. Any card you play must match one of them. Green-outlined cards in your hand are playable now; dimmed ones either don’t match or cost more energy than you have. Traps and Titan fragments are the exception: no matching required.',
+    ar: 'انظر «التدفق» أعلى الشاشة وعلى بلاطة وسط الساحة: عنصرٌ ورقم. أي كارت تلعبه يجب أن يطابق العنصر أو الرقم. الكروت القابلة للعب الآن تتوهّج بلون عنصرها، والباهتة لا تطابق أو طاقتك لا تكفيها. ووسم ⭐ «تامّة» يعني أن الكارت يطابق الاثنين معاً. الفخاخ وقطع الوحش استثناء: تُوضع دون مطابقة.',
+    en: 'Check the Flow at the top of the screen and on the centre tile: an element and a number. Any card you play must match the element or the number. Cards you can play right now glow in their element colour; dimmed ones don’t match or cost more energy than you have. A ⭐ Perfect tag means the card matches both. Traps and Titan fragments are the exception: no match needed.',
   },
   help2: { ar: '2 · أدِر طاقتك', en: '2 · Manage your energy' },
   help2Body: {
@@ -230,8 +230,8 @@ export const UI = {
   },
   help3: { ar: '3 · استدعِ ثم هاجم', en: '3 · Summon, then attack' },
   help3Body: {
-    ar: 'يمكنك إنزال حتى {field} وحوش على الساحة. الوحش المكتوب عليه «جديد» لا يهاجم في دور استدعائه إلا بخاصية «اندفاع». للهجوم: اضغط وحشك (سيظهر الضرر المتوقّع) ثم اضغط وحش الخصم. الهجوم المباشر على اللاعب متاح فقط حين تخلو ساحته من الوحوش.',
-    en: 'You can have up to {field} monsters on the field. A monster marked “New” cannot attack the turn it was summoned unless it has Rush. To attack: tap your monster (the expected damage appears), then tap an enemy monster. Attacking the player directly is only possible when their field is empty.',
+    ar: 'يمكنك إنزال حتى {field} وحوش على الساحة. فوق كل وحش شارة حالته: ⚔ جاهز، 💤 مُنهك، ⏳ جديد (لا يهاجم في دور استدعائه إلا بخاصية «اندفاع»). للهجوم اضغط وحشك، فتتوهّج الأهداف الصالحة بالأحمر وفوقها الضرر المتوقّع (💀 إن كان قاتلاً)، ثم اضغط الهدف. الهجوم المباشر على اللاعب متاح فقط حين تخلو ساحته.',
+    en: 'You can have up to {field} monsters on the field. Each shows a status badge: ⚔ ready, 💤 exhausted, ⏳ new (it cannot attack the turn it was summoned unless it has Rush). To attack, tap your monster: valid targets glow red with the expected damage above them (💀 if lethal) — then tap one. You can hit the player directly only when their field is empty.',
   },
   help4: { ar: '4 · ادمج الهجمات', en: '4 · Combine attacks' },
   help4Body: {
@@ -247,6 +247,16 @@ export const UI = {
   help6Body: {
     ar: 'اجمع قطع الوحش الأعظم الأربع وادفع {cost} طاقة → فوز فوري.',
     en: 'Collect the four Titan fragments and pay {cost} energy → instant win.',
+  },
+  help7: { ar: '7 · التحضير والطقس', en: '7 · Preparation and weather' },
+  help7Body: {
+    ar: 'زر «⚙ التحضير» في دورك يفتح التجهيزات والطقس. التجهيزة تُركَّب على وحش واحد وتبقى معه (درع، نصل، تميمة، جوهرة)، والطقس أثرٌ واحد على الساحة كلّها يصيب الطرفين. وكلاهما يُدفع من طاقة الدور نفسها — فما تنفقه هنا لا تلعب به كروتاً.',
+    en: 'The ⚙ Prepare button on your turn opens gear and weather. Gear attaches to one monster and stays with it (shield, blade, amulet, jewel); weather is a single effect across the whole arena and hits both sides. Both are paid from the same turn’s energy — what you spend here is not spent on cards.',
+  },
+  help8: { ar: '8 · قدرات الطُّرُز', en: '8 · Archetype passives' },
+  help8Body: {
+    ar: 'لكل وحش قدرةٌ من طرازه تعمل دائماً دون تفعيل: درع حراري يردّ الضرر، أثر سام، حلقة امتصاص للسحر والطقس، صاعقة خارقة تتجاهل نصف الدرع، تفادٍ هوائي، وعودة الطيف. اضغط مطوّلاً على أي وحش لترى قدرته وخاصيته وتجهيزاته.',
+    en: 'Every monster has a passive from its archetype that is always on: a thermal shield that reflects damage, a venom trail, an absorb ring against spells and weather, a surge strike that ignores half of armour, an air dodge, and a spectral return. Hold any monster to see its passive, ability and gear.',
   },
   helpStuck: { ar: 'عالق؟', en: 'Stuck?' },
   helpStuckBody: {
