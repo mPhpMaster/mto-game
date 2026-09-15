@@ -86,7 +86,7 @@ const EL_AR: Record<PlayableElement, string> = {
   water: 'ماء',
   grass: 'عشب',
   electric: 'كهرباء',
-  psychic: 'نفسي',
+  psychic: 'ريح',
   dark: 'ظلام',
 };
 

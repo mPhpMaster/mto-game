@@ -9,6 +9,13 @@ import type {
   TrapTiming,
 } from './types';
 
+/**
+ * مفتاح `psychic` مفتاحُ تخزينٍ لا اسمٌ معروض: هوية العنصر صارت «ريح».
+ * لم يُعَد تسميته لأنه جزءٌ من هوية كل بطاقة (`mon_psychic_taifa_1`)، وهذه
+ * الهويات مفاتيحُ صفوفٍ في `profile_card_stats` وقيمةٌ في قيد `element`
+ * على قاعدة البيانات الحيّة — فتغييرها يُفقد اللاعبين إحصاءاتهم ويردّ
+ * كل صفٍّ جديد. الاسم والأيقونة أدناه هما ما يراه اللاعب.
+ */
 export const ELEMENTS: PlayableElement[] = [
   'fire',
   'water',
@@ -23,7 +30,7 @@ export const ELEMENT_NAME: Record<Element, Localized> = {
   water: { ar: 'ماء', en: 'Water' },
   grass: { ar: 'عشب', en: 'Grass' },
   electric: { ar: 'كهرباء', en: 'Electric' },
-  psychic: { ar: 'نفسي', en: 'Psychic' },
+  psychic: { ar: 'ريح', en: 'Wind' },
   dark: { ar: 'ظلام', en: 'Dark' },
   wild: { ar: 'بري', en: 'Wild' },
 };
@@ -33,7 +40,7 @@ export const ELEMENT_ICON: Record<Element, string> = {
   water: '💧',
   grass: '🌿',
   electric: '⚡',
-  psychic: '🔮',
+  psychic: '🌪️',
   dark: '🌑',
   wild: '🌈',
 };
