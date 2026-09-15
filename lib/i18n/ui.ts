@@ -708,6 +708,10 @@ export const UI = {
   perfectMatchShort: { ar: 'تامّة', en: 'Perfect' },
   titanRises: { ar: 'الوحش الأعظم يستيقظ', en: 'THE TITAN AWAKENS' },
   titanSummonedBy: { ar: 'استدعاه {name}', en: 'Summoned by {name}' },
+  featClarity: { ar: 'وضوح المعلومات', en: 'Clear information' },
+  featDepth: { ar: 'قرارات أعمق', en: 'Deeper decisions' },
+  featCompetitive: { ar: 'تجربة تنافسية', en: 'Competitive play' },
+  featMobile: { ar: 'مصمّمة للجوال', en: 'Built for mobile' },
 } as const satisfies Record<string, Localized>;
 
 export type UIKey = keyof typeof UI;

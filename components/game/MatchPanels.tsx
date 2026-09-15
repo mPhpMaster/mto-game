@@ -42,6 +42,7 @@ export function SideCard({
   const hpPct = Math.max(0, Math.round((state.hp / Math.max(1, state.maxHp)) * 100));
   const accent = you ? '#38bdf8' : '#e879f9';
   const pips = Math.min(10, Math.max(state.energyCap, state.energy));
+  const energyPct = Math.min(100, Math.round((state.energy / Math.max(1, state.energyCap)) * 100));
   const name = pn(state.name);
   const statuses = [
     state.skipNext && { text: t('willLoseTurn'), cls: 'bg-rose-500/25 text-rose-200' },
@@ -143,6 +144,16 @@ export function SideCard({
             </span>
           </span>
         </div>
+
+        {/* على الهاتف شريطٌ متوهّج بدل النقاط: عشر نقاط لا تتّسع في نصف الشاشة */}
+        {!compact && (
+          <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-black/60 ring-1 ring-white/10 sm:hidden">
+            <div
+              className="h-full rounded-full bg-gradient-to-l from-amber-300 to-orange-500 shadow-[0_0_8px_rgba(251,146,60,0.7)] transition-all duration-500"
+              style={{ width: `${energyPct}%` }}
+            />
+          </div>
+        )}
 
         {statuses.length > 0 && (
           <div className="mt-0.5 flex flex-wrap gap-1 text-[10px]">

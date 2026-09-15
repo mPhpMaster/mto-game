@@ -189,6 +189,8 @@ export default function GameBoard({
   const [step, setStep] = useState(0);
   const [showHelp, setShowHelp] = useState(false);
   const [showPrep, setShowPrep] = useState(false);
+  /** قائمة العناصر المنبثقة — على الهاتف بدل اللوحة الجانبية */
+  const [showElements, setShowElements] = useState(false);
   /** الوحش المعروضة تفاصيله، مع رقم الدور الذي فُتح فيه */
   const [inspect, setInspect] = useState<{ uid: string; turn: number } | null>(null);
   /** كارت مفتوح شرحه (ضغط مطوّل أو ضغطة على كارت لا يمكن لعبه أو اطّلاع على فخ) */
@@ -845,6 +847,15 @@ export default function GameBoard({
                 {t('drawPenalty', { n: game.pendingDraw })}
               </span>
             )}
+            <button
+              type="button"
+              onClick={() => setShowElements(true)}
+              className="rounded-md bg-white/10 px-2 py-1 font-bold hover:bg-white/20 xl:hidden"
+              title={t('elementsTitle')}
+              aria-label={t('elementsTitle')}
+            >
+              🎨
+            </button>
             <SoundToggle />
             <LanguageSwitch compact />
             <button
@@ -1131,8 +1142,41 @@ export default function GameBoard({
                   </span>
                   <span className="opacity-70">{t('cardsWord')}</span>
                 </span>
-                <span className="min-w-0 truncate opacity-70">
-                  {pending ? t('finishTargeting') : `${t('unitHint')} · ${t('holdForDetails')}`}
+                <span className="min-w-0 flex-1 truncate text-center opacity-70">
+                  {pending ? t('finishTargeting') : t('holdForDetails')}
+                </span>
+                {/* أزرارٌ سريعة في متناول الإبهام: المساعدة والسجل والتحضير والخروج */}
+                <span className="flex shrink-0 items-center gap-1">
+                  {[
+                    { icon: '❓', label: t('howToPlay'), onClick: () => setShowHelp(true) },
+                    { icon: '📜', label: showLog ? t('hideLog') : t('showLog'), onClick: () => writeLogPref(!showLog) },
+                    {
+                      icon: '⚙',
+                      label: t('openPrep'),
+                      onClick: () => setShowPrep(true),
+                      disabled: !canAct || game.phase !== 'main',
+                    },
+                  ].map((b) => (
+                    <button
+                      key={b.icon}
+                      type="button"
+                      onClick={b.onClick}
+                      disabled={b.disabled}
+                      title={b.label}
+                      aria-label={b.label}
+                      className="grid size-8 place-items-center rounded-lg bg-white/10 text-sm ring-1 ring-white/15 hover:bg-white/20 disabled:opacity-35"
+                    >
+                      {b.icon}
+                    </button>
+                  ))}
+                  <Link
+                    href="/"
+                    title={t('home')}
+                    aria-label={t('home')}
+                    className="grid size-8 place-items-center rounded-lg bg-white/10 text-sm ring-1 ring-white/15 hover:bg-white/20"
+                  >
+                    🚪
+                  </Link>
                 </span>
               </div>
               <div ref={handArea} className="relative min-w-0">
@@ -1168,6 +1212,27 @@ export default function GameBoard({
                 )}
               </div>
             </section>
+
+            {/* التذييل: الهوية تحت اليد، خارج مسار اللعب فلا يزاحم شيئاً */}
+            <footer className="mt-1 flex flex-col items-center gap-1.5 pb-3">
+              <div className="bg-gradient-to-b from-slate-100 to-slate-500 bg-clip-text text-2xl font-black tracking-[0.2em] text-transparent">
+                MTO
+              </div>
+              <div className="text-[9px] tracking-[0.25em] opacity-50">MONSTERS · TACTICS · OVERPOWER</div>
+              <ul className="mt-1 grid w-full grid-cols-2 gap-1.5 text-[10px] sm:grid-cols-4">
+                {[
+                  ['👁', t('featClarity')],
+                  ['🧠', t('featDepth')],
+                  ['🏆', t('featCompetitive')],
+                  ['📱', t('featMobile')],
+                ].map(([icon, text]) => (
+                  <li key={icon} className="hud-panel flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 opacity-80">
+                    <span aria-hidden>{icon}</span>
+                    {text}
+                  </li>
+                ))}
+              </ul>
+            </footer>
           </main>
 
           <aside className="flex min-w-0 flex-col gap-3">
@@ -1177,7 +1242,11 @@ export default function GameBoard({
             <div className="hidden xl:block">
               <BoardStatus player={me} />
             </div>
-            {showLog && <BattleLog entries={game.log} me={ME} onClose={() => writeLogPref(false)} />}
+            {showLog && (
+              <div className="hidden xl:block">
+                <BattleLog entries={game.log} me={ME} onClose={() => writeLogPref(false)} />
+              </div>
+            )}
           </aside>
         </div>
       </div>
@@ -1367,6 +1436,30 @@ export default function GameBoard({
             </button>
           </div>
         </div>
+      )}
+
+      {/*
+        السجل على الهاتف لوحةٌ منبثقة من الأسفل بدل أن يُلحَق تحت اليد: هناك
+        كان يمدّ الصفحة ويُبعد اللاعب عن الساحة ليقرأه.
+      */}
+      {showLog && (
+        <div className="fixed inset-0 z-50 flex items-end xl:hidden">
+          <button
+            type="button"
+            aria-label={t('hideLog')}
+            onClick={() => writeLogPref(false)}
+            className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
+          />
+          <div className="pop-in relative max-h-[72vh] w-full p-2">
+            <BattleLog entries={game.log} me={ME} onClose={() => writeLogPref(false)} />
+          </div>
+        </div>
+      )}
+
+      {showElements && (
+        <Modal title={t('elementsTitle')} onClose={() => setShowElements(false)}>
+          <ElementLegend />
+        </Modal>
       )}
 
       {/* فوق نافذة النهاية: تُخفيها ثلاث ثوانٍ ثم تختفي وحدها */}
