@@ -199,11 +199,11 @@ const SPECIES: Record<PlayableElement, SpeciesRow[]> = {
     { species: 'leviathi', base: { ar: 'حوتو', en: 'Finlo' }, evo: { ar: 'ليفياثان', en: 'Leviathan' }, n1: 0, a1: 5, h1: 6, ab1: 'flow_control', n2: 5, a2: 8, h2: 11, ab2: 'flow_control' },
   ],
   grass: [
-    { species: 'bur3um', base: { ar: 'برعوم', en: 'Budlet' }, evo: { ar: 'إكليل', en: 'Blossar' }, n1: 1, a1: 2, h1: 5, ab1: 'growth', n2: 6, a2: 4, h2: 10, ab2: 'regen' },
-    { species: 'waraqi', base: { ar: 'ورقي', en: 'Leafin' }, evo: { ar: 'جَريد', en: 'Canopor' }, n1: 2, a1: 3, h1: 4, ab1: 'swarm', n2: 7, a2: 6, h2: 8, ab2: 'swarm' },
-    { species: 'fainks', base: { ar: 'فاينكسي', en: 'Vinex' }, evo: { ar: 'خانِق', en: 'Stragoth' }, n1: 3, a1: 4, h1: 6, ab1: 'regen', n2: 8, a2: 7, h2: 10, ab2: 'regen' },
-    { species: 'shawka', base: { ar: 'شوكة', en: 'Thornet' }, evo: { ar: 'قَتاد', en: 'Spinther' }, n1: 0, a1: 3, h1: 3, ab1: 'growth', n2: 5, a2: 5, h2: 6, ab2: 'growth' },
-    { species: 'ghabor', base: { ar: 'غابور', en: 'Gabor' }, evo: { ar: 'سِنديان', en: 'Quercon' }, n1: 4, a1: 5, h1: 7, ab1: 'regen', n2: 9, a2: 8, h2: 12, ab2: 'growth' },
+    { species: 'bur3um', base: { ar: 'برعوم', en: 'Budlet' }, evo: { ar: 'إكليل', en: 'Blossar' }, n1: 1, a1: 4, h1: 5, ab1: 'growth', n2: 6, a2: 4, h2: 10, ab2: 'regen' },
+    { species: 'waraqi', base: { ar: 'ورقي', en: 'Leafin' }, evo: { ar: 'جَريد', en: 'Canopor' }, n1: 2, a1: 5, h1: 4, ab1: 'swarm', n2: 7, a2: 6, h2: 8, ab2: 'swarm' },
+    { species: 'fainks', base: { ar: 'فاينكسي', en: 'Vinex' }, evo: { ar: 'خانِق', en: 'Stragoth' }, n1: 3, a1: 6, h1: 6, ab1: 'regen', n2: 8, a2: 7, h2: 10, ab2: 'regen' },
+    { species: 'shawka', base: { ar: 'شوكة', en: 'Thornet' }, evo: { ar: 'قَتاد', en: 'Spinther' }, n1: 0, a1: 5, h1: 3, ab1: 'growth', n2: 5, a2: 5, h2: 6, ab2: 'growth' },
+    { species: 'ghabor', base: { ar: 'غابور', en: 'Gabor' }, evo: { ar: 'سِنديان', en: 'Quercon' }, n1: 4, a1: 6, h1: 7, ab1: 'regen', n2: 9, a2: 8, h2: 12, ab2: 'growth' },
   ],
   electric: [
     { species: 'sharara', base: { ar: 'شرارة', en: 'Sparkit' }, evo: { ar: 'وَميض', en: 'Fulmen' }, n1: 1, a1: 3, h1: 3, ab1: 'chain', n2: 6, a2: 6, h2: 6, ab2: 'chain' },
@@ -220,11 +220,11 @@ const SPECIES: Record<PlayableElement, SpeciesRow[]> = {
     { species: 'nirfa', base: { ar: 'عصبو', en: 'Nervin' }, evo: { ar: 'ذُبول', en: 'Witharn' }, n1: 4, a1: 5, h1: 5, ab1: 'speed', n2: 9, a2: 8, h2: 9, ab2: 'speed' },
   ],
   dark: [
-    { species: 'thilli', base: { ar: 'ظلّي', en: 'Shadel' }, evo: { ar: 'دُجى', en: 'Umbrath' }, n1: 1, a1: 3, h1: 4, ab1: 'curse', n2: 6, a2: 6, h2: 8, ab2: 'curse' },
-    { species: 'shadow', base: { ar: 'عقربو', en: 'Scorvel' }, evo: { ar: 'مِنجل', en: 'Falkir' }, n1: 2, a1: 4, h1: 3, ab1: 'sacrifice', n2: 7, a2: 7, h2: 6, ab2: 'sacrifice' },
-    { species: 'lailks', base: { ar: 'ليلكس', en: 'Nyxel' }, evo: { ar: 'كُسوف', en: 'Eclipsar' }, n1: 3, a1: 2, h1: 6, ab1: 'graveyard', n2: 8, a2: 5, h2: 10, ab2: 'graveyard' },
-    { species: 'nightmare', base: { ar: 'كابوس', en: 'Nocturne' }, evo: { ar: 'هَول', en: 'Phobos' }, n1: 0, a1: 5, h1: 5, ab1: 'curse', n2: 5, a2: 8, h2: 9, ab2: 'graveyard' },
-    { species: 'voido', base: { ar: 'فويدو', en: 'Voido' }, evo: { ar: 'عَدَم', en: 'Nihilax' }, n1: 4, a1: 3, h1: 7, ab1: 'graveyard', n2: 9, a2: 6, h2: 11, ab2: 'sacrifice' },
+    { species: 'thilli', base: { ar: 'ظلّي', en: 'Shadel' }, evo: { ar: 'دُجى', en: 'Umbrath' }, n1: 1, a1: 5, h1: 4, ab1: 'curse', n2: 6, a2: 6, h2: 8, ab2: 'curse' },
+    { species: 'shadow', base: { ar: 'عقربو', en: 'Scorvel' }, evo: { ar: 'مِنجل', en: 'Falkir' }, n1: 2, a1: 6, h1: 3, ab1: 'sacrifice', n2: 7, a2: 7, h2: 6, ab2: 'sacrifice' },
+    { species: 'lailks', base: { ar: 'ليلكس', en: 'Nyxel' }, evo: { ar: 'كُسوف', en: 'Eclipsar' }, n1: 3, a1: 3, h1: 6, ab1: 'graveyard', n2: 8, a2: 5, h2: 10, ab2: 'graveyard' },
+    { species: 'nightmare', base: { ar: 'كابوس', en: 'Nocturne' }, evo: { ar: 'هَول', en: 'Phobos' }, n1: 0, a1: 7, h1: 5, ab1: 'curse', n2: 5, a2: 8, h2: 9, ab2: 'graveyard' },
+    { species: 'voido', base: { ar: 'فويدو', en: 'Voido' }, evo: { ar: 'عَدَم', en: 'Nihilax' }, n1: 4, a1: 5, h1: 7, ab1: 'graveyard', n2: 9, a2: 6, h2: 11, ab2: 'sacrifice' },
   ],
 };
 
