@@ -131,20 +131,32 @@ console.log('كلمات العناصر:\n');
   else bad('إمداد', `الطاقة ${a} مقابل ${b}، السقف ${withIt.players[0].energyCap}`);
 }
 
-// ---------- شحنة زائدة: +1 ضرر عن كل طاقتين لم تُنفقا ----------
+// ---------- شحنة زائدة: +1 ضرر عن كل خمس طاقات لم تُنفق ----------
 {
   const s = game({ fields: [['mon_electric_ra3doon_1'], []], hands: [[], []], energyCap: [9, 9] });
-  s.players[0].energy = 6;
+  // الطاقة تُشتقّ من القيمتين فيبلغ السقف مهما ضُبطت العتبة لاحقاً
+  s.players[0].energy = KEYWORD_VALUES.overchargePer * KEYWORD_VALUES.overchargeMax;
   const rich = evaluateAttack(s, 0, [s.players[0].field[0].uid]).damage;
   const poor = { ...s, players: s.players.map((p, i) => (i === 0 ? { ...p, energy: 0 } : p)) } as GameState;
   const base = evaluateAttack(poor, 0, [poor.players[0].field[0].uid]).damage;
-  eq('شحنة زائدة', rich - base, KEYWORD_VALUES.overchargeMax, `بطاقة 6 مقابل 0`);
+  eq(
+    'شحنة زائدة',
+    rich - base,
+    KEYWORD_VALUES.overchargeMax,
+    `بطاقة ${s.players[0].energy} مقابل 0`
+  );
 }
 
-// ---------- سلسلة: نصف الضرر إلى وحشٍ آخر ----------
+// ---------- سلسلة: ثلث الضرر إلى وحشٍ آخر ----------
 {
+  /*
+    «بلازمي» هجومها 5 لا «شرارة» هجومها 3. والثلاثة كانت تعطي 1 بالنصف
+    وبالثلث معاً، فكان الفحص يمرّ مهما كان الكسر ولا يكشف تغيّره — ومرّ
+    فعلاً حين صار الكسر ثلثاً. والخمسة تفرّق: 2 بالنصف و1 بالثلث.
+  */
+  const ATK = 5;
   const s = game({
-    fields: [['mon_electric_sharara_1'], ['mon_water_korali_1', 'mon_grass_ghabor_1']],
+    fields: [['mon_electric_plazmi_1'], ['mon_water_korali_1', 'mon_grass_ghabor_1']],
     hands: [[], []],
     energyCap: [9, 9],
   });
@@ -152,8 +164,8 @@ console.log('كلمات العناصر:\n');
   const hpBefore = second.hp;
   const after = hit(s, s.players[0].field[0].uid, s.players[1].field[0].uid);
   const other = after.players[1].field.find((m) => m.uid === second.uid);
-  // هجوم شرارة 3 ⇒ النصف مجبوراً لأسفل = 1
-  eq('سلسلة', hpBefore - (other?.hp ?? 0), 1, 'الوحش الثاني تلقّى نصف الضرر');
+  const expected = Math.floor(ATK / KEYWORD_VALUES.chainDivisor);
+  eq('سلسلة', hpBefore - (other?.hp ?? 0), expected, `الوحش الثاني تلقّى ثلث الضرر (${expected})`);
 }
 
 // ═══════════ 🔥 نار ═══════════

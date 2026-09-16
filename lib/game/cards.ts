@@ -106,12 +106,12 @@ export const ABILITY_TEXT: Record<Ability, Localized> = {
     en: 'Overheat: +3 damage on its attack, and it loses 2 health after.',
   },
   growth: {
-    ar: 'نموّ: +1 هجوم في بداية كل دور، حتى +5.',
-    en: 'Growth: +1 attack at the start of each of your turns, up to +5.',
+    ar: 'نموّ: +2 هجوم في بداية كل دور، حتى +6.',
+    en: 'Growth: +2 attack at the start of each of your turns, up to +6.',
   },
   regen: {
-    ar: 'تجدّد: يستعيد صحّتين في بداية كل دور.',
-    en: 'Regeneration: restores 2 health at the start of each of your turns.',
+    ar: 'تجدّد: يستعيد 3 صحة في بداية كل دور.',
+    en: 'Regeneration: restores 3 health at the start of each of your turns.',
   },
   swarm: {
     ar: 'سِرب: عند استدعائه يمنح بقية وحوشك +1 هجوم.',
@@ -134,8 +134,8 @@ export const ABILITY_TEXT: Record<Ability, Localized> = {
     en: 'Sacrifice: when summoned, devours your weakest wounded monster and grows +3/+3.',
   },
   graveyard: {
-    ar: 'مقبرة: +1 هجوم عن كل ثلاثة وحوش في المهملات، حتى +3.',
-    en: 'Graveyard: +1 attack for every three monsters in the discard, up to +3.',
+    ar: 'مقبرة: +1 هجوم عن كل ثلاثة وحوش في المقابر كلّها، حتى +3.',
+    en: 'Graveyard: +1 attack for every three monsters in all graveyards, up to +3.',
   },
   curse: {
     ar: 'لعنة: يفقد الخصم صحةً في بداية دوره ما دام حيّاً.',
@@ -151,12 +151,12 @@ export const ABILITY_TEXT: Record<Ability, Localized> = {
     en: 'Mobility: after it attacks, the opponent cannot attack it until your next turn.',
   },
   overcharge: {
-    ar: 'شحنة زائدة: +1 ضرر عن كل ثلاث طاقات لم تُنفق، حتى +2.',
-    en: 'Overcharge: +1 damage for every three unspent energy, up to +2.',
+    ar: 'شحنة زائدة: +1 ضرر عن كل خمس طاقات لم تُنفق، حتى +2.',
+    en: 'Overcharge: +1 damage for every five unspent energy, up to +2.',
   },
   chain: {
-    ar: 'سلسلة: ضربته تصيب وحشاً آخر للخصم بنصف الضرر.',
-    en: 'Chain: its strike also hits another enemy monster for half the damage.',
+    ar: 'سلسلة: ضربته تصيب وحشاً آخر للخصم بثلث الضرر.',
+    en: 'Chain: its strike also hits another enemy monster for a third of the damage.',
   },
   recharge: { ar: 'إمداد: +1 طاقة في بداية دورك.', en: 'Recharge: +1 energy at the start of your turn.' },
 };

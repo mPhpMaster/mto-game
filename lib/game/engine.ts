@@ -658,19 +658,21 @@ export const KEYWORD_VALUES = {
   rageAtk: 2,
   overheatDamage: 3,
   overheatSelf: 2,
-  growthPerTurn: 1,
-  growthMax: 5,
-  regenHeal: 2,
+  growthPerTurn: 2,
+  growthMax: 6,
+  regenHeal: 3,
   swarmAtk: 1,
   sacrificeAtk: 3,
   sacrificeHp: 3,
   graveyardPer: 3,
   graveyardMax: 3,
   curseDamage: 1,
-  curseMax: 2,
-  overchargePer: 3,
+  curseMax: 3,
+  overchargePer: 5,
   overchargeMax: 2,
   rechargeEnergy: 1,
+  /** كسرُ الضرر الذي تنقله «سلسلة» إلى وحشٍ ثانٍ */
+  chainDivisor: 3,
 } as const;
 
 export function hasAnyPlayable(s: GameState, side: Seat): boolean {
@@ -1302,8 +1304,15 @@ function onSummonKeyword(s: GameState, side: Seat, d: CardDef, m: FieldMonster) 
       break;
     }
     case 'graveyard': {
-      const buried = s.players[side].discard.filter((c) => def(c.defId).kind === 'monster')
-        .length;
+      /*
+        المقابر كلّها لا مقبرتك وحدك. الكلمة تقرأ موتى الساحة، وقصرُها على
+        موتاك حين انقسمت المهملات أضعفها وأنزل الظلام إلى القاع — وخالف
+        نصّ البطاقة نفسه، فهو يقول «في المهملات» بلا تخصيص.
+      */
+      const buried = s.players.reduce(
+        (n, pl) => n + pl.discard.filter((c) => def(c.defId).kind === 'monster').length,
+        0
+      );
       const bonus = Math.min(
         KEYWORD_VALUES.graveyardMax,
         Math.floor(buried / KEYWORD_VALUES.graveyardPer)
@@ -1941,14 +1950,14 @@ function doAttack(s: GameState, action: Extract<GameAction, { type: 'ATTACK' }>)
       log(s, 'attack', side, 'ability_burn', { card: tDef.id });
     }
 
-    // سلسلة: نصف الضرر إلى وحشٍ آخر للخصم
+    // سلسلة: ثلث الضرر إلى وحشٍ آخر للخصم
     if (alive.some((m) => def(m.defId).ability === 'chain')) {
       const other = foe.field.find((x) => x.uid !== targetMonster.uid);
       if (other) {
-        const half = Math.floor(damage / 2);
-        if (half > 0) {
-          damageMonster(s, foeIdx, other, half, { source: 'attack' });
-          log(s, 'attack', side, 'ability_chain', { card: def(other.defId).id, amount: half });
+        const splash = Math.floor(damage / KEYWORD_VALUES.chainDivisor);
+        if (splash > 0) {
+          damageMonster(s, foeIdx, other, splash, { source: 'attack' });
+          log(s, 'attack', side, 'ability_chain', { card: def(other.defId).id, amount: splash });
         }
       }
     }

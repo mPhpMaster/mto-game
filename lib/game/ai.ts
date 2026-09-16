@@ -87,7 +87,12 @@ function scoreCard(s: GameState, side: Seat, d: CardDef): number {
       if (d.ability === 'bounce' || d.ability === 'chain') v += 10;
       if (d.ability === 'growth' || d.ability === 'regen' || d.ability === 'curse') v += 8;
       if (d.ability === 'swarm' && me.field.length >= 2) v += 8;
-      if (d.ability === 'graveyard' && me.discard.length >= 6) v += 6;
+      // يقيس ما تقيسه الكلمة: المقابر كلّها لا مقبرته وحده
+      if (
+        d.ability === 'graveyard' &&
+        s.players.reduce((n, pl) => n + pl.discard.length, 0) >= 6
+      )
+        v += 6;
       if (d.ability === 'sacrifice' && me.field.some((m) => m.hp < m.maxHp)) v += 6;
       if (me.field.length === 0) v += 25; // نحتاج مدافعاً
       return v;
