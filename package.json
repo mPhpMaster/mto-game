@@ -28,6 +28,7 @@
     "check:messages": "tsx scripts/messages-check.ts",
     "check:curve": "tsx scripts/curve-check.ts",
     "check:flow": "tsx scripts/flow-check.ts",
+    "balance:elements": "tsx scripts/element-balance.ts",
     "check:opening": "tsx scripts/opening-check.ts",
     "check:abilities": "tsx scripts/abilities-check.ts",
     "check:autoplay": "tsx scripts/autoplay-check.ts",

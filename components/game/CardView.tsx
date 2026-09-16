@@ -50,14 +50,17 @@ const ART_H: Record<CardSize, string> = {
 };
 
 /**
- * نافذة أطول لبطاقات الوحوش ذات الرسم المُصوَّر. الصور لوحاتٌ طولية، وفي نافذة
- * 60px كانت الشجرة والأفعى تُقصّ رأساً وذيلاً. في الكارت متّسعٌ يكفي: مجموع
- * أجزائه على المقاس الكبير 168px من 184.
+ * نافذةٌ أطول قليلاً لبطاقات الوحوش ذات الرسم المُصوَّر، لأن الصور لوحاتٌ
+ * طولية تُقصّ رأساً وذيلاً في نافذة 60px.
+ *
+ * وكانت 74 فطردت صفّ ⚔/❤ خارج حدّ الكارت — والسطح `overflow-hidden` فقصّه
+ * بلا أثر: الرقمان اللذان يُبنى عليهما كل قرار يختفيان. الأرقام تسبق الرسم
+ * في الأولوية، فنزلت النافذة إلى 66 وسقط الاسم اللاتيني عن بطاقات الرسم.
  */
 const ART_H_IMAGE: Record<CardSize, string> = {
   xs: 'h-[26px]',
   sm: 'h-[36px]',
-  md: 'h-[74px]',
+  md: 'h-[66px]',
 };
 
 interface Props {
@@ -96,6 +99,7 @@ export default function CardView({
   // ثنائية اللغة أصلاً، فلا يكلّف هذا حرفاً واحداً من الترجمة.
   const altName = card.name[locale === 'ar' ? 'en' : 'ar'];
   const evolved = card.kind === 'monster' && card.stage === 2;
+  const hasArt = card.kind === 'monster' && Boolean(artPathOf(card.id));
 
   const className = [
     'card-face relative shrink-0 text-right transition-all duration-150',
@@ -180,7 +184,7 @@ export default function CardView({
 
       {/* نافذة الرسم — إطار غائر يفصل الفنّ عن سطح الكارت */}
       <div
-        className={`relative mt-0.5 w-full shrink-0 overflow-hidden ${tiny ? 'rounded-sm' : 'rounded'} ${card.kind === 'monster' && artPathOf(card.id) ? ART_H_IMAGE[size] : ART_H[size]}`}
+        className={`relative mt-0.5 w-full shrink-0 overflow-hidden ${tiny ? 'rounded-sm' : 'rounded'} ${hasArt ? ART_H_IMAGE[size] : ART_H[size]}`}
         style={{
           background: `radial-gradient(120% 110% at 50% 0%, ${color}26 0%, rgba(0,0,0,0.34) 100%)`,
           boxShadow: `inset 0 0 0 1px ${color}3d`,
@@ -198,8 +202,8 @@ export default function CardView({
         >
           {L(card.name)}
         </div>
-        {/* على المقاسين الأصغر يُحذف: سطره كان يقصّ سطراً من نصّ الفخّ والسحر */}
-        {size === 'md' && (
+        {/* يُحذف على المقاسين الأصغر، وعلى بطاقات الرسم — ليتّسع صفّ الأرقام */}
+        {size === 'md' && !hasArt && (
           <div
             className="truncate text-[7.5px] uppercase leading-none opacity-55"
             style={{ letterSpacing: '0.06em' }}
