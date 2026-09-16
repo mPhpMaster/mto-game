@@ -222,6 +222,7 @@ export function ArenaFloor({
       {/* بِرَك الحِمَم على جانبي المنصّة — مصدرُ الضوء البرتقالي من الأسفل */}
       <ellipse cx={nl.x - 10} cy={nl.y - 40} rx="90" ry="120" fill="url(#arena-lava)" className="lava-flicker" />
       <ellipse cx={nr.x + 10} cy={nr.y - 90} rx="80" ry="140" fill="url(#arena-lava)" className="lava-flicker [animation-delay:1.3s]" />
+      {/* soft-glow: ما يحمل مرشّح تمويه — يُطفأ على الهاتف في globals.css */}
 
       {/* الجدار الأمامي ثم سطح المنصّة */}
       <polygon
@@ -264,7 +265,7 @@ export function ArenaFloor({
             .join(' ');
           return (
             <g key={`${side}-${i}`} className="lava-flicker" style={{ animationDelay: `${i * 0.7}s` }}>
-              <path d={d} stroke="#ff6a1a" strokeWidth="5" fill="none" filter="url(#arena-blur)" opacity="0.8" />
+              <path d={d} className="soft-glow" stroke="#ff6a1a" strokeWidth="5" fill="none" filter="url(#arena-blur)" opacity="0.8" />
               <path d={d} stroke="#ffd08a" strokeWidth="1.4" fill="none" />
             </g>
           );
@@ -306,7 +307,7 @@ export function ArenaFloor({
                 <g className={light.pulse ? 'tile-pulse' : undefined}>
                   <polygon points={quad} fill={light.color} opacity={light.strong ? 0.34 : 0.16} />
                   <polygon points={quad} fill="none" stroke={light.color} strokeWidth={light.strong ? 3 : 2} opacity="0.95" />
-                  <polygon points={quad} fill="none" stroke={light.color} strokeWidth="9" opacity="0.35" filter="url(#arena-blur)" />
+                  <polygon points={quad} className="soft-glow" fill="none" stroke={light.color} strokeWidth="9" opacity="0.35" filter="url(#arena-blur)" />
                 </g>
               )}
             </g>

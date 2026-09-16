@@ -177,7 +177,8 @@ export default function Battlefield({
     const action = isFoe ? foeMonsterAction(m.uid, seat) : undefined;
     const invalidTarget = isFoe && attackMode && !attackValid && targeting !== 'enemy_monster';
     const validTarget = isFoe && (attackValid || targeting === 'enemy_monster');
-    const stat = `max(10px, ${3.1 * slot.s}cqw)`;
+    // 10px كانت تُقرأ على شاشة الحاسوب لا على الهاتف
+    const stat = `max(12px, ${3.6 * slot.s}cqw)`;
 
     const ringColor = isFoe
       ? validTarget

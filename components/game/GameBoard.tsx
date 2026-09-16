@@ -602,18 +602,15 @@ export default function GameBoard({
   // تمرير الشريط إلى أول كارت جديد، ثم إطفاء الإبراز
   useEffect(() => {
     if (!freshUids.length) return;
-    const node = handArea.current?.querySelector<HTMLElement>(
-      '[data-hand-scroller] [data-fresh="1"]'
-    );
     /*
-      في بداية الدور يُسحب كارتٌ جديد، وكان هذا التمرير يلحق به فيسحب اليد
-      نحو اليسار — إلى آخرها حيث يقع الكارت المسحوب — بعد أن أعادها المؤثّر
-      السابق إلى أوّلها يميناً. فيبدأ الدور على الكروت الموقوفة لا القابلة
-      للعب. عند بداية الدور يكفي الإبراز، ويبقى الشريط على أوّله.
+      اليد تعود دائماً إلى أوّلها (يمينها في العربية) ولا تنزلق يساراً أبداً.
+      كان الشريط يلحق بالكارت الجديد حيث وقع — وموقعه آخر اليد غالباً، لأن
+      الترتيب يضع القابل للعب أوّلاً — فينزلق يساراً إلى كروتٍ لا تعني
+      اللاعب. الكارت الجديد يُعرّف عن نفسه بالوميض، والوميض لا يحرّك شيئاً.
     */
-    if (Date.now() - turnStartAt.current > 1200) {
-      node?.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-    }
+    handArea.current
+      ?.querySelector('[data-hand-scroller]')
+      ?.firstElementChild?.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
     const timer = window.setTimeout(() => setFreshUids([]), 2200);
     return () => window.clearTimeout(timer);
     // freshKey يمثّل المجموعة نفسها بصورة قابلة للمقارنة
@@ -743,7 +740,7 @@ export default function GameBoard({
         data-fresh={isFresh ? '1' : '0'}
         data-card-id={d.id}
         className={`relative shrink-0 transition-[translate] duration-150 hover:z-20 hover:-translate-y-3 focus-within:z-20 focus-within:-translate-y-3 ${
-          first ? '' : '-ms-11 lg:-ms-5'
+          first ? '' : 'lg:-ms-5'
         }`}
       >
         <CardView
