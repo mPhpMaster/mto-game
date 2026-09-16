@@ -92,13 +92,30 @@ console.log('كلمات العناصر:\n');
   else bad('مراوغة', `${(rate * 100).toFixed(1)}% بعيدة عن 20%`);
 }
 
-// ---------- انسحاب: يعود إلى اليد بعد ضربته ----------
+// ---------- انسحاب: يهاجم فيفلت من الردّ دوراً واحداً ----------
 {
-  const s = game({ fields: [['mon_psychic_taifa_1'], []], hands: [[], []], energyCap: [9, 9] });
-  const hand0 = s.players[0].hand.length;
-  const after = hit(s, s.players[0].field[0].uid, 'face');
-  eq('انسحاب: غادر الساحة', after.players[0].field.length, 0);
-  eq('انسحاب: عاد إلى اليد', after.players[0].hand.length, hand0 + 1);
+  // الهدف «غابور» بصحة 7 يصمد لضربة طيفا (4)، فيبقى للخصم وحشٌ يحاول الردّ.
+  // والضربة على وحشٍ لا على الوجه: الهجوم المباشر مرفوضٌ ما دام للخصم وحش.
+  const s = game({
+    fields: [['mon_psychic_taifa_1'], ['mon_grass_ghabor_1']],
+    hands: [[], []],
+    energyCap: [9, 9],
+  });
+  const after = hit(s, s.players[0].field[0].uid, s.players[1].field[0].uid);
+  eq('انسحاب: بقي على الساحة', after.players[0].field.length, 1);
+  eq('انسحاب: صار مُفلتاً', after.players[0].field[0].evasive, true);
+
+  // محاولة الخصم مهاجمته لا تقع
+  const foeTry = applyGameAction(after, {
+    type: 'ATTACK',
+    attackers: [after.players[1].field[0].uid],
+    target: after.players[0].field[0].uid,
+  });
+  eq('انسحاب: لا يُستهدَف', foeTry.players[0].field[0].hp, after.players[0].field[0].hp);
+
+  // ويزول الإفلات حين يعود الدور إليه
+  const back = round(after);
+  eq('انسحاب: يزول في دورك', back.players[0].field[0].evasive, false);
 }
 
 // ═══════════ ⚡ كهرباء ═══════════

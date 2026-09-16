@@ -174,6 +174,10 @@ export interface FieldMonster {
   poison?: number;
   /** الحرق: يفقد صحةً في بداية دور صاحبه، ويزيله «تطهير» */
   burn?: number;
+  /** «انسحاب»: هاجم فأفلت — لا يُستهدَف حتى يبدأ دور صاحبه */
+  evasive?: boolean;
+  /** حماية الاستدعاء: لا تقتله ضربةُ وحش حتى يبدأ دور صاحبه */
+  protectedNew?: boolean;
   /** استُهلكت «حلقة امتصاص» (طراز هالو) */
   absorbed?: boolean;
   /** استُهلكت «عودة الطيف» (طراز خَيال) */
@@ -222,6 +226,8 @@ export interface PlayerState {
   mirror: boolean;
   /** استُخدم سحب الإنقاذ هذا الدور (عند عدم وجود كارت قابل للعب) */
   extraDrawUsed: boolean;
+  /** نجدةٌ واحدة في الدور: وحشٌ استُدعي فصار جاهزاً فوراً */
+  reinforcedThisTurn?: boolean;
   /** مخزون التجهيزات — لا يُسحب من السطح بل يُنفق من رصيد ثابت */
   gearStock: Record<GearId, number>;
   weatherStock: Record<WeatherId, number>;

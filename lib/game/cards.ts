@@ -110,8 +110,8 @@ export const ABILITY_TEXT: Record<Ability, Localized> = {
     en: 'Growth: +1 attack at the start of each of your turns, up to +5.',
   },
   regen: {
-    ar: 'تجدّد: يستعيد صحةً في بداية كل دور.',
-    en: 'Regeneration: restores health at the start of each of your turns.',
+    ar: 'تجدّد: يستعيد صحّتين في بداية كل دور.',
+    en: 'Regeneration: restores 2 health at the start of each of your turns.',
   },
   swarm: {
     ar: 'سِرب: عند استدعائه يمنح بقية وحوشك +1 هجوم.',
@@ -147,12 +147,12 @@ export const ABILITY_TEXT: Record<Ability, Localized> = {
     en: 'Dodge: a chance to evade an attack entirely.',
   },
   mobility: {
-    ar: 'انسحاب: يعود إلى يدك بعد هجومه، فلا يُردّ عليه.',
-    en: 'Mobility: returns to your hand after attacking, out of reach of retaliation.',
+    ar: 'انسحاب: بعد هجومه لا يستطيع الخصم مهاجمته حتى يبدأ دورك.',
+    en: 'Mobility: after it attacks, the opponent cannot attack it until your next turn.',
   },
   overcharge: {
-    ar: 'شحنة زائدة: +1 ضرر عن كل طاقتين لم تُنفقا، حتى +3.',
-    en: 'Overcharge: +1 damage for every two unspent energy, up to +3.',
+    ar: 'شحنة زائدة: +1 ضرر عن كل ثلاث طاقات لم تُنفق، حتى +2.',
+    en: 'Overcharge: +1 damage for every three unspent energy, up to +2.',
   },
   chain: {
     ar: 'سلسلة: ضربته تصيب وحشاً آخر للخصم بنصف الضرر.',

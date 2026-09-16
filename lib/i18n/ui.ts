@@ -268,6 +268,7 @@ export const UI = {
 
   // --- حالات الوحش ---
   ready: { ar: 'جاهز', en: 'Ready' },
+  protectedTag: { ar: 'محميّ', en: 'Protected' },
   fresh: { ar: 'جديد', en: 'New' },
   exhausted: { ar: 'مُنهك', en: 'Exhausted' },
   monsterAria: {

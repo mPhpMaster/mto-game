@@ -222,7 +222,13 @@ export function MonsterInfo({
   const geared = atkOf(m);
   const struck = strikeOf(m, weather);
   const passive = ARCHETYPE_PASSIVE[archetypeOf(d.species) ?? 'beast'];
-  const status = m.sick ? t('fresh') : m.exhausted ? t('exhausted') : t('ready');
+  const status = m.protectedNew
+    ? t('protectedTag')
+    : m.sick
+      ? t('fresh')
+      : m.exhausted
+        ? t('exhausted')
+        : t('ready');
   return (
     <div className="text-[11px] leading-snug">
       <div className="flex items-center gap-2">

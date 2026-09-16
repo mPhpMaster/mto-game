@@ -358,7 +358,8 @@ function chooseAttack(s: GameState, side: Seat): GameAction | null {
           const td = def(t.defId);
           // الدفاع صار تجهيزاً لا خاصية بطاقة، فيُسأل المصدر نفسه
           const effective = Math.max(0, dmg - reductionOf(t));
-          const kills = effective >= t.hp;
+          // المحميّ يصمد على نقطة مهما بلغت الضربة، فلا تُهدر عليه ضربةٌ قاتلة
+          const kills = effective >= t.hp && !t.protectedNew;
           const overkill = Math.max(0, effective - t.hp);
           let value = kills ? 120 + td.atk! * 4 - overkill * 2 : effective * 2;
           value -= g.length * 3; // لا تُهدر الوحوش دون داعٍ

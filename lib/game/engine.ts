@@ -71,6 +71,9 @@ export const RULES = {
    * الزائدة في اليد إلى ورق ميت لا يُلعب.
    */
   MAX_TRAPS: 4,
+  /** فارق الوحوش الذي تبدأ عنده حماية الاستدعاء، والذي تبدأ عنده النجدة */
+  PROTECT_DEFICIT: 2,
+  REINFORCE_DEFICIT: 4,
   /** أقصى عدد لاعبين في مباراة واحدة (1 ضد 1 ضد 1) */
   MAX_PLAYERS: 3,
   FATIGUE_DAMAGE: 2,
@@ -586,7 +589,7 @@ export const KEYWORD_VALUES = {
   overheatSelf: 2,
   growthPerTurn: 1,
   growthMax: 5,
-  regenHeal: 1,
+  regenHeal: 2,
   swarmAtk: 1,
   sacrificeAtk: 3,
   sacrificeHp: 3,
@@ -594,8 +597,8 @@ export const KEYWORD_VALUES = {
   graveyardMax: 3,
   curseDamage: 1,
   curseMax: 2,
-  overchargePer: 2,
-  overchargeMax: 3,
+  overchargePer: 3,
+  overchargeMax: 2,
   rechargeEnergy: 1,
 } as const;
 
@@ -898,11 +901,20 @@ function damageMonster(
 
   const armored = opts.source !== 'weather' && opts.source !== 'poison';
   const reduction = armored ? Math.max(0, reductionOf(m) - (opts.ignoreReduction ?? 0)) : 0;
-  const reduced = Math.max(0, amount - reduction);
+  let reduced = Math.max(0, amount - reduction);
   // الخصائص الصامتة تبدو معطّلة للاعب، فتُعلن عن نفسها في السجل
   if (amount > 0 && reduction > 0) {
     const key = hasGear(m, 'rock_shield') ? 'gear_shield' : 'ability_guard';
     log(s, 'attack', ownerIdx, key, { card: d.id, amount: amount - reduced });
+  }
+  /*
+    الحماية تمنع **القتل** لا الضرر، وضربةَ الوحش وحدها: السحر والقدرات
+    والبيئة تقتل كما كانت، فيبقى للمتفوّق طريقٌ لإزالته إن دفع ثمنه.
+  */
+  if (m.protectedNew && opts.source === 'attack' && reduced >= m.hp) {
+    const spared = reduced;
+    reduced = Math.max(0, m.hp - 1);
+    log(s, 'attack', ownerIdx, 'summon_shield', { card: d.id, amount: spared - reduced });
   }
   const dealt = Math.min(reduced, m.hp);
   m.hp -= reduced;
@@ -999,6 +1011,12 @@ function beginTurn(s: GameState) {
   }
   p.attackLocked = false;
   p.comboUsed = false;
+  // الإفلات والحماية يدومان دوراً واحداً: يزولان حين يعود الدور إلى صاحبهما
+  for (const m of p.field) {
+    m.evasive = false;
+    m.protectedNew = false;
+  }
+  p.reinforcedThisTurn = false;
   p.amplified = false;
   p.extraDrawUsed = false;
   for (const m of p.field) {
@@ -1124,8 +1142,27 @@ function playMonster(s: GameState, side: Seat, d: CardDef, inst: CardInstance) {
     exhausted: false,
     sick: d.ability !== 'speed',
   };
+  /*
+    الفارق يُقاس **قبل** أن ينزل هذا الوحش: السؤال «هل صاحبه متأخّر؟» لا
+    «هل تأخّر بعد نزوله؟». ويُقاس على أكثر الخصوم وحوشاً، فاللعب الثلاثي
+    لا يُبطل الحماية لأن أحد الخصمين خالي الساحة.
+  */
+  const foeMost = Math.max(0, ...opponentsOf(s, side).map((i) => s.players[i].field.length));
+  const deficit = foeMost - p.field.length;
+
   p.field.push(m);
   log(s, 'play', side, 'summoned', { player: p.name, card: d.id, atk: d.atk!, hp: d.hp! });
+
+  if (deficit >= RULES.PROTECT_DEFICIT) {
+    m.protectedNew = true;
+    log(s, 'play', side, 'summon_protected', { card: d.id, n: deficit });
+  }
+  // النجدة لوحشٍ واحد في الدور: أفضليةُ الساحة تبقى أفضلية، لكنها لا تُقفل المباراة
+  if (deficit >= RULES.REINFORCE_DEFICIT && !p.reinforcedThisTurn && m.sick) {
+    m.sick = false;
+    p.reinforcedThisTurn = true;
+    log(s, 'play', side, 'emergency_ready', { card: d.id, n: deficit });
+  }
   if (d.ability === 'speed') {
     log(s, 'play', side, 'ability_speed', { card: d.id });
   }
@@ -1682,6 +1719,8 @@ function resolveAttackFoe(
   if (foeIdx === null) return null;
   const targetMonster = s.players[foeIdx].field.find((m) => m.uid === action.target) ?? null;
   if (!targetMonster) return null;
+  // المنسحب أفلت: لا يُهاجَم حتى يعود الدور إلى صاحبه
+  if (targetMonster.evasive) return null;
   return { foeIdx, targetMonster };
 }
 
@@ -1870,12 +1909,15 @@ function doAttack(s: GameState, action: Extract<GameAction, { type: 'ATTACK' }>)
     });
   }
 
-  // انسحاب: يعود إلى اليد بعد ضربته، فيفلت من الردّ — وثمنه استدعاءٌ جديد
+  /*
+    انسحاب: يهاجم ثم يفلت من الردّ — لا يُستهدَف حتى يبدأ دورك.
+    كان يعود إلى اليد، فكان يفكّك ساحة صاحبه بنفسه: قياسُ العناصر أعطى
+    الريح 29.8% وخسارةً أمام الخمسة كلّها، ونصفُ وحوشها يحمل هذه الكلمة.
+  */
   for (const m of alive) {
     if (def(m.defId).ability !== 'mobility') continue;
     if (!p.field.some((x) => x.uid === m.uid)) continue;
-    p.field = p.field.filter((x) => x.uid !== m.uid);
-    p.hand.push({ uid: m.uid, defId: m.defId });
+    m.evasive = true;
     log(s, 'attack', side, 'ability_mobility', { card: def(m.defId).id });
   }
 

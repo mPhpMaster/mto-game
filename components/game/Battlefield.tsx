@@ -175,8 +175,10 @@ export default function Battlefield({
     const struck = strikeOf(m, game.weather ?? null);
     const hpPct = Math.max(0, Math.round((m.hp / m.maxHp) * 100));
     const action = isFoe ? foeMonsterAction(m.uid, seat) : undefined;
-    const invalidTarget = isFoe && attackMode && !attackValid && targeting !== 'enemy_monster';
-    const validTarget = isFoe && (attackValid || targeting === 'enemy_monster');
+    // المنسحب لا يُهاجَم، فلا يُعرض هدفاً صالحاً ولا تُرسَم عليه معاينة ضرر
+    const evasive = Boolean(m.evasive);
+    const invalidTarget = isFoe && attackMode && (!attackValid || evasive) && targeting !== 'enemy_monster';
+    const validTarget = isFoe && !evasive && (attackValid || targeting === 'enemy_monster');
     // 10px كانت تُقرأ على شاشة الحاسوب لا على الهاتف
     const stat = `max(12px, ${3.6 * slot.s}cqw)`;
 
@@ -192,7 +194,13 @@ export default function Battlefield({
             ? color
             : null;
 
-    const status = m.sick ? t('fresh') : m.exhausted ? t('exhausted') : t('ready');
+    const status = m.protectedNew
+      ? t('protectedTag')
+      : m.sick
+        ? t('fresh')
+        : m.exhausted
+          ? t('exhausted')
+          : t('ready');
     const label = t('monsterAria', { name: L(d.name), atk: m.atk, hp: m.hp, maxHp: m.maxHp, status });
 
     const onClick = () => {
@@ -247,19 +255,21 @@ export default function Battlefield({
         )}
 
         {/* شارة الحالة فوق الرأس: جاهز ⚔ / مُنهك 💤 / جديد ⏳ — تُقرأ دون فتح التفاصيل */}
-        {!isFoe && !strike && (
+        {(!isFoe || m.protectedNew) && !strike && (
           <span
             aria-hidden
             className={`absolute left-1/2 top-[2%] z-10 grid -translate-x-1/2 place-items-center rounded-full font-black ring-1 ${
-              ready
-                ? 'bg-emerald-500 text-black ring-emerald-200'
-                : m.exhausted
-                  ? 'bg-slate-700 text-slate-200 ring-slate-400/50'
-                  : 'bg-amber-500/90 text-black ring-amber-200'
+              m.protectedNew
+                ? 'bg-sky-400 text-black ring-sky-100'
+                : ready
+                  ? 'bg-emerald-500 text-black ring-emerald-200'
+                  : m.exhausted
+                    ? 'bg-slate-700 text-slate-200 ring-slate-400/50'
+                    : 'bg-amber-500/90 text-black ring-amber-200'
             }`}
             style={{ width: `max(16px, ${4.4 * slot.s}cqw)`, height: `max(16px, ${4.4 * slot.s}cqw)`, fontSize: `max(9px, ${2.4 * slot.s}cqw)` }}
           >
-            {ready ? '⚔' : m.exhausted ? '💤' : '⏳'}
+            {m.protectedNew ? '🛡' : ready ? '⚔' : m.exhausted ? '💤' : '⏳'}
           </span>
         )}
 

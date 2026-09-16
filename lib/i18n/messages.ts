@@ -168,10 +168,22 @@ export const LOG_MESSAGES: Record<string, Localized> = {
     ar: '💀 لعنة: {player} فقد {amount} صحة.',
     en: '💀 Curse: {player} lost {amount} life.',
   },
+  summon_protected: {
+    ar: '🛡️ حماية الاستدعاء: {card} لا تقتله ضربةُ وحش هذا الدور (فارق {n}).',
+    en: '🛡️ Summon Protection: a monster attack cannot kill {card} this turn (behind by {n}).',
+  },
+  emergency_ready: {
+    ar: '⚔️ نجدة: {card} جاهزٌ للهجوم فوراً (فارق {n}).',
+    en: '⚔️ Emergency Reinforcement: {card} is ready to attack at once (behind by {n}).',
+  },
+  summon_shield: {
+    ar: '🛡️ الحماية صدّت {amount} — صمد {card} على نقطة.',
+    en: '🛡️ Protection absorbed {amount} — {card} held on 1 health.',
+  },
   ability_dodge: { ar: '💨 مراوغة: {card} تفادى الهجوم.', en: '💨 Dodge: {card} evaded the attack.' },
   ability_mobility: {
-    ar: '🍃 انسحاب: عاد {card} إلى يدك بعد ضربته.',
-    en: '🍃 Mobility: {card} returned to your hand after striking.',
+    ar: '🍃 انسحاب: أفلت {card} — لا يُهاجَم حتى دورك.',
+    en: '🍃 Mobility: {card} slipped away — it cannot be attacked until your turn.',
   },
   ability_overcharge: {
     ar: '⚡ شحنة زائدة: +{amount} ضرر من طاقتك غير المنفقة.',

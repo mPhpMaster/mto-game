@@ -80,7 +80,7 @@ const POSE: Record<Ability, string> = {
   curse: 'casting a creeping sigil that spreads away from it',
   speed: 'caught mid-lunge, already committed to the charge',
   dodge: 'twisting aside, half its outline blurred by the movement',
-  mobility: 'already turning away, weight shifted to leave',
+  mobility: 'sliding out of reach mid-motion, too quick to be struck back',
   overcharge: 'overloaded with stored energy arcing off its frame',
   chain: 'a bolt leaping from it toward a second point off-frame',
   recharge: 'still, gathering visible energy that has not been released yet',
