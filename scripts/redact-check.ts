@@ -20,7 +20,8 @@ function auditView(full: GameState, viewer: 0 | 1, label: string) {
   const other: 0 | 1 = viewer === 0 ? 1 : 0;
 
   // 1) لا تسريب: كل كارت في السطح ويد الخصم يجب أن يكون مخفياً
-  const leakedDeck = view.deck.filter((c) => c.defId !== HIDDEN_CARD_ID);
+  const decksOf = (g: GameState) => g.players.flatMap((pl) => pl.deck);
+  const leakedDeck = decksOf(view).filter((c) => c.defId !== HIDDEN_CARD_ID);
   if (leakedDeck.length) fail(`${label}: تسرّب ${leakedDeck.length} كارتاً من السطح.`);
 
   const leakedHand = view.players[other].hand.filter((c) => c.defId !== HIDDEN_CARD_ID);
@@ -32,12 +33,12 @@ function auditView(full: GameState, viewer: 0 | 1, label: string) {
 
   // 2) لا تسريب عبر المعرّفات: uid الحقيقي قد يُطابق بين النسخ
   const secretUids = new Set([
-    ...full.deck.map((c) => c.uid),
+    ...decksOf(full).map((c) => c.uid),
     ...full.players[other].hand.map((c) => c.uid),
     ...full.players[other].traps.map((t) => t.uid),
   ]);
   const viewUids = [
-    ...view.deck.map((c) => c.uid),
+    ...decksOf(view).map((c) => c.uid),
     ...view.players[other].hand.map((c) => c.uid),
     ...view.players[other].traps.map((t) => t.uid),
   ];
@@ -45,7 +46,10 @@ function auditView(full: GameState, viewer: 0 | 1, label: string) {
   if (leakedUid.length) fail(`${label}: تسرّب ${leakedUid.length} معرّفاً حقيقياً.`);
 
   // 3) الأعداد تبقى صحيحة لأن الواجهة تعرضها
-  if (view.deck.length !== full.deck.length) fail(`${label}: حجم السطح تغيّر.`);
+  for (let i = 0; i < full.players.length; i++) {
+    if (view.players[i].deck.length !== full.players[i].deck.length)
+      fail(`${label}: حجم ديك اللاعب ${i} تغيّر.`);
+  }
   if (view.players[other].hand.length !== full.players[other].hand.length)
     fail(`${label}: عدد كروت يد الخصم تغيّر.`);
   if (view.players[other].traps.length !== full.players[other].traps.length)

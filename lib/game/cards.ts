@@ -614,6 +614,18 @@ export function def(id: string): CardDef {
 
 export const TOTAL_CARDS = CATALOG.reduce((n, c) => n + c.copies, 0);
 
+/** كم كارتاً في ديك اللاعب الواحد */
+export const DECK_SIZE = 50;
+
+/**
+ * وصفة الديك: كم تصميماً يُؤخذ من كل نوع، ومن كل تصميم **نسختان** كما في
+ * الكتالوج. والنسختان مقصودتان لا تزييناً: سحر «صورة المرآة» ينسخ وحشاً
+ * بسحب نسخةٍ أخرى من تصميمه، فديكٌ كلّه أفراد يُعطّله بصمت.
+ *
+ * 11×2 وحش + 5×2 سحر + 4×2 فخّ + 3×2 حركة = 46، وأربع قطع = 50.
+ */
+export const DECK_RECIPE = { monster: 11, spell: 5, trap: 4, action: 3 } as const;
+
 export const CATALOG_BREAKDOWN = {
   monster: CATALOG.filter((c) => c.kind === 'monster').reduce((n, c) => n + c.copies, 0),
   action: CATALOG.filter((c) => c.kind === 'action').reduce((n, c) => n + c.copies, 0),

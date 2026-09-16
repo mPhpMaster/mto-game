@@ -593,7 +593,7 @@ export default function Battlefield({
           ))}
         </div>
         <div className="mt-[4%] text-center text-[max(9px,1.9cqw)] font-black text-white/85 [text-shadow:0_1px_3px_#000]">
-          🂠 {game.deck.length}
+          🂠 {game.players[me].deck.length}
         </div>
       </div>
 

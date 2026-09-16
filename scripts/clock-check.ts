@@ -32,11 +32,16 @@ function game(script: GameScript): GameState {
   });
 }
 
-/** يسحب نسخة من السطح إلى اليد فيبقى جرد الكروت سليماً */
+let mintedForTest = 0;
+/**
+ * يضع نسخة في يد اللاعب: من ديكه إن كانت فيه، وإلا سُكّت. ديك الخمسين
+ * عيّنةٌ من الكتالوج فقد لا يقع فيه الكارت المطلوب — ورميُ خطأٍ حينها
+ * يجعل الفحص يقيس العيّنة لا الساعة، وهي ليست موضوعه.
+ */
 function giveCard(s: GameState, side: Seat, defId: string): string {
-  const i = s.deck.findIndex((c) => c.defId === defId);
-  if (i < 0) throw new Error(`لا توجد نسخة متاحة من «${defId}»`);
-  const inst = s.deck.splice(i, 1)[0];
+  const deck = s.players[side].deck;
+  const i = deck.findIndex((c) => c.defId === defId);
+  const inst = i >= 0 ? deck.splice(i, 1)[0] : { uid: `tc${mintedForTest++}`, defId, owner: side };
   s.players[side].hand.push(inst);
   return inst.uid;
 }

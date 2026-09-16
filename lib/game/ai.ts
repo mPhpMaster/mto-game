@@ -87,7 +87,7 @@ function scoreCard(s: GameState, side: Seat, d: CardDef): number {
       if (d.ability === 'bounce' || d.ability === 'chain') v += 10;
       if (d.ability === 'growth' || d.ability === 'regen' || d.ability === 'curse') v += 8;
       if (d.ability === 'swarm' && me.field.length >= 2) v += 8;
-      if (d.ability === 'graveyard' && s.discard.length >= 6) v += 6;
+      if (d.ability === 'graveyard' && me.discard.length >= 6) v += 6;
       if (d.ability === 'sacrifice' && me.field.some((m) => m.hp < m.maxHp)) v += 6;
       if (me.field.length === 0) v += 25; // نحتاج مدافعاً
       return v;
@@ -438,7 +438,7 @@ export function aiChooseAction(s: GameState): GameAction {
     } else if (pick.d.needsTarget === 'enemy_trap') {
       targetUid = foes.find((f) => f.traps.length)?.traps[0]?.uid;
     } else if (pick.d.needsTarget === 'discard_monster') {
-      targetUid = s.discard
+      targetUid = me.discard
         .filter((c) => def(c.defId).kind === 'monster')
         .sort((a, b) => (def(b.defId).atk ?? 0) - (def(a.defId).atk ?? 0))[0]?.uid;
     }

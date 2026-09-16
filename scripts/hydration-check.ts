@@ -66,9 +66,8 @@ sameTwice('بعد إنهاء دورين', () => {
 {
   const s = createGame({ seed: 55, firstPlayer: 0 });
   const all = [
-    ...s.deck,
-    ...s.discard,
-    ...s.players.flatMap((p) => [...p.hand, ...p.traps, ...p.field]),
+    ...s.flowPile,
+    ...s.players.flatMap((p) => [...p.deck, ...p.discard, ...p.hand, ...p.traps, ...p.field]),
   ].map((c) => c.uid);
   const unique = new Set(all);
   if (unique.size === all.length) ok(`المعرّفات فريدة (${all.length} نسخة)`);
@@ -77,10 +76,47 @@ sameTwice('بعد إنهاء دورين', () => {
 
 // ---------- بذرتان مختلفتان تعطيان مباراتين مختلفتين ----------
 {
-  const a = JSON.stringify(createGame({ seed: 1, firstPlayer: 0 }).deck.map((c) => c.defId));
-  const b = JSON.stringify(createGame({ seed: 2, firstPlayer: 0 }).deck.map((c) => c.defId));
-  if (a !== b) ok('بذرتان مختلفتان ⇐ ترتيبان مختلفان');
-  else bad('البذرة لا تؤثّر في ترتيب السطح — الخلط معطّل');
+  const deckOf = (seed: number) =>
+    JSON.stringify(createGame({ seed, firstPlayer: 0 }).players[0].deck.map((c) => c.defId));
+  if (deckOf(1) !== deckOf(2)) ok('بذرتان مختلفتان ⇐ ديكان مختلفان');
+  else bad('البذرة لا تؤثّر في الديك — الخلط معطّل');
+}
+
+// ---------- ديكان متطابقا المحتوى مختلفا الترتيب ----------
+{
+  /*
+    شرطان معاً: المحتوى واحد فلا يملك أحدهما كارتاً يُحرَمه الآخر، والترتيب
+    مختلف وإلا سحب اللاعبان الكارت نفسه في الدور نفسه فصارت كل مباراة مرآةً.
+    والثاني لا يكشفه شيء آخر: الأعداد كلّها تبقى صحيحة وهو واقع.
+  */
+  /*
+    المقارنة على ما **يملكه** كلٌّ لا على ديكه وحده: حين تعود `createGame`
+    تكون خمسةٌ من كل ديكٍ قد صارت يداً، وكارتٌ من ديك الموزّع قد صار تدفّقاً.
+    فديكاهما يختلفان حتماً (44 و45) وملكيّتهما لا تختلف — ومقارنة الديكين
+    نفسيهما تُسقط الفحص على مباراةٍ سليمة.
+  */
+  const s = createGame({ seed: 31337, firstPlayer: 0 });
+  const ownedBy = (i: number) =>
+    [
+      ...s.players[i].deck,
+      ...s.players[i].discard,
+      ...s.players[i].hand,
+      ...s.players[i].traps,
+      ...s.flowPile.filter((c) => c.owner === i),
+    ].map((c) => c.defId);
+  const sorted = (xs: string[]) => JSON.stringify([...xs].sort());
+  const [a, b] = [0, 1].map(ownedBy);
+  /*
+    والترتيب يُقاس على اليدين لا على الديكين: طولاهما مختلفان فلا يتطابقان
+    أبداً، فيمرّ فحص الترتيب ولو خُلط الديكان من حالة الأرقام نفسها — وهو
+    العطل الذي وُضع الفحص له. واليد هي العَرَض الذي يراه اللاعب.
+  */
+  const handOf = (i: number) => sorted(s.players[i].hand.map((c) => c.defId));
+  if (a.length !== b.length || sorted(a) !== sorted(b))
+    bad(`الديكان مختلفا المحتوى — الوصفة ليست واحدة (${a.length} مقابل ${b.length})`);
+  else if (handOf(0) === handOf(1))
+    bad('اليدان متطابقتان — الديكان خُلطا بحالةٍ واحدة فصارت المباراة مرآةً');
+  else ok(`ملكيّتان متطابقتان (${a.length} كارتاً لكلٍّ) ويدان مختلفتان`);
 }
 
 console.log(

@@ -294,12 +294,12 @@ console.log('كلمات العناصر:\n');
     energyCap: [9, 9],
   });
   s.players[0].field[0].hp = 1; // جريح
-  const discard0 = s.discard.length;
+  const discard0 = s.players[0].discard.length;
   s = play(s, 'mon_dark_shadow_1');
   const eater = s.players[0].field.find((m) => def(m.defId).species === 'shadow')!;
   const base = def(eater.defId);
   eq('تضحية: التهم الجريح', s.players[0].field.length, 1);
-  eq('تضحية: ذهب إلى المهملات', s.discard.length, discard0 + 1);
+  eq('تضحية: ذهب إلى المهملات', s.players[0].discard.length, discard0 + 1);
   eq('تضحية: كبر هجومه', eater.atk - base.atk!, KEYWORD_VALUES.sacrificeAtk);
   eq('تضحية: كبرت صحته', eater.maxHp - base.hp!, KEYWORD_VALUES.sacrificeHp);
 }
@@ -313,9 +313,9 @@ console.log('كلمات العناصر:\n');
     energyCap: [9, 9],
   });
   // تسعة وحوش في المهملات ⇒ 9/3 = 3، وهو السقف
-  const buried = s.deck.filter((c) => def(c.defId).kind === 'monster').slice(0, 9);
-  s.deck = s.deck.filter((c) => !buried.includes(c));
-  s.discard = [...s.discard, ...buried];
+  const buried = s.players[0].deck.filter((c) => def(c.defId).kind === 'monster').slice(0, 9);
+  s.players[0].deck = s.players[0].deck.filter((c) => !buried.includes(c));
+  s.players[0].discard = [...s.players[0].discard, ...buried];
   s = play(s, 'mon_dark_lailks_1');
   const m = s.players[0].field[0];
   eq('مقبرة', m.atk - def(m.defId).atk!, KEYWORD_VALUES.graveyardMax, 'بتسعة وحوش في المهملات');

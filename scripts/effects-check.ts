@@ -65,15 +65,17 @@ function fresh(): GameState {
   });
 }
 
-/** ينقل نسخة من السطح إلى المكان المطلوب فيبقى الجرد سليماً */
-function take(s: GameState, defId: string) {
-  const i = s.deck.findIndex((c) => c.defId === defId);
-  if (i < 0) throw new Error(`لا توجد نسخة من «${defId}»`);
-  return s.deck.splice(i, 1)[0];
+let mintedForTest = 0;
+/** ينقل نسخة من ديك اللاعب، أو يسكّها إن لم تقع في عيّنة الخمسين */
+function take(s: GameState, defId: string, side: Seat = 0) {
+  const deck = s.players[side].deck;
+  const i = deck.findIndex((c) => c.defId === defId);
+  if (i >= 0) return deck.splice(i, 1)[0];
+  return { uid: `te${mintedForTest++}`, defId, owner: side };
 }
 
 function putMonster(s: GameState, side: Seat, defId: string, opts: { hurt?: boolean } = {}) {
-  const inst = take(s, defId);
+  const inst = take(s, defId, side);
   const d = def(inst.defId);
   s.players[side].field.push({
     uid: inst.uid,
@@ -180,12 +182,17 @@ for (const card of CATALOG.filter((c) => c.kind === 'spell')) {
   s.phase = 'main';
 
   // شروط الأهداف: كلٌّ حسب حاجته
-  s.discard.push(take(s, 'mon_fire_nariks_1'));
-  s.players[1].traps.push(take(s, 'trap_ambush'));
+  s.players[0].discard.push(take(s, 'mon_fire_nariks_1', 0));
+  s.players[1].traps.push(take(s, 'trap_ambush', 1));
   if (effect === 'mirror_image') {
-    // النسخة تُسحب من السطح، فلا بدّ من بقاء نسخة ثانية من وحش الساحة
     s.players[0].field = [];
     putMonster(s, 0, 'mon_psychic_holmi_1', { hurt: true });
+    /*
+      النسخة تُسحب من ديك صاحبها، ووصفة الخمسين قد لا تكون اختارت هذا
+      التصميم أصلاً. فنضمن النسخة الثانية صراحةً بدل الاتّكال على أنها
+      موجودة — وكان الاتّكال يصحّ حين كان السطح 272 كارتاً.
+    */
+    s.players[0].deck.push({ uid: 'mirror-spare', defId: 'mon_psychic_holmi_1', owner: 0 });
   }
   if (effect === 'second_wind') for (const m of s.players[0].field) m.exhausted = true;
 
@@ -227,7 +234,7 @@ function pickTarget(s: GameState, card: CardDef): string | undefined {
     case 'enemy_trap':
       return s.players[1].traps[0]?.uid;
     case 'discard_monster':
-      return s.discard.find((c) => def(c.defId).kind === 'monster')?.uid;
+      return s.players[0].discard.find((c) => def(c.defId).kind === 'monster')?.uid;
     default:
       return undefined;
   }

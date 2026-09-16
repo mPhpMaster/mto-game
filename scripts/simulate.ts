@@ -4,7 +4,7 @@
  *   npm run simulate -- 1000
  */
 import { aiChooseAction } from '../lib/game/ai';
-import { CATALOG_BREAKDOWN, TOTAL_CARDS } from '../lib/game/cards';
+import { CATALOG_BREAKDOWN, DECK_SIZE, TOTAL_CARDS } from '../lib/game/cards';
 import { applyGameAction, createGame } from '../lib/game/engine';
 import { renderMessage } from '../lib/i18n/messages';
 import type { GameState } from '../lib/game/types';
@@ -12,7 +12,8 @@ import type { GameState } from '../lib/game/types';
 const GAMES = Number(process.argv[2] ?? 200);
 const MAX_ACTIONS = 4000;
 
-console.log(`السطح: ${TOTAL_CARDS} كارتاً`, CATALOG_BREAKDOWN);
+console.log(`الكتالوج: ${TOTAL_CARDS} كارتاً`, CATALOG_BREAKDOWN);
+console.log(`ديك كل لاعب: ${DECK_SIZE} كارتاً`);
 // المجموع مشتقّ من الكتالوج لا رقماً مكتوباً، فلا يتعطّل الفحص مع كل توسعة.
 // الثابت المهمّ هو أن يبقى المجموع نفسه من أول المباراة إلى آخرها.
 if (TOTAL_CARDS < 100) {
@@ -20,13 +21,14 @@ if (TOTAL_CARDS < 100) {
   process.exit(1);
 }
 
-/** كل كارت يجب أن يكون في مكان واحد فقط، والمجموع ثابت عند TOTAL_CARDS */
+/** كل كارت في مكان واحد فقط، والمجموع لا يتغيّر من أول المباراة إلى آخرها */
 function auditCards(s: GameState): { total: number; dupes: string[] } {
   const seen = new Map<string, number>();
   const bump = (uid: string) => seen.set(uid, (seen.get(uid) ?? 0) + 1);
-  for (const c of s.deck) bump(c.uid);
-  for (const c of s.discard) bump(c.uid);
+  for (const c of s.flowPile) bump(c.uid);
   for (const p of s.players) {
+    for (const c of p.deck) bump(c.uid);
+    for (const c of p.discard) bump(c.uid);
     for (const c of p.hand) bump(c.uid);
     for (const m of p.field) bump(m.uid);
     for (const t of p.traps) bump(t.uid);
@@ -56,6 +58,9 @@ for (let g = 0; g < GAMES; g++) {
     firstPlayer: 0,
   });
   s.players[0].isAI = true;
+  // يُقاس الجرد على ما بدأت به هذه المباراة لا على الكتالوج: الديك صار
+  // خمسين لكل لاعب، والثابت هو ألّا يُخلق كارت ولا يُفقد.
+  const baseline = auditCards(s).total;
 
   let actions = 0;
   let guardTurn = -1;
@@ -85,10 +90,10 @@ for (let g = 0; g < GAMES; g++) {
   }
 
   const audit = auditCards(s);
-  if (audit.total !== TOTAL_CARDS || audit.dupes.length) {
+  if (audit.total !== baseline || audit.dupes.length) {
     auditFailures++;
     console.error(
-      `✗ جرد المباراة ${g} (بذرة ${1000 + g}): المجموع ${audit.total}/${TOTAL_CARDS}` +
+      `✗ جرد المباراة ${g} (بذرة ${1000 + g}): المجموع ${audit.total}/${baseline}` +
         (audit.dupes.length ? ` · مكرّرة: ${audit.dupes.slice(0, 5).join(', ')}` : '')
     );
   }
@@ -98,7 +103,9 @@ for (let g = 0; g < GAMES; g++) {
     console.error(`✗ المباراة ${g} (بذرة ${1000 + g}) لم تنتهِ بعد ${actions} حركة (الدور ${s.turn})`);
     console.error(
       `   hp=${s.players[0].hp}/${s.players[1].hp} hands=${s.players[0].hand.length}/${s.players[1].hand.length}` +
-        ` fields=${s.players[0].field.length}/${s.players[1].field.length} deck=${s.deck.length} discard=${s.discard.length}`
+        ` fields=${s.players[0].field.length}/${s.players[1].field.length}` +
+        ` deck=${s.players.map((p) => p.deck.length).join('/')}` +
+        ` discard=${s.players.map((p) => p.discard.length).join('/')}`
     );
     for (const l of s.log.slice(-12)) console.error('   |', renderMessage(l.key, l.params, 'ar'));
   } else {

@@ -626,9 +626,10 @@ export default function GameBoard({
   // مرة كل دور، سواءٌ أكان في اليد ما يُلعب أم لا
   const canRescueDraw = canAct && game.phase === 'main' && !me.extraDrawUsed;
 
+  // «إحياء» و«استدعاء» لا يبلغان إلا مقبرتك أنت، فلا تُعرض أهدافٌ يرفضها المحرّك
   const discardMonsters = useMemo(
-    () => game.discard.filter((c) => def(c.defId).kind === 'monster'),
-    [game.discard]
+    () => game.players[ME].discard.filter((c) => def(c.defId).kind === 'monster'),
+    [game.players, ME]
   );
 
   // ---------- التفاعل ----------
@@ -830,7 +831,7 @@ export default function GameBoard({
               ⚔️ {t('appName')}
             </Link>
             <span className="opacity-60">{t('turnLabel', { n: game.turn })}</span>
-            <span className="hidden opacity-60 sm:inline">{t('discardLabel', { n: game.discard.length })}</span>
+            <span className="hidden opacity-60 sm:inline">{t('discardLabel', { n: game.players[ME].discard.length })}</span>
             {!tutorial && !controlled && !hotseat && (
               <span
                 className="rounded-md bg-white/10 px-2 py-0.5 font-bold"

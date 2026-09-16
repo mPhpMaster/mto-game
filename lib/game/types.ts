@@ -155,6 +155,8 @@ export interface CardDef {
 export interface CardInstance {
   uid: string;
   defId: string;
+  /** صاحب الكارت — إليه يعود عند إعادة الخلط. يغيب في النسخ المخفيّة */
+  owner?: Seat;
 }
 
 /** وحش على الساحة */
@@ -208,6 +210,10 @@ export interface PlayerState {
   maxEnergyCap: number;
   /** طاقة إضافية تُضاف في بداية الدور القادم (من الفخاخ) */
   bonusEnergy: number;
+  /** ديك اللاعب الخاص — خمسون كارتاً، محتواه كمحتوى ديك خصمه */
+  deck: CardInstance[];
+  /** مهملاته هو: ما سقط من وحوشه وما أُلقي من يده وما انكسر من فخاخه */
+  discard: CardInstance[];
   hand: CardInstance[];
   field: FieldMonster[];
   traps: SetTrap[];
@@ -279,8 +285,11 @@ export interface GameState {
   phase: Phase;
   winner: Seat | null;
   winReason: GameOutcome | null;
-  deck: CardInstance[];
-  discard: CardInstance[];
+  /**
+   * طابور التدفق: الكروت المكشوفة التي لُعبت، أحدثها في آخره. مشترك لأن
+   * المطابقة تقع عليه، لكن كل كارت فيه يحمل صاحبه فيعود إليه عند الخلط.
+   */
+  flowPile: CardInstance[];
   flow: FlowTop;
   /** عقوبة السحب المتراكمة (draw2 / wild4) */
   pendingDraw: number;

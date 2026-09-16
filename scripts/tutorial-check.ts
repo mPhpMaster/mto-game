@@ -5,7 +5,7 @@
  * يمسك أخطاء مثل: الدرس يطلب لعب كارت لا تكفيه الطاقة، أو شرط لا يتحقّق أبداً.
  *   npm run check:tutorial
  */
-import { TOTAL_CARDS, def } from '../lib/game/cards';
+import { def } from '../lib/game/cards';
 import { applyGameAction, canPlayCard, createGame, evaluateAttack } from '../lib/game/engine';
 import { TUTORIAL_SCRIPT, TUTORIAL_SEED, TUTORIAL_STEPS } from '../lib/game/tutorial';
 import type { GameAction, GameState } from '../lib/game/types';
@@ -61,6 +61,20 @@ let s: GameState = createGame({
   opponentIsAI: true,
   script: TUTORIAL_SCRIPT,
 });
+
+/*
+  جرد البداية. الدرس قد يطلب كارتاً لم تختره وصفة الخمسين فيُسكّ له، فلا
+  يصلح ثابتٌ محسوب من الكتالوج مقياساً. والمقياس أن يبقى ما بدأ به الدرس.
+*/
+const startingCards = (() => {
+  const uids = new Set<string>();
+  for (const c of s.flowPile) uids.add(c.uid);
+  for (const p of s.players) {
+    for (const c of [...p.deck, ...p.discard, ...p.hand, ...p.traps]) uids.add(c.uid);
+    for (const m of p.field) uids.add(m.uid);
+  }
+  return uids.size + s.players.reduce((n, p) => n + p.fragments.length, 0);
+})();
 
 console.log(`التعليم: ${TUTORIAL_STEPS.length} خطوة`);
 
@@ -125,16 +139,18 @@ for (let i = 0; i < TUTORIAL_STEPS.length; i++) {
 // جرد الكروت: التوزيع المُعدّ يجب ألا يخلق أو يفقد كروتاً
 const seen = new Set<string>();
 let count = 0;
-for (const c of [...s.deck, ...s.discard]) { seen.add(c.uid); count++; }
+for (const c of s.flowPile) { seen.add(c.uid); count++; }
 for (const p of s.players) {
+  for (const c of p.deck) { seen.add(c.uid); count++; }
+  for (const c of p.discard) { seen.add(c.uid); count++; }
   for (const c of p.hand) { seen.add(c.uid); count++; }
   for (const m of p.field) { seen.add(m.uid); count++; }
   for (const t of p.traps) { seen.add(t.uid); count++; }
 }
 const claimed = s.players[0].fragments.length + s.players[1].fragments.length;
 if (seen.size !== count) fail(`تكرار في الكروت: ${count} نسخة مقابل ${seen.size} معرّفاً.`);
-if (seen.size + claimed !== TOTAL_CARDS)
-  fail(`مجموع الكروت ${seen.size + claimed} بدل ${TOTAL_CARDS}.`);
+if (seen.size + claimed !== startingCards)
+  fail(`مجموع الكروت ${seen.size + claimed} بدل ${startingCards}.`);
 
 console.log(
   failures === 0

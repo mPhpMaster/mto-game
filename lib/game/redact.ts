@@ -17,7 +17,13 @@ function hiddenCards(count: number, prefix: string): CardInstance[] {
 export function redactFor(state: GameState, viewer: Seat): GameState {
   const s = structuredClone(state);
 
-  s.deck = hiddenCards(s.deck.length, 'hd');
+  /*
+    ديك كل لاعب مخفيٌّ عن الجميع — وعن صاحبه أيضاً: ترتيب سحبك سرٌّ عنك
+    كما هو سرٌّ عن خصمك، وإلا عرفتَ ما ستسحبه قبل أن تسحبه.
+  */
+  for (let i = 0; i < s.players.length; i++) {
+    s.players[i].deck = hiddenCards(s.players[i].deck.length, `hd${i}_`);
+  }
 
   for (let i = 0; i < s.players.length; i++) {
     if (i === viewer) continue;

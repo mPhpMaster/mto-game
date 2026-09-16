@@ -21,7 +21,7 @@ import {
   strikeOf,
   surgeCut,
 } from './loadoutEffects';
-import { CATALOG } from './cards';
+import { CATALOG, DECK_RECIPE } from './cards';
 import { DEFAULT_DIFFICULTY, DIFFICULTIES, type Difficulty } from './difficulty';
 import { curveShuffle, makeSeed, nextRandom, randomInt, shuffle } from './rng';
 import type {
@@ -98,6 +98,16 @@ function makeUid(prefix: string): string {
 
 function clone<T>(v: T): T {
   return structuredClone(v);
+}
+
+/**
+ * يرمي الكارت في مهملات **صاحبه** لا مهملات من أسقطه — فوحشٌ قتلتَه يعود
+ * إلى ديك خصمك لا إلى ديكك. والاحتياط لكارتٍ بلا صاحب: الوحوش على الساحة
+ * تُنسب لصاحب الساحة، وهي الحالة الوحيدة التي يغيب فيها الصاحب.
+ */
+function toDiscard(s: GameState, card: CardInstance, fallback: Seat): void {
+  const owner = card.owner ?? fallback;
+  s.players[owner].discard.push({ ...card, owner });
 }
 
 function log(
@@ -192,17 +202,37 @@ function curveWeightOf(c: CardInstance): number {
 }
 
 /**
- * السطح كاملاً بمعرّفات مشتقّة من الترتيب، فمباراتان ببذرة واحدة تتطابقان
- * تطابقاً تامّاً — وهذا شرطُ أن يرسم الخادم والمتصفّح الشجرة نفسها.
+ * وصفة المباراة: أي التصاميم تدخل ديك الخمسين. تُختار بالبذرة فتختلف من
+ * مباراة إلى أخرى — ولولا ذلك لصارت كل مباراة بالخمسين نفسها بعد أن كان
+ * الجرد 272 — وهي **واحدة للاعبَين** فلا يملك أحدهما كروتاً يحرمها الآخر.
  */
-function buildDeck(): CardInstance[] {
-  const cards: CardInstance[] = [];
-  for (const d of CATALOG) {
-    for (let i = 0; i < d.copies; i++) {
-      cards.push({ uid: `c${cards.length}`, defId: d.id });
-    }
+function sampleDeck(seed: number): [defIds: string[], nextState: number] {
+  let rng = seed;
+  const picked: string[] = [];
+  for (const kind of ['monster', 'spell', 'trap', 'action'] as const) {
+    const [designs, ns] = shuffle(
+      CATALOG.filter((d) => d.kind === kind),
+      rng
+    );
+    rng = ns;
+    for (const d of designs.slice(0, DECK_RECIPE[kind])) picked.push(d.id, d.id);
   }
-  return cards;
+  /*
+    قطعةٌ من كل نوع لا بالنسبة: الوحش الكبير يحتاج أربع قطع مختلفة، وفي
+    الكتالوج ثماني قطع من 272 — أي أقلّ من نصف قطعة في ديكٍ من خمسين لو
+    أُخذت بالنسبة، فيصير شرط الفوز مستحيلاً بالبناء لا بالمهارة.
+  */
+  for (const d of CATALOG.filter((c) => c.kind === 'fragment')) picked.push(d.id);
+  return [picked, rng];
+}
+
+/**
+ * نسخة اللاعب من الوصفة. المعرّف يحمل الخانة (`p0c17`) فلا يتصادم مع نسخة
+ * خصمه من التصميم نفسه، ويُشتقّ من الترتيب فتتطابق مباراتان ببذرة واحدة —
+ * وهذا شرطُ أن يرسم الخادم والمتصفّح الشجرة نفسها.
+ */
+function buildDeckFor(side: Seat, defIds: string[]): CardInstance[] {
+  return defIds.map((defId, i) => ({ uid: `p${side}c${i}`, defId, owner: side }));
 }
 
 /**
@@ -212,17 +242,18 @@ function buildDeck(): CardInstance[] {
  * والوحش المسحوب هو الأرخص (السطح مرتّب بالمنحنى) فيبقى ميسور اللعب مبكّراً.
  */
 function ensureOpeningMonsters(s: GameState, side: Seat, floor: number): void {
+  const deck = s.players[side].deck;
   const hand = s.players[side].hand;
   const isMonster = (c: CardInstance) => def(c.defId).kind === 'monster';
   let have = hand.filter(isMonster).length;
   while (have < floor) {
-    const deckMonsterIdx = s.deck.findIndex(isMonster);
+    const deckMonsterIdx = deck.findIndex(isMonster);
     const handSwapIdx = hand.findIndex((c) => !isMonster(c));
-    // لا وحوش متبقّية في السطح أو اليد كلها وحوش أصلاً — لا شيء نبدّله
+    // لا وحوش متبقّية في الديك أو اليد كلها وحوش أصلاً — لا شيء نبدّله
     if (deckMonsterIdx < 0 || handSwapIdx < 0) break;
-    const monster = s.deck.splice(deckMonsterIdx, 1)[0];
-    // البطاقة المُخرَجة تأخذ مكان الوحش فيبقى السطح على ترتيب المنحنى
-    s.deck.splice(deckMonsterIdx, 0, hand[handSwapIdx]);
+    const monster = deck.splice(deckMonsterIdx, 1)[0];
+    // البطاقة المُخرَجة تأخذ مكان الوحش فيبقى الديك على ترتيب المنحنى
+    deck.splice(deckMonsterIdx, 0, hand[handSwapIdx]);
     hand[handSwapIdx] = monster;
     have++;
   }
@@ -240,6 +271,8 @@ function newPlayer(id: string, name: string, isAI: boolean): PlayerState {
     energyCap: RULES.START_ENERGY_CAP - 1,
     maxEnergyCap: RULES.MAX_ENERGY_CAP,
     bonusEnergy: 0,
+    deck: [],
+    discard: [],
     hand: [],
     field: [],
     traps: [],
@@ -291,13 +324,8 @@ export function createGame(opts?: {
   curveWeight?: (c: CardInstance) => number;
 }): GameState {
   const seed = opts?.seed ?? makeSeed();
-  // السطح مرتَّب بمنحنى تكلفة لا خلطاً أعمى، فتوافق الكروتُ الطاقةَ المتصاعدة
-  const [deck, rngAfterShuffle] = curveShuffle(
-    buildDeck(),
-    opts?.curveWeight ?? curveWeightOf,
-    opts?.curveSpread ?? RULES.DECK_CURVE_SPREAD,
-    seed
-  );
+  const [recipe, rngAfterSample] = sampleDeck(seed);
+  let rngCursor = rngAfterSample;
   const difficulty = opts?.difficulty ?? DEFAULT_DIFFICULTY;
   const level = DIFFICULTIES[difficulty];
 
@@ -312,9 +340,26 @@ export function createGame(opts?: {
             : []),
         ];
 
+  /*
+    ديكان متطابقان في المحتوى مختلفان في الترتيب: لو خُلط الاثنان من حالة
+    الأرقام نفسها لسحب اللاعبان الكارت نفسه في الدور نفسه، فصارت كل مباراة
+    مرآةً. ولهذا تُمرَّر حالة المولّد من خلطةٍ إلى التي تليها.
+    والديك مرتَّب بمنحنى تكلفة لا خلطاً أعمى، فتوافق الكروتُ الطاقةَ المتصاعدة.
+  */
+  const decks = roster.map((_, i) => {
+    const [d, ns] = curveShuffle(
+      buildDeckFor(i as Seat, recipe),
+      opts?.curveWeight ?? curveWeightOf,
+      opts?.curveSpread ?? RULES.DECK_CURVE_SPREAD,
+      rngCursor
+    );
+    rngCursor = ns;
+    return d;
+  });
+
   const s: GameState = {
     seed,
-    rng: rngAfterShuffle,
+    rng: rngCursor,
     difficulty,
     turn: 0,
     current: 0,
@@ -324,11 +369,14 @@ export function createGame(opts?: {
     phase: 'main',
     winner: null,
     winReason: null,
-    deck,
-    discard: [],
+    flowPile: [],
     flow: { element: 'fire', number: null, defId: null },
     pendingDraw: 0,
-    players: roster.map((p, i) => newPlayer(`p${i}`, p.name, p.isAI)),
+    players: roster.map((p, i) => {
+      const ps = newPlayer(`p${i}`, p.name, p.isAI);
+      ps.deck = decks[i];
+      return ps;
+    }),
     log: [],
     logSeq: 0,
     reveal: null,
@@ -385,11 +433,16 @@ export function createGame(opts?: {
       ensureOpeningMonsters(s, p, RULES.OPENING_MONSTER_FLOOR);
     }
 
-    // كارت البداية على طابور التدفق: أول كارت غير بري وغير قطعة
+    /*
+      كارت البداية على طابور التدفق: أول كارت غير بري وغير قطعة. يُؤخذ من
+      ديك الموزّع لا من العدم، ويحمل اسمه فيعود إليه عند إعادة الخلط —
+      فلا يُخلق كارت ولا يُفقد، ويبقى جرد كلٍّ منهما خمسين.
+    */
+    const dealerDeck = s.players[dealOrder[0]].deck;
     let starter: CardInstance | undefined;
     const skipped: CardInstance[] = [];
-    while (s.deck.length) {
-      const c = s.deck.shift()!;
+    while (dealerDeck.length) {
+      const c = dealerDeck.shift()!;
       const d = def(c.defId);
       if (d.element !== 'wild' && d.kind !== 'fragment' && d.number !== null && d.number < 10) {
         starter = c;
@@ -397,15 +450,15 @@ export function createGame(opts?: {
       }
       skipped.push(c);
     }
-    s.deck.push(...skipped);
+    dealerDeck.push(...skipped);
     if (starter) {
       const d = def(starter.defId);
       s.flow = { element: d.element as PlayableElement, number: d.number, defId: d.id };
-      s.discard.push(starter);
+      s.flowPile.push(starter);
     }
   }
 
-  log(s, 'system', null, 'match_start', { deck: s.deck.length });
+  log(s, 'system', null, 'match_start', { deck: s.players[0].deck.length });
   if (n > 2) {
     log(s, 'system', null, 'coin_toss_ffa', {
       first: s.players[dealOrder[0]].name,
@@ -422,21 +475,29 @@ export function createGame(opts?: {
   return s;
 }
 
-/** يوزّع الكروت المطلوبة بسحبها من السطح نفسه، فلا يتغيّر مجموع الـ200 */
+/** يوزّع الكروت المطلوبة على أصحابها، فلا يخرج كارتٌ من جرد صاحبه */
 function applyScript(s: GameState, script: GameScript) {
-  // خطأ في المعرّف أو طلب نسخ أكثر من الموجود في السطح خطأ برمجي، لا حالة تُتجاهل
-  const take = (defId: string): CardInstance => {
-    const i = s.deck.findIndex((c) => c.defId === defId);
-    if (i < 0) throw new Error(`توزيع غير صالح: لا توجد نسخة متاحة من «${defId}»`);
-    return s.deck.splice(i, 1)[0];
+  let minted = 0;
+  /*
+    يُؤخذ الكارت من ديك صاحبه إن كان فيه. وديك الخمسين عيّنةٌ من الكتالوج،
+    فقد يطلب درسٌ كارتاً لم تختره الوصفة — وحينها يُسكّ بمعرّف مشتقّ من
+    ترتيب السَّكّ لا من عدّاد عالميّ، فيبقى الترطيب حتمياً. ومعرّفٌ مجهول
+    يبقى خطأً برمجياً يرميه `def`.
+  */
+  const take = (side: Seat, defId: string): CardInstance => {
+    const deck = s.players[side].deck;
+    const i = deck.findIndex((c) => c.defId === defId);
+    if (i >= 0) return deck.splice(i, 1)[0];
+    def(defId);
+    return { uid: `p${side}s${minted++}`, defId, owner: side };
   };
 
   for (const side of [0, 1] as const) {
     for (const id of script.hands?.[side] ?? []) {
-      s.players[side].hand.push(take(id));
+      s.players[side].hand.push(take(side, id));
     }
     for (const id of script.fields?.[side] ?? []) {
-      const inst = take(id);
+      const inst = take(side, id);
       const d = def(inst.defId);
       s.players[side].field.push({
         uid: inst.uid,
@@ -455,26 +516,36 @@ function applyScript(s: GameState, script: GameScript) {
   }
 
   if (script.flow) {
-    const inst = take(script.flow);
+    // كارت التدفق من ديك اللاعب الأول: يعود إليه كما يعود كارت البداية
+    const inst = take(0, script.flow);
     const d = def(inst.defId);
     s.flow = { element: d.element as PlayableElement, number: d.number, defId: d.id };
-    s.discard.push(inst);
+    s.flowPile.push(inst);
   }
 }
 
 // ===================== السحب =====================
 
-function refillDeck(s: GameState): boolean {
-  if (s.deck.length > 0) return true;
-  // أعِد خلط المهملات ما عدا الكارت العلوي في طابور التدفق
-  const top = s.discard.length ? s.discard[s.discard.length - 1] : null;
-  const pool = top ? s.discard.slice(0, -1) : s.discard.slice();
+/** كروت اللاعب القابلة للعودة إلى ديكه — مهملاته وما لعبه في الطابور */
+function recyclable(s: GameState, side: Seat): CardInstance[] {
+  // الكارت المكشوف في أعلى الطابور يبقى: عليه تقع المطابقة الآن
+  const top = s.flowPile.length ? s.flowPile[s.flowPile.length - 1] : null;
+  const mine = s.flowPile.filter((c) => c.owner === side && c !== top);
+  return [...s.players[side].discard, ...mine];
+}
+
+function refillDeck(s: GameState, side: Seat): boolean {
+  const p = s.players[side];
+  if (p.deck.length > 0) return true;
+  const pool = recyclable(s, side);
   if (pool.length === 0) return false;
+  const mine = new Set(pool);
+  s.flowPile = s.flowPile.filter((c) => !mine.has(c));
   const [shuffled, rng] = shuffle(pool, s.rng);
   s.rng = rng;
-  s.deck = shuffled;
-  s.discard = top ? [top] : [];
-  log(s, 'system', null, 'deck_reshuffled');
+  p.deck = shuffled;
+  p.discard = [];
+  log(s, 'system', side, 'deck_reshuffled', { player: p.name });
   return true;
 }
 
@@ -482,14 +553,14 @@ function drawCards(s: GameState, side: Seat, n: number, silent = false): number 
   const p = s.players[side];
   let drawn = 0;
   for (let i = 0; i < n; i++) {
-    if (!refillDeck(s)) {
-      // إنهاك: لا كروت متبقية إطلاقاً
+    if (!refillDeck(s, side)) {
+      // إنهاك: لا كروت متبقية إطلاقاً. خمسون كارتاً تنفد، و272 لم تكن تنفد
       p.hp -= RULES.FATIGUE_DAMAGE;
       log(s, 'system', side, 'fatigue', { player: p.name, damage: RULES.FATIGUE_DAMAGE });
       checkDeath(s);
       continue;
     }
-    p.hand.push(s.deck.shift()!);
+    p.hand.push(p.deck.shift()!);
     drawn++;
   }
   if (!silent && drawn > 0) log(s, 'system', side, 'drew', { player: p.name, n: drawn });
@@ -570,7 +641,7 @@ export function canPlayCard(
     return { ok: false, reason: 'no_enemy_monster' };
   if (d.needsTarget === 'enemy_trap' && opponentsOf(s, side).every((i) => s.players[i].traps.length === 0))
     return { ok: false, reason: 'no_enemy_traps' };
-  if (d.needsTarget === 'discard_monster' && !s.discard.some((c) => def(c.defId).kind === 'monster'))
+  if (d.needsTarget === 'discard_monster' && !p.discard.some((c) => def(c.defId).kind === 'monster'))
     return { ok: false, reason: 'no_discard_monster' };
 
   return { ok: true };
@@ -671,7 +742,7 @@ function triggerTraps(
         for (let k = 0; k < 2 && foe.hand.length; k++) {
           const [idx, rng] = randomInt(s.rng, foe.hand.length);
           s.rng = rng;
-          s.discard.push(foe.hand.splice(idx, 1)[0]);
+          toDiscard(s, foe.hand.splice(idx, 1)[0], foeIdx);
           discarded++;
         }
         if (!discarded) { fired = false; break; }
@@ -683,8 +754,8 @@ function triggerTraps(
         const [idx, rng] = randomInt(s.rng, foe.fragments.length);
         s.rng = rng;
         const lost = foe.fragments.splice(idx, 1)[0];
-        // تعود القطعة إلى دورة السطح ليتمكّن أي لاعب من إيجادها مجدداً
-        s.discard.push({ uid: makeUid('r'), defId: `frag_${lost}` });
+        // تعود القطعة إلى دورة صاحبها فيستطيع إيجادها مجدداً — ولا تُهدى لكاسرها
+        toDiscard(s, { uid: makeUid('r'), defId: `frag_${lost}`, owner: foeIdx }, foeIdx);
         log(s, 'trap', ownerIdx, 'trap_relic_break', { fragment: lost });
         break;
       }
@@ -784,7 +855,7 @@ function triggerTraps(
         if (!foe.hand.length) { fired = false; break; }
         const [idx, rng] = randomInt(s.rng, foe.hand.length);
         s.rng = rng;
-        s.discard.push(foe.hand.splice(idx, 1)[0]);
+        toDiscard(s, foe.hand.splice(idx, 1)[0], foeIdx);
         drawCards(s, ownerIdx, 1, true);
         log(s, 'trap', ownerIdx, 'trap_time_theft', { player: foe.name });
         break;
@@ -833,7 +904,7 @@ function triggerTraps(
 
     if (fired) {
       owner.traps.splice(i, 1);
-      s.discard.push(t);
+      toDiscard(s, t, ownerIdx);
       // فخ واحد فقط لكل حدث
       return true;
     }
@@ -929,7 +1000,7 @@ function damageMonster(
     }
     const p = s.players[ownerIdx];
     p.field = p.field.filter((x) => x.uid !== m.uid);
-    s.discard.push({ uid: m.uid, defId: m.defId });
+    toDiscard(s, { uid: m.uid, defId: m.defId }, ownerIdx);
     log(s, 'attack', ownerIdx, 'monster_fell', { card: d.id });
   }
   return dealt;
@@ -1222,7 +1293,7 @@ function onSummonKeyword(s: GameState, side: Seat, d: CardDef, m: FieldMonster) 
         .sort((a, b) => a.hp - b.hp || a.atk - b.atk)[0];
       if (wounded) {
         p.field = p.field.filter((x) => x.uid !== wounded.uid);
-        s.discard.push({ uid: wounded.uid, defId: wounded.defId });
+        toDiscard(s, { uid: wounded.uid, defId: wounded.defId }, side);
         m.atk += KEYWORD_VALUES.sacrificeAtk;
         m.maxHp += KEYWORD_VALUES.sacrificeHp;
         m.hp += KEYWORD_VALUES.sacrificeHp;
@@ -1231,7 +1302,8 @@ function onSummonKeyword(s: GameState, side: Seat, d: CardDef, m: FieldMonster) 
       break;
     }
     case 'graveyard': {
-      const buried = s.discard.filter((c) => def(c.defId).kind === 'monster').length;
+      const buried = s.players[side].discard.filter((c) => def(c.defId).kind === 'monster')
+        .length;
       const bonus = Math.min(
         KEYWORD_VALUES.graveyardMax,
         Math.floor(buried / KEYWORD_VALUES.graveyardPer)
@@ -1284,8 +1356,8 @@ function applySpell(
       log(s, 'play', side, 'gained_energy', { player: p.name, amount: 3, energy: p.energy });
       break;
     case 'search': {
-      refillDeck(s);
-      const cards = s.deck.slice(0, 5);
+      refillDeck(s, side);
+      const cards = p.deck.slice(0, 5);
       if (cards.length) {
         s.reveal = { side, cards };
         log(s, 'play', side, 'search_revealed', { n: cards.length });
@@ -1310,10 +1382,10 @@ function applySpell(
     case 'revive': {
       if (p.field.length >= RULES.MAX_FIELD) break;
       const idx = targetUid
-        ? s.discard.findIndex((c) => c.uid === targetUid)
-        : s.discard.findIndex((c) => def(c.defId).kind === 'monster');
+        ? p.discard.findIndex((c) => c.uid === targetUid)
+        : p.discard.findIndex((c) => def(c.defId).kind === 'monster');
       if (idx >= 0) {
-        const inst = s.discard.splice(idx, 1)[0];
+        const inst = p.discard.splice(idx, 1)[0];
         const md = def(inst.defId);
         p.field.push({
           uid: inst.uid,
@@ -1334,7 +1406,7 @@ function applySpell(
       const i = targetUid ? foe.traps.findIndex((t) => t.uid === targetUid) : 0;
       if (i >= 0 && foe.traps.length) {
         const t = foe.traps.splice(i, 1)[0];
-        s.discard.push(t);
+        toDiscard(s, t, foeIdx);
         log(s, 'play', side, 'purged', { player: foe.name });
       }
       break;
@@ -1383,10 +1455,10 @@ function applySpell(
     }
     case 'recall': {
       const idx = targetUid
-        ? s.discard.findIndex((c) => c.uid === targetUid)
-        : s.discard.findIndex((c) => def(c.defId).kind === 'monster');
+        ? p.discard.findIndex((c) => c.uid === targetUid)
+        : p.discard.findIndex((c) => def(c.defId).kind === 'monster');
       if (idx >= 0) {
-        const inst = s.discard.splice(idx, 1)[0];
+        const inst = p.discard.splice(idx, 1)[0];
         p.hand.push(inst);
         log(s, 'play', side, 'recalled', { card: inst.defId });
       }
@@ -1426,12 +1498,12 @@ function applySpell(
       const weakest = p.field.slice().sort((a, b) => a.hp - b.hp || a.atk - b.atk)[0];
       // النسخة تُسحب من السطح أو المهملات لا تُختلق، وإلا اختلّ جرد الكروت.
       // فإن نفدت النسخ الأخرى من هذا التصميم لم يجد السحر ما ينسخه.
-      let idx = s.deck.findIndex((c) => c.defId === weakest.defId);
+      let idx = p.deck.findIndex((c) => c.defId === weakest.defId);
       const inst =
         idx >= 0
-          ? s.deck.splice(idx, 1)[0]
-          : (idx = s.discard.findIndex((c) => c.defId === weakest.defId)) >= 0
-            ? s.discard.splice(idx, 1)[0]
+          ? p.deck.splice(idx, 1)[0]
+          : (idx = p.discard.findIndex((c) => c.defId === weakest.defId)) >= 0
+            ? p.discard.splice(idx, 1)[0]
             : null;
       if (!inst) break;
       const md = def(inst.defId);
@@ -1454,7 +1526,7 @@ function applySpell(
       if (m) {
         // إزالة مباشرة لا ضرر: «حراسة» لا تحمي منها
         foe.field = foe.field.filter((x) => x.uid !== m.uid);
-        s.discard.push({ uid: m.uid, defId: m.defId });
+        toDiscard(s, { uid: m.uid, defId: m.defId }, foeIdx);
         log(s, 'play', side, 'banished', { card: m.defId, player: foe.name });
       }
       break;
@@ -1470,10 +1542,10 @@ function applySpell(
       break;
     }
     case 'titan_call': {
-      refillDeck(s);
-      const idx = s.deck.findIndex((c) => def(c.defId).kind === 'fragment');
+      refillDeck(s, side);
+      const idx = p.deck.findIndex((c) => def(c.defId).kind === 'fragment');
       if (idx >= 0) {
-        const inst = s.deck.splice(idx, 1)[0];
+        const inst = p.deck.splice(idx, 1)[0];
         p.hand.push(inst);
         log(s, 'play', side, 'titan_call', { card: inst.defId });
       }
@@ -1575,12 +1647,13 @@ function doPlay(s: GameState, action: Extract<GameAction, { type: 'PLAY' }>) {
       break;
     case 'action':
       applyAction(s, side, d);
-      s.discard.push(inst);
+      // إلى الطابور المشترك لا إلى مهملاته: عليه تقع المطابقة حتى يُغطّى
+      s.flowPile.push(inst);
       break;
     case 'spell':
       log(s, 'play', side, 'played', { player: p.name, card: d.id });
       applySpell(s, side, d, action.targetUid);
-      s.discard.push(inst);
+      s.flowPile.push(inst);
       break;
     case 'trap':
       p.traps.push({ uid: inst.uid, defId: d.id });
@@ -1618,7 +1691,8 @@ function doPlay(s: GameState, action: Extract<GameAction, { type: 'PLAY' }>) {
   }
 
   // نفاد اليد
-  if (p.hand.length === 0 && s.deck.length === 0 && s.discard.length <= 1) {
+  // لا يدَ ولا ديك ولا ما يُستعاد — الخسارة على جرد صاحبها لا على جردٍ مشترك
+  if (p.hand.length === 0 && p.deck.length === 0 && recyclable(s, side).length === 0) {
     endGame(s, side, { key: 'reason_empty_hand' });
   }
 }
@@ -2087,9 +2161,9 @@ export function applyGameAction(state: GameState, action: GameAction): GameState
 
     case 'PICK_REVEAL': {
       if (!s.reveal || s.reveal.side !== side) break;
-      const idx = s.deck.findIndex((c) => c.uid === action.uid);
+      const idx = p.deck.findIndex((c) => c.uid === action.uid);
       if (idx >= 0 && s.reveal.cards.some((c) => c.uid === action.uid)) {
-        p.hand.push(s.deck.splice(idx, 1)[0]);
+        p.hand.push(p.deck.splice(idx, 1)[0]);
         log(s, 'play', side, 'pick_reveal', { player: p.name });
       }
       s.reveal = null;
