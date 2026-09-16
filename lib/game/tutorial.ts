@@ -8,7 +8,7 @@ import type { GameState } from './types';
  *
  * طابور التدفق يبدأ بـ«جمرة» (🔥 نار · رقم 1)، ويده:
  *   لهيبو    🔥 نار  رقم 2 — يطابق بالعنصر
- *   ناريكس   🔥 نار  رقم 5 — يطابق بالعنصر، وله «اندفاع»
+ *   ناريكس   🔥 نار  رقم 5 — يطابق بالعنصر، وكلمته «حرق»
  *   تسونا    💧 ماء  رقم 2 — لا يطابق الآن (درس المطابقة)
  *   كمين     🕸️ فخ            — يُجهَّز دون مطابقة
  *   قلب الوحش 🗿 قطعة          — تُوضع دون مطابقة
@@ -96,22 +96,13 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     manual: true,
   },
   {
-    title: { ar: 'استثناء: خاصية «اندفاع»', en: 'The exception: Rush' },
+    title: { ar: 'كلمة العنصر: «حرق»', en: 'The element keyword: Burn' },
     body: {
-      ar: 'استدعِ «ناريكس» (🔥 نار · ⚔4 ❤4). خاصيته «اندفاع» تعني أنه يستطيع الهجوم فور استدعائه، دون انتظار دور كامل.',
-      en: 'Summon “Narix” (🔥 Fire · ⚔4 ❤4). Its Rush ability lets it attack the moment it is summoned, without waiting a full turn.',
+      ar: 'استدعِ «ناريكس» (🔥 نار · ⚔4 ❤4). لكل وحش كلمةٌ من عنصره، وكلمة ناريكس «حرق»: كل ضربةٍ منه تترك في هدفه حرقاً يفقده صحةً في بداية كل دور. وهو الآن «جديد» فلا يهاجم قبل دورك القادم.',
+      en: 'Summon “Narix” (🔥 Fire · ⚔4 ❤4). Every monster carries a keyword from its element, and Narix’s is Burn: each of its strikes leaves the target burning, losing health at the start of every turn. It is “New” right now, so it cannot attack until your next turn.',
     },
     focus: 'hand',
     done: (s) => hasMonster(s, 'nariks'),
-  },
-  {
-    title: { ar: 'هاجِم وحش الخصم', en: 'Attack the enemy monster' },
-    body: {
-      ar: 'اضغط «ناريكس» في ساحتك لتحديده — سيظهر الضرر المتوقّع في شريط الأوامر — ثم اضغط وحش الخصم «ورقي» لمهاجمته. ضرره 4 وحياة ورقي 4، فسيسقط.',
-      en: 'Tap “Narix” on your field to select it — the expected damage appears in the command bar — then tap the enemy “Leafin” to attack it. Narix deals 4 and Leafin has 4 life, so it falls.',
-    },
-    focus: 'myField',
-    done: (s) => s.players[1].field.length === 0,
   },
   {
     title: { ar: 'أنهِ دورك', en: 'End your turn' },
@@ -121,6 +112,15 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     },
     focus: 'commands',
     done: (s) => s.turn >= 3 && s.current === 0,
+  },
+  {
+    title: { ar: 'هاجِم وحش الخصم', en: 'Attack the enemy monster' },
+    body: {
+      ar: 'وحوشك جاهزة الآن. اضغط «ناريكس» لتحديده — يتوهّج كل هدفٍ صالح بالأحمر وفوقه الضرر المتوقّع — ثم اضغط «ورقي». ضرره 4 وحياة ورقي 4، فسيسقط.',
+      en: 'Your monsters are ready now. Tap “Narix” to select it — every valid target glows red with the expected damage above it — then tap “Leafin”. Narix deals 4 and Leafin has 4 life, so it falls.',
+    },
+    focus: 'myField',
+    done: (s) => s.players[1].field.length === 0,
   },
   {
     title: { ar: 'الفخاخ لا تحتاج مطابقة', en: 'Traps need no matching' },
@@ -139,6 +139,15 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     },
     focus: 'hand',
     done: (s) => s.players[0].fragments.length > 0,
+  },
+  {
+    title: { ar: 'أنهِ دورك ليستعيدوا أنفاسهم', en: 'End your turn so they recover' },
+    body: {
+      ar: 'الوحش الذي هاجم يصير «مُنهكاً» ولا يهاجم مرّة أخرى في الدور نفسه. أنهِ دورك: يعود وحشاك جاهزين، وترتفع طاقتك — وعندها يصير الهجوم المشترك ممكناً.',
+      en: 'A monster that has attacked becomes “Exhausted” and cannot strike again this turn. End your turn: both monsters come back ready and your energy rises — and then a combo attack becomes possible.',
+    },
+    focus: 'commands',
+    done: (s) => s.turn >= 5 && s.current === 0,
   },
   {
     title: { ar: 'الهجوم المشترك', en: 'The combo attack' },

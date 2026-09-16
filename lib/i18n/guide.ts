@@ -74,14 +74,14 @@ export const GUIDE: GuideSection[] = [
         en: '**Steps:** ① Tap your first monster (it gets a white outline). ② Tap your second. ③ The command bar shows “💥 Combo attack” with the expected damage. ④ Tap an enemy monster to hit it, or “⚔ Attack directly” if their field is empty.',
       },
       {
-        ar: '**شرط الدمج:** يجب أن يشترك الوحوش في **العنصر** أو في **الرقم**. والاستثناء: أي وحش يحمل خاصية «رابط» يُدمج مع أي وحش مهما اختلف عنصره أو رقمه.',
-        en: '**The requirement:** the monsters must share an **element** or a **number**. The exception: any monster with **Link** combines with anything, whatever its element or number.',
+        ar: '**شرط الدمج:** يجب أن يشترك الوحوش في **العنصر** أو في **الرقم**. لا استثناء — كانت خاصية «رابط» تتجاوز الشرط، وقد زالت مع تبديل الخصائص بكلمات العناصر.',
+        en: '**The requirement:** the monsters must share an **element** or a **number**. No exceptions — the old **Link** ability bypassed it, and it is gone with the move to element keywords.',
       },
     ],
     points: [
       { ar: 'الضرر = مجموع هجوم الوحوش + 2 لكل وحش إضافي. ثلاثة وحوش بـ4 هجوم = 12 + 4 = 16.', en: 'Damage = sum of attack + 2 per extra monster. Three 4-attack monsters = 12 + 4 = 16.' },
       { ar: 'مرة واحدة في الدور فقط. والوحوش المشاركة كلّها تصبح مُنهكة.', en: 'Once per turn only. Every participating monster becomes exhausted.' },
-      { ar: 'الوحش المكتوب عليه «جديد» لا يشارك — إلا إن كان يحمل «اندفاع».', en: 'A monster marked “New” cannot join — unless it has **Rush**.' },
+      { ar: 'الوحش المكتوب عليه «جديد» لا يشارك — إلا إن كان يحمل «سرعة».', en: 'A monster marked “New” cannot join — unless it has **Speed**.' },
       { ar: 'قبل أن تضرب: الأهداف الصالحة تتوهّج بالأحمر وفوقها الضرر المتوقّع (💀 إن كان قاتلاً)، وتبهت بعلامة ✕ إن كان الدمج غير صالح — فلا تكتشف الخطأ بعد النقر.', en: 'Before you strike: valid targets glow red with the expected damage above them (💀 if lethal), and grey out with an ✕ if the combo is invalid — so you never find out after the tap.' },
       { ar: 'كارت «تضخيم» يضاعف الهجوم المشترك القادم في نفس الدور.', en: 'The **Amplify** spell doubles your next combo attack that turn.' },
       { ar: 'سقف الساحة 6 وحوش — فالتشكيلة الكبيرة للدمج لم تعد تُقطَع عند الرابع.', en: 'The field holds 6 monsters — a wide combo line is no longer cut off at four.' },
@@ -208,9 +208,9 @@ export const GUIDE: GuideSection[] = [
       },
     ],
     points: [
-      { ar: 'خاصية «شحن» تعطيك +1 طاقة **فوق السقف** كل دور — وحش شحن مبكّر يساوي دوراً كاملاً لاحقاً.', en: 'The Charge ability gives +1 energy **above the cap** every turn — an early Charge monster is worth a whole turn later.' },
-      { ar: '«حراسة» تقلّل كل ضربة بمقدار 1، فهي قاتلة أمام الضربات الصغيرة المتكرّرة وعديمة الأثر أمام ضربة مجمّعة واحدة.', en: 'Guard reduces every hit by 1 — brutal against many small strikes, useless against one big merged strike.' },
-      { ar: '«اختراق» يمرّر الضرر الزائد إلى حياة الخصم مباشرة، فلا يضيع منه شيء.', en: 'Pierce passes excess damage straight to the opponent’s life — nothing is wasted.' },
+      { ar: 'كلمة «إمداد» (كهرباء) تعطيك +1 طاقة **فوق السقف** كل دور — وحشٌ مبكّر منها يساوي دوراً كاملاً لاحقاً.', en: 'The Recharge keyword (Electric) gives +1 energy **above the cap** every turn — an early one is worth a whole turn later.' },
+      { ar: 'الدفاع لم يعد كلمةَ عنصر: «درع الصخر» من التحضير هو ما يقلّل الضربات، و«الدرع الحراري» من الطُّرُز هو ما يردّها.', en: 'Defence is no longer an element keyword: the Rock Shield from preparation is what reduces hits, and the archetype Thermal Shield is what reflects them.' },
+      { ar: '«نصل البرق» من التحضير يمرّر الضرر الزائد إلى حياة الخصم مباشرة، فلا يضيع منه شيء.', en: 'The Lightning Blade from preparation passes excess damage straight to the opponent’s life — nothing is wasted.' },
       { ar: 'زر «اسحب كارتاً» متاح مرة واحدة في كل دور، حتى لو كان في يدك ما يُلعب — والسحب لا يُنهي دورك.', en: 'The “Draw a card” button works once every turn, even when you hold something playable — and drawing does not end your turn.' },
     ],
     secret: {

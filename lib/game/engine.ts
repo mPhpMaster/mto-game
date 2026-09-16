@@ -11,6 +11,7 @@ import {
 import {
   ACID_RAIN_TICK,
   AIR_DODGE_CHANCE,
+  DODGE_CHANCE,
   FOG_MISS_CHANCE,
   hasGear,
   passiveOf,
@@ -572,6 +573,32 @@ export function canPlayCard(
   return { ok: true };
 }
 
+/**
+ * أرقام الكلمات المفتاحية. مجموعةٌ واحدة يقرأها المحرّك وتصفها نصوص
+ * البطاقات في `ABILITY_TEXT` — فلو تغيّر رقمٌ هنا وجب أن يتغيّر النصّ هناك.
+ * كلّها محدودة بسقف: الوثيقة تمنع وحشاً يكبر بلا نهاية.
+ */
+export const KEYWORD_VALUES = {
+  burnStackMax: 3,
+  burnTick: 1,
+  rageAtk: 2,
+  overheatDamage: 3,
+  overheatSelf: 2,
+  growthPerTurn: 1,
+  growthMax: 5,
+  regenHeal: 1,
+  swarmAtk: 1,
+  sacrificeAtk: 3,
+  sacrificeHp: 3,
+  graveyardPer: 3,
+  graveyardMax: 3,
+  curseDamage: 1,
+  curseMax: 2,
+  overchargePer: 2,
+  overchargeMax: 3,
+  rechargeEnergy: 1,
+} as const;
+
 export function hasAnyPlayable(s: GameState, side: Seat): boolean {
   return s.players[side].hand.some((c) => canPlayCard(s, side, c.uid).ok);
 }
@@ -963,11 +990,12 @@ function beginTurn(s: GameState) {
   s.turn += 1;
 
   p.energyCap = Math.min(p.maxEnergyCap, p.energyCap + 1);
-  const chargeBonus = p.field.filter((m) => def(m.defId).ability === 'charge').length;
+  const chargeBonus =
+    p.field.filter((m) => def(m.defId).ability === 'recharge').length * KEYWORD_VALUES.rechargeEnergy;
   p.energy = p.energyCap + chargeBonus + p.bonusEnergy;
   p.bonusEnergy = 0;
   if (chargeBonus > 0) {
-    log(s, 'system', idx, 'ability_charge', { amount: chargeBonus, n: chargeBonus });
+    log(s, 'system', idx, 'ability_recharge', { amount: chargeBonus, n: chargeBonus });
   }
   p.attackLocked = false;
   p.comboUsed = false;
@@ -979,6 +1007,43 @@ function beginTurn(s: GameState) {
   }
 
   log(s, 'system', idx, 'turn_start', { player: p.name, energy: p.energy, cap: p.energyCap });
+
+  // --- كلمات بداية الدور: نموّ ثم تجدّد ثم حرق، ثم لعنة الخصم ---
+  for (const m of p.field.slice()) {
+    const d = def(m.defId);
+    if (d.ability === 'growth') {
+      const ceiling = (d.atk ?? m.atk) + KEYWORD_VALUES.growthMax;
+      if (m.atk < ceiling) {
+        m.atk += KEYWORD_VALUES.growthPerTurn;
+        log(s, 'system', idx, 'ability_growth', { card: d.id, atk: m.atk });
+      }
+    }
+    if (d.ability === 'regen' && m.hp < m.maxHp) {
+      m.hp = Math.min(m.maxHp, m.hp + KEYWORD_VALUES.regenHeal);
+      log(s, 'system', idx, 'ability_regen', { card: d.id, amount: KEYWORD_VALUES.regenHeal });
+    }
+  }
+  for (const m of p.field.slice()) {
+    const stacks = m.burn ?? 0;
+    if (stacks <= 0) continue;
+    const amount = stacks * KEYWORD_VALUES.burnTick;
+    if (damageMonster(s, idx, m, amount, { source: 'poison' }) > 0) {
+      log(s, 'system', idx, 'ability_burn_tick', { card: def(m.defId).id, amount });
+    }
+  }
+  // اللعنة تعمل في دور صاحب الخصم لا في دور حاملها
+  {
+    const cursed = s.players.reduce(
+      (n, other, i) =>
+        i === idx ? n : n + other.field.filter((m) => def(m.defId).ability === 'curse').length,
+      0
+    );
+    if (cursed > 0) {
+      const amount = Math.min(KEYWORD_VALUES.curseMax, cursed * KEYWORD_VALUES.curseDamage);
+      damagePlayer(s, idx, amount);
+      log(s, 'system', idx, 'ability_curse', { player: p.name, amount });
+    }
+  }
 
   // --- طبقة التحضير: تميمة الشفاء، ثم البيئة، ثم السُم المتراكم ---
   for (const m of p.field.slice()) {
@@ -1057,18 +1122,92 @@ function playMonster(s: GameState, side: Seat, d: CardDef, inst: CardInstance) {
     hp: d.hp!,
     maxHp: d.hp!,
     exhausted: false,
-    sick: d.ability !== 'rush',
+    sick: d.ability !== 'speed',
   };
   p.field.push(m);
   log(s, 'play', side, 'summoned', { player: p.name, card: d.id, atk: d.atk!, hp: d.hp! });
-  if (d.ability === 'rush') {
-    log(s, 'play', side, 'ability_rush', { card: d.id });
+  if (d.ability === 'speed') {
+    log(s, 'play', side, 'ability_speed', { card: d.id });
   }
-  if (d.ability === 'scout') {
-    log(s, 'play', side, 'ability_scout', { card: d.id });
-    drawCards(s, side, 1, true);
-  }
+  onSummonKeyword(s, side, d, m);
   triggerOpponentTraps(s, side, 'opponent_summon', { summonedUid: m.uid });
+}
+
+/**
+ * كلمات تعمل لحظة الاستدعاء. كلّها حتميّة بلا اختيارٍ من اللاعب: الاختيار
+ * يحتاج نافذةً وردّاً، والوحش يُستدعى أيضاً بيد الخصم الآلي وفي إعادة عرض
+ * المباراة — فما لا يُحسم من الحالة وحدها يجعل اللوحتين تفترقان.
+ */
+function onSummonKeyword(s: GameState, side: Seat, d: CardDef, m: FieldMonster) {
+  const p = s.players[side];
+  switch (d.ability) {
+    case 'swarm': {
+      const others = p.field.filter((x) => x.uid !== m.uid);
+      for (const o of others) o.atk += KEYWORD_VALUES.swarmAtk;
+      if (others.length) {
+        log(s, 'play', side, 'ability_swarm', { amount: KEYWORD_VALUES.swarmAtk, n: others.length });
+      }
+      break;
+    }
+    case 'flow_control':
+      if (d.element !== 'wild') {
+        s.flow = { defId: d.id, element: d.element, number: d.number };
+        log(s, 'play', side, 'ability_flow_control', { card: d.id });
+      }
+      break;
+    case 'bounce': {
+      for (const foeIdx of opponentsOf(s, side)) {
+        const foe = s.players[foeIdx];
+        if (!foe.field.length) continue;
+        // الأضعف: الأقلّ حياةً ثم الأقلّ هجوماً — نفس ترتيب «صورة المرآة»
+        const weakest = foe.field.slice().sort((a, b) => a.hp - b.hp || a.atk - b.atk)[0];
+        foe.field = foe.field.filter((x) => x.uid !== weakest.uid);
+        foe.hand.push({ uid: weakest.uid, defId: weakest.defId });
+        log(s, 'play', side, 'ability_bounce', { card: weakest.defId, player: foe.name });
+        break;
+      }
+      break;
+    }
+    case 'purify': {
+      for (const o of p.field) {
+        o.poison = 0;
+        o.burn = 0;
+      }
+      p.skipNext = false;
+      p.attackLocked = false;
+      log(s, 'play', side, 'ability_purify', { player: p.name });
+      break;
+    }
+    case 'sacrifice': {
+      // يلتهم جريحاً من وحوشك: الأضعف حياةً بين المجروحين، فلا يأكل سليماً
+      const wounded = p.field
+        .filter((x) => x.uid !== m.uid && x.hp < x.maxHp)
+        .sort((a, b) => a.hp - b.hp || a.atk - b.atk)[0];
+      if (wounded) {
+        p.field = p.field.filter((x) => x.uid !== wounded.uid);
+        s.discard.push({ uid: wounded.uid, defId: wounded.defId });
+        m.atk += KEYWORD_VALUES.sacrificeAtk;
+        m.maxHp += KEYWORD_VALUES.sacrificeHp;
+        m.hp += KEYWORD_VALUES.sacrificeHp;
+        log(s, 'play', side, 'ability_sacrifice', { card: wounded.defId, atk: m.atk, hp: m.hp });
+      }
+      break;
+    }
+    case 'graveyard': {
+      const buried = s.discard.filter((c) => def(c.defId).kind === 'monster').length;
+      const bonus = Math.min(
+        KEYWORD_VALUES.graveyardMax,
+        Math.floor(buried / KEYWORD_VALUES.graveyardPer)
+      );
+      if (bonus > 0) {
+        m.atk += bonus;
+        log(s, 'play', side, 'ability_graveyard', { amount: bonus });
+      }
+      break;
+    }
+    default:
+      break;
+  }
 }
 
 function applySpell(
@@ -1146,7 +1285,7 @@ function applySpell(
           hp: md.hp!,
           maxHp: md.hp!,
           exhausted: false,
-          sick: md.ability !== 'rush',
+          sick: md.ability !== 'speed',
         });
         log(s, 'play', side, 'revived', { card: md.id });
       }
@@ -1266,7 +1405,7 @@ function applySpell(
         hp: md.hp!,
         maxHp: md.hp!,
         exhausted: false,
-        sick: md.ability !== 'rush',
+        sick: md.ability !== 'speed',
       });
       log(s, 'play', side, 'mirror_image', { card: md.id });
       break;
@@ -1455,6 +1594,29 @@ export interface ComboCheck {
   damage: number;
 }
 
+/**
+ * زياداتٌ تعتمد على حالة صاحبها لا على الوحش وحده، فلا تصلح في
+ * `strikeOf` الخالصة: «هياج» بحياة صاحبه، و«شحنة زائدة» بطاقته.
+ * تُحسب هنا مرّةً واحدة ليتطابق ما تعرضه المعاينة مع ما يقع فعلاً.
+ */
+export function attackBonus(s: GameState, side: Seat, monsters: FieldMonster[]): number {
+  const p = s.players[side];
+  let bonus = 0;
+  const lowLife = p.hp * 2 <= p.maxHp;
+  for (const m of monsters) {
+    const ab = def(m.defId).ability;
+    if (ab === 'rage' && lowLife) bonus += KEYWORD_VALUES.rageAtk;
+    if (ab === 'overheat') bonus += KEYWORD_VALUES.overheatDamage;
+  }
+  if (monsters.some((m) => def(m.defId).ability === 'overcharge')) {
+    bonus += Math.min(
+      KEYWORD_VALUES.overchargeMax,
+      Math.floor(p.energy / KEYWORD_VALUES.overchargePer)
+    );
+  }
+  return bonus;
+}
+
 export function evaluateAttack(
   s: GameState,
   side: Seat,
@@ -1476,15 +1638,17 @@ export function evaluateAttack(
     if (m.exhausted) return { ok: false, reason: 'monster_exhausted', damage: 0 };
   }
 
-  let damage = monsters.reduce((n, m) => n + strikeOf(m, s.weather ?? null), 0);
+  let damage =
+    monsters.reduce((n, m) => n + strikeOf(m, s.weather ?? null), 0) +
+    attackBonus(s, side, monsters);
 
   if (monsters.length > 1) {
     if (p.comboUsed) return { ok: false, reason: 'combo_used', damage: 0 };
     const defs = monsters.map((m) => def(m.defId));
-    const hasLink = defs.some((d) => d.ability === 'link');
+    // زال «رابط» مع الخصائص القديمة: الدمج الآن عنصرٌ مشترك أو رقمٌ مشترك
     const sameElement = defs.every((d) => d.element === defs[0].element);
     const sameNumber = defs.every((d) => d.number !== null && d.number === defs[0].number);
-    if (!hasLink && !sameElement && !sameNumber)
+    if (!sameElement && !sameNumber)
       return {
         ok: false,
         reason: 'combo_requires',
@@ -1582,10 +1746,10 @@ function doAttack(s: GameState, action: Extract<GameAction, { type: 'ATTACK' }>)
   if (alive.length !== monsters.length) {
     damage =
       alive.reduce((n, m) => n + strikeOf(m, s.weather ?? null), 0) +
+      attackBonus(s, side, alive) +
       (alive.length > 1 ? RULES.COMBO_BONUS_PER_EXTRA * (alive.length - 1) : 0);
   }
 
-  const attackerDefs = alive.map((m) => def(m.defId));
 
   /*
    * رميتا «الضباب الكثيف» و«التفادي الهوائي» تُحسمان من بذرة الحالة لا من
@@ -1598,6 +1762,15 @@ function doAttack(s: GameState, action: Extract<GameAction, { type: 'ATTACK' }>)
     s.rng = rng;
     if (roll < FOG_MISS_CHANCE) {
       log(s, 'attack', side, 'weather_miss', { names, weather: 'heavy_fog' });
+      return;
+    }
+  }
+
+  if (targetMonster && def(targetMonster.defId).ability === 'dodge') {
+    const [roll, rng] = nextRandom(s.rng);
+    s.rng = rng;
+    if (roll < DODGE_CHANCE) {
+      log(s, 'attack', foeIdx, 'ability_dodge', { card: def(targetMonster.defId).id });
       return;
     }
   }
@@ -1646,12 +1819,25 @@ function doAttack(s: GameState, action: Extract<GameAction, { type: 'ATTACK' }>)
       damagePlayer(s, foeIdx, overflow);
       log(s, 'attack', side, 'pierce_extra', { amount: overflow, player: foe.name });
     }
-    // سُم المدافع
-    if (tDef.ability === 'venom') {
-      for (const m of alive) {
-        if (p.field.some((x) => x.uid === m.uid)) damageMonster(s, side, m, 1, { source: 'attack' });
+    // حرق: يترك أثره في الهدف الصامد
+    if (
+      alive.some((m) => def(m.defId).ability === 'burn') &&
+      foe.field.some((x) => x.uid === targetMonster.uid)
+    ) {
+      targetMonster.burn = Math.min(KEYWORD_VALUES.burnStackMax, (targetMonster.burn ?? 0) + 1);
+      log(s, 'attack', side, 'ability_burn', { card: tDef.id });
+    }
+
+    // سلسلة: نصف الضرر إلى وحشٍ آخر للخصم
+    if (alive.some((m) => def(m.defId).ability === 'chain')) {
+      const other = foe.field.find((x) => x.uid !== targetMonster.uid);
+      if (other) {
+        const half = Math.floor(damage / 2);
+        if (half > 0) {
+          damageMonster(s, foeIdx, other, half, { source: 'attack' });
+          log(s, 'attack', side, 'ability_chain', { card: def(other.defId).id, amount: half });
+        }
       }
-      log(s, 'attack', foeIdx, 'venom_bite', { card: tDef.id, amount: 1 });
     }
 
     // درع حراري (كوبو): يردّ نقطةً إلى كل مهاجم ما دام صامداً
@@ -1673,11 +1859,24 @@ function doAttack(s: GameState, action: Extract<GameAction, { type: 'ATTACK' }>)
     void dealt;
   }
 
-  // امتصاص
-  if (attackerDefs.some((d) => d.ability === 'drain')) {
-    const healed = Math.ceil(damage / 2);
-    p.hp = Math.min(p.maxHp, p.hp + healed);
-    log(s, 'attack', side, 'drain_heal', { player: p.name, amount: healed });
+  // انصهار: القوّة تُدفع من صحّته هو
+  for (const m of alive) {
+    if (def(m.defId).ability !== 'overheat') continue;
+    if (!p.field.some((x) => x.uid === m.uid)) continue;
+    damageMonster(s, side, m, KEYWORD_VALUES.overheatSelf, { source: 'poison' });
+    log(s, 'attack', side, 'ability_overheat', {
+      card: def(m.defId).id,
+      amount: KEYWORD_VALUES.overheatDamage,
+    });
+  }
+
+  // انسحاب: يعود إلى اليد بعد ضربته، فيفلت من الردّ — وثمنه استدعاءٌ جديد
+  for (const m of alive) {
+    if (def(m.defId).ability !== 'mobility') continue;
+    if (!p.field.some((x) => x.uid === m.uid)) continue;
+    p.field = p.field.filter((x) => x.uid !== m.uid);
+    p.hand.push({ uid: m.uid, defId: m.defId });
+    log(s, 'attack', side, 'ability_mobility', { card: def(m.defId).id });
   }
 
   checkDeath(s);

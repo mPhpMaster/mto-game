@@ -110,22 +110,76 @@ export const LOG_MESSAGES: Record<string, Localized> = {
   reflect: { ar: 'عاكس: نصف ضرر الهجوم القادم سيرتدّ إلى {player}.', en: 'Reflect: half the next attack’s damage will bounce back at whoever strikes {player}.' },
   second_wind: { ar: 'نفس ثانٍ: {n} من وحوشك تستطيع الهجوم مجدداً.', en: 'Second Wind: {n} of your monsters can attack again.' },
 
-  // --- خصائص الوحوش (تُعلن عن نفسها حتى لا تبدو معطّلة) ---
-  ability_rush: {
-    ar: '⚡ اندفاع: {card} يستطيع الهجوم فوراً.',
-    en: '⚡ Rush: {card} can attack immediately.',
+  // --- كلمات الوحوش (تُعلن عن نفسها حتى لا تبدو معطّلة) ---
+  ability_speed: {
+    ar: '⚡ سرعة: {card} يستطيع الهجوم فوراً.',
+    en: '⚡ Speed: {card} can attack immediately.',
   },
-  ability_scout: {
-    ar: '🔍 استطلاع: {card} سحب لك كارتاً.',
-    en: '🔍 Scout: {card} drew you a card.',
+  ability_recharge: {
+    ar: '🔋 إمداد: +{amount} طاقة إضافية فوق السقف من {n} وحش.',
+    en: '🔋 Recharge: +{amount} bonus energy above the cap from {n} monster(s).',
   },
-  ability_charge: {
-    ar: '🔋 شحن: +{amount} طاقة إضافية فوق السقف من {n} وحش.',
-    en: '🔋 Charge: +{amount} bonus energy above the cap from {n} monster(s).',
+  ability_burn: { ar: '🔥 حرق: {card} يحترق.', en: '🔥 Burn: {card} is burning.' },
+  ability_burn_tick: {
+    ar: '🔥 حرق: {card} فقد {amount} صحة.',
+    en: '🔥 Burn: {card} lost {amount} health.',
   },
-  ability_guard: {
-    ar: '🛡️ حراسة: {card} امتصّ {amount} من الضرر.',
-    en: '🛡️ Guard: {card} absorbed {amount} damage.',
+  ability_rage: {
+    ar: '😤 هياج: {card} يضرب بـ+{amount} وقد هبطت حياتك.',
+    en: '😤 Rage: {card} strikes for +{amount} with your life down.',
+  },
+  ability_overheat: {
+    ar: '🌋 انصهار: +{amount} ضرر، و{card} احترق بـ2.',
+    en: '🌋 Overheat: +{amount} damage, and {card} burned itself for 2.',
+  },
+  ability_growth: {
+    ar: '🌱 نموّ: هجوم {card} صار {atk}.',
+    en: '🌱 Growth: {card} is now at {atk} attack.',
+  },
+  ability_regen: {
+    ar: '🍃 تجدّد: {card} استعاد {amount} صحة.',
+    en: '🍃 Regeneration: {card} restored {amount} health.',
+  },
+  ability_swarm: {
+    ar: '🐝 سِرب: وحوشك الأخرى (+{amount} هجوم).',
+    en: '🐝 Swarm: your other monsters gain +{amount} attack.',
+  },
+  ability_flow_control: {
+    ar: '🌊 توجيه التدفق: صار التدفق على {card}.',
+    en: '🌊 Flow Control: the flow is now {card}.',
+  },
+  ability_bounce: {
+    ar: '↩️ ارتداد: عاد {card} إلى يد {player}.',
+    en: '↩️ Bounce: {card} returned to {player}’s hand.',
+  },
+  ability_purify: {
+    ar: '✨ تطهير: زال السُم والحرق عن وحوش {player}.',
+    en: '✨ Purify: poison and burn cleared from {player}’s monsters.',
+  },
+  ability_sacrifice: {
+    ar: '🩸 تضحية: التهم {card} فصار {atk}/{hp}.',
+    en: '🩸 Sacrifice: devoured {card} and is now {atk}/{hp}.',
+  },
+  ability_graveyard: {
+    ar: '⚰️ مقبرة: +{amount} هجوم من المهملات.',
+    en: '⚰️ Graveyard: +{amount} attack from the discard.',
+  },
+  ability_curse: {
+    ar: '💀 لعنة: {player} فقد {amount} صحة.',
+    en: '💀 Curse: {player} lost {amount} life.',
+  },
+  ability_dodge: { ar: '💨 مراوغة: {card} تفادى الهجوم.', en: '💨 Dodge: {card} evaded the attack.' },
+  ability_mobility: {
+    ar: '🍃 انسحاب: عاد {card} إلى يدك بعد ضربته.',
+    en: '🍃 Mobility: {card} returned to your hand after striking.',
+  },
+  ability_overcharge: {
+    ar: '⚡ شحنة زائدة: +{amount} ضرر من طاقتك غير المنفقة.',
+    en: '⚡ Overcharge: +{amount} damage from your unspent energy.',
+  },
+  ability_chain: {
+    ar: '🔗 سلسلة: {card} أصابته {amount} ضرر أيضاً.',
+    en: '🔗 Chain: {card} was also hit for {amount}.',
   },
 
   // --- القتال ---
@@ -136,10 +190,9 @@ export const LOG_MESSAGES: Record<string, Localized> = {
   combo_monster: { ar: '💥 هجوم مشترك: {names} هاجم {card} بـ{damage} ضرر.', en: '💥 Combo attack: {names} attacked {card} for {damage}.' },
   attack_blocked: { ar: '{names} هاجم لكن الحاجز صدّ الهجوم بالكامل.', en: '{names} attacked but the Barrier absorbed it completely.' },
   attack_failed: { ar: 'فشل الهجوم — سقط المهاجمون.', en: 'The attack failed — the attackers were destroyed.' },
-  mirror_reflect: { ar: 'ارتد {amount} ضرر إلى {player}.', en: '{amount} damage reflected back to {player}.' },
+  // الاختراق صار صفةَ «نصل البرق» لا خاصيةَ بطاقة، والسطر باقٍ لأن الأثر باقٍ
   pierce_extra: { ar: 'اختراق: {amount} ضرر إضافي إلى {player}.', en: 'Pierce: {amount} extra damage to {player}.' },
-  venom_bite: { ar: 'سُم {card}: {amount} ضرر لكل مهاجم.', en: '{card}’s venom: {amount} damage to each attacker.' },
-  drain_heal: { ar: 'امتصاص: {player} استعاد {amount} حياة.', en: 'Drain: {player} restored {amount} life.' },
+  mirror_reflect: { ar: 'ارتد {amount} ضرر إلى {player}.', en: '{amount} damage reflected back to {player}.' },
 
   // --- التجهيز والطقس ---
   gear_equipped: {

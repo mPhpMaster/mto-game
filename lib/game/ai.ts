@@ -18,6 +18,7 @@ import {
   type GearDef,
   type WeatherDef,
 } from './loadout';
+import { reductionOf } from './loadoutEffects';
 import { nextRandom } from './rng';
 import type { CardDef, FieldMonster, GameAction, GameState, PlayableElement, Seat } from './types';
 
@@ -80,8 +81,14 @@ function scoreCard(s: GameState, side: Seat, d: CardDef): number {
       return 1000 * cfg.fragmentWeight;
     case 'monster': {
       let v = 60 + d.atk! * 3 + d.hp! * 2 - d.cost * 3;
-      if (d.ability === 'rush') v += 12;
-      if (d.ability === 'charge') v += 8;
+      // الكلمات التي تُثمر فوراً تستحقّ وزناً؛ وما يحتاج بناءً يأتي بعده
+      if (d.ability === 'speed') v += 12;
+      if (d.ability === 'recharge') v += 10;
+      if (d.ability === 'bounce' || d.ability === 'chain') v += 10;
+      if (d.ability === 'growth' || d.ability === 'regen' || d.ability === 'curse') v += 8;
+      if (d.ability === 'swarm' && me.field.length >= 2) v += 8;
+      if (d.ability === 'graveyard' && s.discard.length >= 6) v += 6;
+      if (d.ability === 'sacrifice' && me.field.some((m) => m.hp < m.maxHp)) v += 6;
       if (me.field.length === 0) v += 25; // نحتاج مدافعاً
       return v;
     }
@@ -349,7 +356,8 @@ function chooseAttack(s: GameState, side: Seat): GameAction | null {
       } else {
         for (const t of foe.field) {
           const td = def(t.defId);
-          const effective = td.ability === 'guard' ? dmg - 1 : dmg;
+          // الدفاع صار تجهيزاً لا خاصية بطاقة، فيُسأل المصدر نفسه
+          const effective = Math.max(0, dmg - reductionOf(t));
           const kills = effective >= t.hp;
           const overkill = Math.max(0, effective - t.hp);
           let value = kills ? 120 + td.atk! * 4 - overkill * 2 : effective * 2;

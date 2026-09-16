@@ -67,35 +67,98 @@ export const HAND_KIND_ORDER: Record<CardDef['kind'], number> = {
 
 export const ABILITY_NAME: Record<Ability, Localized> = {
   none: { ar: '—', en: '—' },
-  rush: { ar: 'اندفاع', en: 'Rush' },
-  charge: { ar: 'شحن', en: 'Charge' },
-  guard: { ar: 'حراسة', en: 'Guard' },
-  pierce: { ar: 'اختراق', en: 'Pierce' },
-  drain: { ar: 'امتصاص', en: 'Drain' },
-  link: { ar: 'رابط', en: 'Link' },
-  scout: { ar: 'استطلاع', en: 'Scout' },
-  venom: { ar: 'سُم', en: 'Venom' },
+  burn: { ar: 'حرق', en: 'Burn' },
+  rage: { ar: 'هياج', en: 'Rage' },
+  overheat: { ar: 'انصهار', en: 'Overheat' },
+  growth: { ar: 'نموّ', en: 'Growth' },
+  regen: { ar: 'تجدّد', en: 'Regeneration' },
+  swarm: { ar: 'سِرب', en: 'Swarm' },
+  flow_control: { ar: 'توجيه التدفق', en: 'Flow Control' },
+  bounce: { ar: 'ارتداد', en: 'Bounce' },
+  purify: { ar: 'تطهير', en: 'Purify' },
+  sacrifice: { ar: 'تضحية', en: 'Sacrifice' },
+  graveyard: { ar: 'مقبرة', en: 'Graveyard' },
+  curse: { ar: 'لعنة', en: 'Curse' },
+  speed: { ar: 'سرعة', en: 'Speed' },
+  dodge: { ar: 'مراوغة', en: 'Dodge' },
+  mobility: { ar: 'انسحاب', en: 'Mobility' },
+  overcharge: { ar: 'شحنة زائدة', en: 'Overcharge' },
+  chain: { ar: 'سلسلة', en: 'Chain' },
+  recharge: { ar: 'إمداد', en: 'Recharge' },
 };
 
+/**
+ * تعريفٌ واحد لكل كلمة، يقرأه اللاعب على البطاقة وينفّذه المحرّك. الأرقام
+ * هنا هي الأرقام في `KEYWORD_VALUES` بالمحرّك — فلا يفترقان.
+ */
 export const ABILITY_TEXT: Record<Ability, Localized> = {
   none: { ar: '', en: '' },
-  rush: { ar: 'اندفاع: يهاجم فور استدعائه.', en: 'Rush: can attack the turn it is summoned.' },
-  charge: { ar: 'شحن: +1 طاقة في بداية دورك.', en: 'Charge: +1 energy at the start of your turn.' },
-  guard: { ar: 'حراسة: يتلقى ضرراً أقل بمقدار 1.', en: 'Guard: takes 1 less damage.' },
-  pierce: {
-    ar: 'اختراق: الضرر الزائد يصيب الخصم مباشرة.',
-    en: 'Pierce: excess damage hits the opponent directly.',
+  burn: {
+    ar: 'حرق: يترك في هدفه حرقاً يفقده صحةً كل دور.',
+    en: 'Burn: leaves its target burning, losing health every turn.',
   },
-  drain: {
-    ar: 'امتصاص: تستعيد حياة بنصف الضرر المُحدث.',
-    en: 'Drain: heals you for half the damage dealt.',
+  rage: {
+    ar: 'هياج: +2 هجوم حين تهبط حياتك إلى النصف أو أقلّ.',
+    en: 'Rage: +2 attack while your life is at half or less.',
   },
-  link: {
-    ar: 'رابط: يُدمج في هجوم مشترك مع أي عنصر.',
-    en: 'Link: can combo with monsters of any element.',
+  overheat: {
+    ar: 'انصهار: +3 ضرر في هجومه، ويفقد هو 2 صحة بعده.',
+    en: 'Overheat: +3 damage on its attack, and it loses 2 health after.',
   },
-  scout: { ar: 'استطلاع: اسحب كرتاً عند الاستدعاء.', en: 'Scout: draw a card when summoned.' },
-  venom: { ar: 'سُم: يصيب المهاجم بـ1 ضرر.', en: 'Venom: deals 1 damage to the attacker.' },
+  growth: {
+    ar: 'نموّ: +1 هجوم في بداية كل دور، حتى +5.',
+    en: 'Growth: +1 attack at the start of each of your turns, up to +5.',
+  },
+  regen: {
+    ar: 'تجدّد: يستعيد صحةً في بداية كل دور.',
+    en: 'Regeneration: restores health at the start of each of your turns.',
+  },
+  swarm: {
+    ar: 'سِرب: عند استدعائه يمنح بقية وحوشك +1 هجوم.',
+    en: 'Swarm: when summoned, your other monsters gain +1 attack.',
+  },
+  flow_control: {
+    ar: 'توجيه التدفق: عند استدعائه يصير التدفق على عنصره ورقمه.',
+    en: 'Flow Control: when summoned, the flow takes its element and number.',
+  },
+  bounce: {
+    ar: 'ارتداد: عند استدعائه يعيد أضعف وحوش الخصم إلى يده.',
+    en: 'Bounce: when summoned, returns the opponent’s weakest monster to their hand.',
+  },
+  purify: {
+    ar: 'تطهير: عند استدعائه يزيل السُم والحرق عن وحوشك ويفكّ قيودك.',
+    en: 'Purify: when summoned, clears poison and burn from your monsters and frees you.',
+  },
+  sacrifice: {
+    ar: 'تضحية: عند استدعائه يلتهم أضعف وحوشك المنهكة فيكبر +3/+3.',
+    en: 'Sacrifice: when summoned, devours your weakest wounded monster and grows +3/+3.',
+  },
+  graveyard: {
+    ar: 'مقبرة: +1 هجوم عن كل ثلاثة وحوش في المهملات، حتى +3.',
+    en: 'Graveyard: +1 attack for every three monsters in the discard, up to +3.',
+  },
+  curse: {
+    ar: 'لعنة: يفقد الخصم صحةً في بداية دوره ما دام حيّاً.',
+    en: 'Curse: the opponent loses health at the start of their turn while it lives.',
+  },
+  speed: { ar: 'سرعة: يهاجم فور استدعائه.', en: 'Speed: can attack the turn it is summoned.' },
+  dodge: {
+    ar: 'مراوغة: فرصةٌ لتفادي الهجوم كاملاً.',
+    en: 'Dodge: a chance to evade an attack entirely.',
+  },
+  mobility: {
+    ar: 'انسحاب: يعود إلى يدك بعد هجومه، فلا يُردّ عليه.',
+    en: 'Mobility: returns to your hand after attacking, out of reach of retaliation.',
+  },
+  overcharge: {
+    ar: 'شحنة زائدة: +1 ضرر عن كل طاقتين لم تُنفقا، حتى +3.',
+    en: 'Overcharge: +1 damage for every two unspent energy, up to +3.',
+  },
+  chain: {
+    ar: 'سلسلة: ضربته تصيب وحشاً آخر للخصم بنصف الضرر.',
+    en: 'Chain: its strike also hits another enemy monster for half the damage.',
+  },
+  recharge: { ar: 'إمداد: +1 طاقة في بداية دورك.', en: 'Recharge: +1 energy at the start of your turn.' },
 };
 
 interface SpeciesRow {
@@ -119,51 +182,52 @@ interface SpeciesRow {
  */
 const SPECIES: Record<PlayableElement, SpeciesRow[]> = {
   fire: [
-    { species: 'lahibo', base: { ar: 'لهيبو', en: 'Blazlet' }, evo: { ar: 'ضِرغام', en: 'Kaidros' }, n1: 2, a1: 3, h1: 5, ab1: 'none', n2: 7, a2: 6, h2: 9, ab2: 'rush' },
-    { species: 'jamra', base: { ar: 'جمرة', en: 'Emberin' }, evo: { ar: 'سَعير', en: 'Pyrrhun' }, n1: 1, a1: 2, h1: 4, ab1: 'venom', n2: 6, a2: 5, h2: 8, ab2: 'pierce' },
-    { species: 'nariks', base: { ar: 'ناريكس', en: 'Narix' }, evo: { ar: 'أتون', en: 'Fornax' }, n1: 5, a1: 4, h1: 4, ab1: 'rush', n2: 9, a2: 7, h2: 8, ab2: 'pierce' },
-    { species: 'smoki', base: { ar: 'سموكي', en: 'Smokel' }, evo: { ar: 'رَماد', en: 'Cindreth' }, n1: 3, a1: 3, h1: 3, ab1: 'scout', n2: 8, a2: 5, h2: 7, ab2: 'drain' },
-    { species: 'volkani', base: { ar: 'حِمَمو', en: 'Lavel' }, evo: { ar: 'بُركان', en: 'Magmoth' }, n1: 4, a1: 5, h1: 6, ab1: 'none', n2: 0, a2: 8, h2: 10, ab2: 'guard' },
+    { species: 'lahibo', base: { ar: 'لهيبو', en: 'Blazlet' }, evo: { ar: 'ضِرغام', en: 'Kaidros' }, n1: 2, a1: 3, h1: 5, ab1: 'rage', n2: 7, a2: 6, h2: 9, ab2: 'overheat' },
+    { species: 'jamra', base: { ar: 'جمرة', en: 'Emberin' }, evo: { ar: 'سَعير', en: 'Pyrrhun' }, n1: 1, a1: 2, h1: 4, ab1: 'burn', n2: 6, a2: 5, h2: 8, ab2: 'burn' },
+    { species: 'nariks', base: { ar: 'ناريكس', en: 'Narix' }, evo: { ar: 'أتون', en: 'Fornax' }, n1: 5, a1: 4, h1: 4, ab1: 'burn', n2: 9, a2: 7, h2: 8, ab2: 'overheat' },
+    { species: 'smoki', base: { ar: 'سموكي', en: 'Smokel' }, evo: { ar: 'رَماد', en: 'Cindreth' }, n1: 3, a1: 3, h1: 3, ab1: 'rage', n2: 8, a2: 5, h2: 7, ab2: 'rage' },
+    { species: 'volkani', base: { ar: 'حِمَمو', en: 'Lavel' }, evo: { ar: 'بُركان', en: 'Magmoth' }, n1: 4, a1: 5, h1: 6, ab1: 'burn', n2: 0, a2: 8, h2: 10, ab2: 'overheat' },
   ],
   water: [
-    { species: 'muwaija', base: { ar: 'مويجة', en: 'Ripplet' }, evo: { ar: 'طوفان', en: 'Delugor' }, n1: 1, a1: 2, h1: 6, ab1: 'guard', n2: 6, a2: 5, h2: 11, ab2: 'guard' },
-    { species: 'azraqo', base: { ar: 'أزرقو', en: 'Azuro' }, evo: { ar: 'لُجّة', en: 'Abyssin' }, n1: 3, a1: 3, h1: 5, ab1: 'drain', n2: 8, a2: 6, h2: 9, ab2: 'drain' },
-    { species: 'tsuna', base: { ar: 'تسونا', en: 'Tsuna' }, evo: { ar: 'هادر', en: 'Vorlash' }, n1: 2, a1: 4, h1: 5, ab1: 'none', n2: 7, a2: 7, h2: 9, ab2: 'pierce' },
-    { species: 'korali', base: { ar: 'كورالي', en: 'Coralin' }, evo: { ar: 'مِحار', en: 'Nacrion' }, n1: 4, a1: 2, h1: 7, ab1: 'charge', n2: 9, a2: 4, h2: 12, ab2: 'charge' },
-    { species: 'leviathi', base: { ar: 'حوتو', en: 'Finlo' }, evo: { ar: 'ليفياثان', en: 'Leviathan' }, n1: 0, a1: 5, h1: 6, ab1: 'link', n2: 5, a2: 8, h2: 11, ab2: 'link' },
+    { species: 'muwaija', base: { ar: 'مويجة', en: 'Ripplet' }, evo: { ar: 'طوفان', en: 'Delugor' }, n1: 1, a1: 2, h1: 6, ab1: 'purify', n2: 6, a2: 5, h2: 11, ab2: 'purify' },
+    { species: 'azraqo', base: { ar: 'أزرقو', en: 'Azuro' }, evo: { ar: 'لُجّة', en: 'Abyssin' }, n1: 3, a1: 3, h1: 5, ab1: 'bounce', n2: 8, a2: 6, h2: 9, ab2: 'bounce' },
+    { species: 'tsuna', base: { ar: 'تسونا', en: 'Tsuna' }, evo: { ar: 'هادر', en: 'Vorlash' }, n1: 2, a1: 4, h1: 5, ab1: 'flow_control', n2: 7, a2: 7, h2: 9, ab2: 'bounce' },
+    { species: 'korali', base: { ar: 'كورالي', en: 'Coralin' }, evo: { ar: 'مِحار', en: 'Nacrion' }, n1: 4, a1: 2, h1: 7, ab1: 'purify', n2: 9, a2: 4, h2: 12, ab2: 'flow_control' },
+    { species: 'leviathi', base: { ar: 'حوتو', en: 'Finlo' }, evo: { ar: 'ليفياثان', en: 'Leviathan' }, n1: 0, a1: 5, h1: 6, ab1: 'flow_control', n2: 5, a2: 8, h2: 11, ab2: 'flow_control' },
   ],
   grass: [
-    { species: 'bur3um', base: { ar: 'برعوم', en: 'Budlet' }, evo: { ar: 'إكليل', en: 'Blossar' }, n1: 1, a1: 2, h1: 5, ab1: 'charge', n2: 6, a2: 4, h2: 10, ab2: 'charge' },
-    { species: 'waraqi', base: { ar: 'ورقي', en: 'Leafin' }, evo: { ar: 'جَريد', en: 'Canopor' }, n1: 2, a1: 3, h1: 4, ab1: 'scout', n2: 7, a2: 6, h2: 8, ab2: 'scout' },
-    { species: 'fainks', base: { ar: 'فاينكسي', en: 'Vinex' }, evo: { ar: 'خانِق', en: 'Stragoth' }, n1: 3, a1: 4, h1: 6, ab1: 'drain', n2: 8, a2: 7, h2: 10, ab2: 'drain' },
-    { species: 'shawka', base: { ar: 'شوكة', en: 'Thornet' }, evo: { ar: 'قَتاد', en: 'Spinther' }, n1: 0, a1: 3, h1: 3, ab1: 'venom', n2: 5, a2: 5, h2: 6, ab2: 'venom' },
-    { species: 'ghabor', base: { ar: 'غابور', en: 'Gabor' }, evo: { ar: 'سِنديان', en: 'Quercon' }, n1: 4, a1: 5, h1: 7, ab1: 'guard', n2: 9, a2: 8, h2: 12, ab2: 'guard' },
+    { species: 'bur3um', base: { ar: 'برعوم', en: 'Budlet' }, evo: { ar: 'إكليل', en: 'Blossar' }, n1: 1, a1: 2, h1: 5, ab1: 'growth', n2: 6, a2: 4, h2: 10, ab2: 'regen' },
+    { species: 'waraqi', base: { ar: 'ورقي', en: 'Leafin' }, evo: { ar: 'جَريد', en: 'Canopor' }, n1: 2, a1: 3, h1: 4, ab1: 'swarm', n2: 7, a2: 6, h2: 8, ab2: 'swarm' },
+    { species: 'fainks', base: { ar: 'فاينكسي', en: 'Vinex' }, evo: { ar: 'خانِق', en: 'Stragoth' }, n1: 3, a1: 4, h1: 6, ab1: 'regen', n2: 8, a2: 7, h2: 10, ab2: 'regen' },
+    { species: 'shawka', base: { ar: 'شوكة', en: 'Thornet' }, evo: { ar: 'قَتاد', en: 'Spinther' }, n1: 0, a1: 3, h1: 3, ab1: 'growth', n2: 5, a2: 5, h2: 6, ab2: 'growth' },
+    { species: 'ghabor', base: { ar: 'غابور', en: 'Gabor' }, evo: { ar: 'سِنديان', en: 'Quercon' }, n1: 4, a1: 5, h1: 7, ab1: 'regen', n2: 9, a2: 8, h2: 12, ab2: 'growth' },
   ],
   electric: [
-    { species: 'sharara', base: { ar: 'شرارة', en: 'Sparkit' }, evo: { ar: 'وَميض', en: 'Fulmen' }, n1: 1, a1: 3, h1: 3, ab1: 'rush', n2: 6, a2: 6, h2: 6, ab2: 'rush' },
-    { species: 'volti', base: { ar: 'فولتي', en: 'Volti' }, evo: { ar: 'مِلَفّ', en: 'Coilon' }, n1: 2, a1: 2, h1: 4, ab1: 'charge', n2: 7, a2: 5, h2: 7, ab2: 'charge' },
-    { species: 'ra3doon', base: { ar: 'رعدون', en: 'Thundon' }, evo: { ar: 'قاصِف', en: 'Tempris' }, n1: 3, a1: 4, h1: 4, ab1: 'none', n2: 8, a2: 7, h2: 8, ab2: 'pierce' },
-    { species: 'plazmi', base: { ar: 'بلازمي', en: 'Plazmi' }, evo: { ar: 'شَفَق', en: 'Ionarch' }, n1: 0, a1: 5, h1: 4, ab1: 'link', n2: 5, a2: 8, h2: 7, ab2: 'link' },
-    { species: 'thandiro', base: { ar: 'دينامو', en: 'Dynamel' }, evo: { ar: 'مِغناط', en: 'Ferralux' }, n1: 4, a1: 3, h1: 6, ab1: 'venom', n2: 9, a2: 6, h2: 10, ab2: 'rush' },
+    { species: 'sharara', base: { ar: 'شرارة', en: 'Sparkit' }, evo: { ar: 'وَميض', en: 'Fulmen' }, n1: 1, a1: 3, h1: 3, ab1: 'chain', n2: 6, a2: 6, h2: 6, ab2: 'chain' },
+    { species: 'volti', base: { ar: 'فولتي', en: 'Volti' }, evo: { ar: 'مِلَفّ', en: 'Coilon' }, n1: 2, a1: 2, h1: 4, ab1: 'recharge', n2: 7, a2: 5, h2: 7, ab2: 'recharge' },
+    { species: 'ra3doon', base: { ar: 'رعدون', en: 'Thundon' }, evo: { ar: 'قاصِف', en: 'Tempris' }, n1: 3, a1: 4, h1: 4, ab1: 'overcharge', n2: 8, a2: 7, h2: 8, ab2: 'chain' },
+    { species: 'plazmi', base: { ar: 'بلازمي', en: 'Plazmi' }, evo: { ar: 'شَفَق', en: 'Ionarch' }, n1: 0, a1: 5, h1: 4, ab1: 'chain', n2: 5, a2: 8, h2: 7, ab2: 'overcharge' },
+    { species: 'thandiro', base: { ar: 'دينامو', en: 'Dynamel' }, evo: { ar: 'مِغناط', en: 'Ferralux' }, n1: 4, a1: 3, h1: 6, ab1: 'recharge', n2: 9, a2: 6, h2: 10, ab2: 'overcharge' },
   ],
   psychic: [
-    { species: 'holmi', base: { ar: 'حلمي', en: 'Dreamlet' }, evo: { ar: 'سُبات', en: 'Somnith' }, n1: 1, a1: 2, h1: 5, ab1: 'scout', n2: 6, a2: 5, h2: 9, ab2: 'scout' },
-    { species: 'thehno', base: { ar: 'ذهنو', en: 'Mindo' }, evo: { ar: 'إدراك', en: 'Cognar' }, n1: 2, a1: 3, h1: 4, ab1: 'link', n2: 7, a2: 6, h2: 7, ab2: 'link' },
-    { species: 'taifa', base: { ar: 'طيفا', en: 'Spectra' }, evo: { ar: 'سَراب', en: 'Mirageth' }, n1: 3, a1: 4, h1: 3, ab1: 'pierce', n2: 8, a2: 7, h2: 6, ab2: 'pierce' },
-    { species: 'orakl', base: { ar: 'أوراكل', en: 'Oracle' }, evo: { ar: 'كاهن', en: 'Sibylor' }, n1: 0, a1: 2, h1: 6, ab1: 'charge', n2: 5, a2: 4, h2: 11, ab2: 'charge' },
-    { species: 'nirfa', base: { ar: 'عصبو', en: 'Nervin' }, evo: { ar: 'ذُبول', en: 'Witharn' }, n1: 4, a1: 5, h1: 5, ab1: 'none', n2: 9, a2: 8, h2: 9, ab2: 'drain' },
+    { species: 'holmi', base: { ar: 'حلمي', en: 'Dreamlet' }, evo: { ar: 'سُبات', en: 'Somnith' }, n1: 1, a1: 2, h1: 5, ab1: 'dodge', n2: 6, a2: 5, h2: 9, ab2: 'dodge' },
+    { species: 'thehno', base: { ar: 'ذهنو', en: 'Mindo' }, evo: { ar: 'إدراك', en: 'Cognar' }, n1: 2, a1: 3, h1: 4, ab1: 'dodge', n2: 7, a2: 6, h2: 7, ab2: 'mobility' },
+    { species: 'taifa', base: { ar: 'طيفا', en: 'Spectra' }, evo: { ar: 'سَراب', en: 'Mirageth' }, n1: 3, a1: 4, h1: 3, ab1: 'mobility', n2: 8, a2: 7, h2: 6, ab2: 'mobility' },
+    { species: 'orakl', base: { ar: 'أوراكل', en: 'Oracle' }, evo: { ar: 'كاهن', en: 'Sibylor' }, n1: 0, a1: 2, h1: 6, ab1: 'mobility', n2: 5, a2: 4, h2: 11, ab2: 'speed' },
+    { species: 'nirfa', base: { ar: 'عصبو', en: 'Nervin' }, evo: { ar: 'ذُبول', en: 'Witharn' }, n1: 4, a1: 5, h1: 5, ab1: 'speed', n2: 9, a2: 8, h2: 9, ab2: 'speed' },
   ],
   dark: [
-    { species: 'thilli', base: { ar: 'ظلّي', en: 'Shadel' }, evo: { ar: 'دُجى', en: 'Umbrath' }, n1: 1, a1: 3, h1: 4, ab1: 'venom', n2: 6, a2: 6, h2: 8, ab2: 'venom' },
-    { species: 'shadow', base: { ar: 'عقربو', en: 'Scorvel' }, evo: { ar: 'مِنجل', en: 'Falkir' }, n1: 2, a1: 4, h1: 3, ab1: 'rush', n2: 7, a2: 7, h2: 6, ab2: 'rush' },
-    { species: 'lailks', base: { ar: 'ليلكس', en: 'Nyxel' }, evo: { ar: 'كُسوف', en: 'Eclipsar' }, n1: 3, a1: 2, h1: 6, ab1: 'guard', n2: 8, a2: 5, h2: 10, ab2: 'guard' },
-    { species: 'nightmare', base: { ar: 'كابوس', en: 'Nocturne' }, evo: { ar: 'هَول', en: 'Phobos' }, n1: 0, a1: 5, h1: 5, ab1: 'drain', n2: 5, a2: 8, h2: 9, ab2: 'drain' },
-    { species: 'voido', base: { ar: 'فويدو', en: 'Voido' }, evo: { ar: 'عَدَم', en: 'Nihilax' }, n1: 4, a1: 3, h1: 7, ab1: 'link', n2: 9, a2: 6, h2: 11, ab2: 'pierce' },
+    { species: 'thilli', base: { ar: 'ظلّي', en: 'Shadel' }, evo: { ar: 'دُجى', en: 'Umbrath' }, n1: 1, a1: 3, h1: 4, ab1: 'curse', n2: 6, a2: 6, h2: 8, ab2: 'curse' },
+    { species: 'shadow', base: { ar: 'عقربو', en: 'Scorvel' }, evo: { ar: 'مِنجل', en: 'Falkir' }, n1: 2, a1: 4, h1: 3, ab1: 'sacrifice', n2: 7, a2: 7, h2: 6, ab2: 'sacrifice' },
+    { species: 'lailks', base: { ar: 'ليلكس', en: 'Nyxel' }, evo: { ar: 'كُسوف', en: 'Eclipsar' }, n1: 3, a1: 2, h1: 6, ab1: 'graveyard', n2: 8, a2: 5, h2: 10, ab2: 'graveyard' },
+    { species: 'nightmare', base: { ar: 'كابوس', en: 'Nocturne' }, evo: { ar: 'هَول', en: 'Phobos' }, n1: 0, a1: 5, h1: 5, ab1: 'curse', n2: 5, a2: 8, h2: 9, ab2: 'graveyard' },
+    { species: 'voido', base: { ar: 'فويدو', en: 'Voido' }, evo: { ar: 'عَدَم', en: 'Nihilax' }, n1: 4, a1: 3, h1: 7, ab1: 'graveyard', n2: 9, a2: 6, h2: 11, ab2: 'sacrifice' },
   ],
 };
 
 function monsterCost(atk: number, hp: number, ability: Ability): number {
-  const strong: Ability[] = ['rush', 'pierce', 'drain', 'link'];
+  // الكلمات التي تستحقّ طاقةً إضافية: ما يضرب فوراً أو يزيل أو يكبر بلا رجعة
+  const strong: Ability[] = ['speed', 'overheat', 'chain', 'bounce', 'sacrifice', 'flow_control'];
   const base = Math.round((atk + hp) / 4);
   return Math.max(1, Math.min(9, base + (strong.includes(ability) ? 1 : 0)));
 }

@@ -66,14 +66,24 @@ const ELEMENT_LOOK: Record<PlayableElement, string> = {
 /** الوقفة تُشتقّ من الخاصّية — فالرسم يقول ما يفعله الكارت */
 const POSE: Record<Ability, string> = {
   none: 'standing squarely, watchful',
-  guard: 'braced low in a defensive stance, absorbing an unseen blow',
-  rush: 'caught mid-lunge, already committed to the charge',
-  pierce: 'driving one sharpened limb forward like a spear',
-  drain: 'siphoning tendrils of light out of the air toward itself',
-  charge: 'still, gathering visible energy that has not been released yet',
-  scout: 'head raised and alert, scanning something off-frame',
-  venom: 'a toxic barb raised and dripping',
-  link: 'tethered by a thin band of energy reaching off-frame',
+  burn: 'trailing embers, the ground smouldering where it stands',
+  rage: 'hunched and snarling, wounded but pressing forward',
+  overheat: 'glowing white-hot from within, cracks opening across its own body',
+  growth: 'rooted and swelling, new growth pushing out along its limbs',
+  regen: 'a closing wound knitting itself shut in soft light',
+  swarm: 'surrounded by smaller shapes moving with it',
+  flow_control: 'one limb raised, bending a current of light around itself',
+  bounce: 'mid-shove, pushing an unseen shape away out of frame',
+  purify: 'wreathed in clean light, dark motes dissolving off its body',
+  sacrifice: 'feeding on a dissolving shape at its feet, growing from it',
+  graveyard: 'rising out of bones and dust that cling to it',
+  curse: 'casting a creeping sigil that spreads away from it',
+  speed: 'caught mid-lunge, already committed to the charge',
+  dodge: 'twisting aside, half its outline blurred by the movement',
+  mobility: 'already turning away, weight shifted to leave',
+  overcharge: 'overloaded with stored energy arcing off its frame',
+  chain: 'a bolt leaping from it toward a second point off-frame',
+  recharge: 'still, gathering visible energy that has not been released yet',
 };
 
 const STYLE =

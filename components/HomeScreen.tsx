@@ -18,15 +18,26 @@ import AccountMenuButton from './auth/AccountMenuButton';
 import LanguageSwitch from './LanguageSwitch';
 import SoundToggle from './SoundToggle';
 
+/** ثلاثٌ لكل عنصر، بترتيب العناصر نفسه — فتُقرأ كهويّات لا كقائمة */
 const ABILITY_LIST: Ability[] = [
-  'rush',
-  'charge',
-  'guard',
-  'pierce',
-  'drain',
-  'link',
-  'scout',
-  'venom',
+  'burn',
+  'rage',
+  'overheat',
+  'growth',
+  'regen',
+  'swarm',
+  'flow_control',
+  'bounce',
+  'purify',
+  'sacrifice',
+  'graveyard',
+  'curse',
+  'speed',
+  'dodge',
+  'mobility',
+  'overcharge',
+  'chain',
+  'recharge',
 ];
 
 export default function HomeScreen() {

@@ -32,12 +32,12 @@ const SOLUTION: Record<number, (s: GameState) => GameAction | null> = {
     const uid = handUid(s, 'mon_fire_nariks_1');
     return uid ? { type: 'PLAY', uid } : null;
   },
-  6: (s) => {
+  6: () => ({ type: 'END_TURN' }),
+  7: (s) => {
     const a = fieldUid(s, 'nariks');
     const t = s.players[1].field[0]?.uid;
     return a && t ? { type: 'ATTACK', attackers: [a], target: t } : null;
   },
-  7: () => ({ type: 'END_TURN' }),
   8: (s) => {
     const uid = handUid(s, 'trap_ambush');
     return uid ? { type: 'PLAY', uid } : null;
@@ -46,7 +46,8 @@ const SOLUTION: Record<number, (s: GameState) => GameAction | null> = {
     const uid = handUid(s, 'frag_heart');
     return uid ? { type: 'PLAY', uid } : null;
   },
-  10: (s) => {
+  10: () => ({ type: 'END_TURN' }),
+  11: (s) => {
     const a = fieldUid(s, 'lahibo');
     const b = fieldUid(s, 'nariks');
     return a && b ? { type: 'ATTACK', attackers: [a, b], target: 'face' } : null;

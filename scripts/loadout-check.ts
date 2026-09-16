@@ -133,8 +133,13 @@ console.log('التجهيزات والطقس وقدرات الطُّرُز:\n');
 
 // ---------- أثر سام ----------
 {
-  // «غابور» آليّ حارس بصحة 7 — يصمد للجولتين فيُقاس عليه النهش
-  const s = board(['mon_grass_fainks_1'], ['mon_grass_ghabor_1']);
+  /*
+    الهدف «مِحار» بصحة 12. كان «غابور» يكفي لأن «حراسة» كانت تحسم نقطةً من
+    الضربة فيبقى حيّاً للقياس؛ ومع زوال الخصائص صار يسقط قبل أن يُقاس عليه
+    شيء. والهدف هنا يجب ألا يحمل «تجدّد» (يداوي ما ينهشه السُم فيبتلع
+    القياس) ولا أن يكون نواةً (حلقة الامتصاص تأكل قطرة الحمض).
+  */
+  const s = board(['mon_grass_fainks_1'], ['mon_water_korali_2']);
   const hit = strike(s, mine(s), theirs(s));
   eq('أثر سام: سُمّ الهدف', hit.players[1].field[0]?.poison, 1);
   const hpAfterHit = hit.players[1].field[0].hp;
@@ -142,7 +147,7 @@ console.log('التجهيزات والطقس وقدرات الطُّرُز:\n');
   eq('السُم ينهش في دور صاحبه', hpAfterHit - next.players[1].field[0].hp, 1);
 
   // ومع المطر الحمضي يتضاعف: قطرة + سُمّ مضاعف = 3، ولا يردّها الدرع
-  const rainy = board(['mon_grass_fainks_1'], ['mon_grass_ghabor_1']);
+  const rainy = board(['mon_grass_fainks_1'], ['mon_water_korali_2']);
   rainy.weather = 'acid_rain';
   const bitten = strike(rainy, mine(rainy), theirs(rainy));
   const hp2 = bitten.players[1].field[0].hp;
@@ -170,16 +175,17 @@ console.log('التجهيزات والطقس وقدرات الطُّرُز:\n');
 
 // ---------- صاعقة خارقة ----------
 {
-  // «ليلكس» حارس (تخفيض 1) + درع الصخر (2) = 3. الوحش يتجاهل نصفها = 1.
+  // التخفيض صار من «درع الصخر» وحده (2) بعد زوال خاصية «حراسة»؛
+  // والصاعقة الخارقة تتجاهل نصفه = 1، فيصير الواقع 5−1.
   const plain = board(['mon_fire_volkani_1'], ['mon_dark_lailks_1']); // نواة تهاجم: بلا صاعقة
   theirs(plain).gear = ['rock_shield'];
   const a = strike(plain, mine(plain), theirs(plain));
-  eq('بلا صاعقة: الضرر 5−3', 6 - a.players[1].field[0].hp, 2);
+  eq('بلا صاعقة: الضرر 5−2', 6 - a.players[1].field[0].hp, 3);
 
   const surge = board(['mon_psychic_nirfa_1'], ['mon_dark_lailks_1']); // وحش: صاعقة خارقة
   theirs(surge).gear = ['rock_shield'];
   const b = strike(surge, mine(surge), theirs(surge));
-  eq('بصاعقة خارقة: الضرر 5−2', 6 - b.players[1].field[0].hp, 3);
+  eq('بصاعقة خارقة: الضرر 5−1', 6 - b.players[1].field[0].hp, 4);
 }
 
 // ---------- تميمة الشفاء ----------

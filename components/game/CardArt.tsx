@@ -392,14 +392,115 @@ function EvolvedAura({ ink }: { ink: Ink }) {
 }
 
 /**
- * علامة الخاصية فوق الجسد: الشكل يقول ما يفعله الوحش قبل قراءة كلمة —
- * «اندفاع» خطوطُ سرعة، «حراسة» درعٌ على الصدر، «امتصاص» خيوطٌ حمراء
- * تُسحب إليه، «سُمّ» قطراتٌ خضراء تتساقط منه.
+ * علامة الكلمة المفتاحية فوق الجسد: الشكل يقول ما يفعله الوحش قبل قراءة
+ * كلمة — «سرعة» خطوطُ اندفاع، «حرق» جمرٌ متصاعد، «لعنة» سيجيلٌ زاحف،
+ * «انسحاب» أثرُ مغادرة. ولكل عنصرٍ ثلاثُ علاماتٍ لا تتشابه مع غيره.
  */
 function AbilityMark({ ink }: { ink: Ink }) {
-  const { glow, deep } = ink;
+  const { glow } = ink;
   switch (ink.ability) {
-    case 'rush':
+    // ── 🔥 نار ──
+    case 'burn':
+      return (
+        <g fill="#ff8a3d" opacity="0.9">
+          <path d="M12 74 q3 -8 0 -12 q7 4 5 12 Z" />
+          <path d="M26 78 q2 -6 0 -9 q5 3 3.6 9 Z" opacity="0.8" />
+          <path d="M84 72 q3.4 -9 0 -13 q8 4.4 5.6 13 Z" opacity="0.85" />
+        </g>
+      );
+    case 'rage':
+      return (
+        <g stroke="#ff4d3d" strokeLinecap="round" fill="none" opacity="0.9">
+          <path d="M6 22 L20 30" strokeWidth="2.6" />
+          <path d="M4 32 L18 36" strokeWidth="2" />
+          <path d="M98 22 L84 30" strokeWidth="2.6" />
+          <path d="M100 32 L86 36" strokeWidth="2" />
+        </g>
+      );
+    case 'overheat':
+      return (
+        <g>
+          <path d="M40 58 L48 44 L46 56 L58 40" stroke="#ffd08a" strokeWidth="2.2" fill="none" />
+          <path d="M34 66 L44 62 M62 64 L72 60" stroke="#ff5a1f" strokeWidth="2" strokeLinecap="round" opacity="0.8" />
+        </g>
+      );
+
+    // ── 🌿 عشب ──
+    case 'growth':
+      return (
+        <g stroke="#7ddc7d" fill="none" strokeLinecap="round" opacity="0.9">
+          <path d="M52 84 L52 66" strokeWidth="2.4" />
+          <path d="M52 74 q-9 -2 -11 -10 q9 1 11 10" fill="#7ddc7d" stroke="none" />
+          <path d="M52 70 q9 -3 10 -11 q-9 2 -10 11" fill="#7ddc7d" stroke="none" opacity="0.85" />
+        </g>
+      );
+    case 'regen':
+      return (
+        <g stroke="#9ff5b8" fill="none" strokeWidth="2.4" strokeLinecap="round" opacity="0.9">
+          <path d="M14 20 a9 9 0 1 1 -3 7" />
+          <path d="M9 20 L14 19 L15 25" />
+        </g>
+      );
+    case 'swarm':
+      return (
+        <g fill={glow} opacity="0.85">
+          <circle cx="14" cy="70" r="3.4" />
+          <circle cx="26" cy="78" r="2.6" />
+          <circle cx="88" cy="68" r="3" />
+          <circle cx="78" cy="78" r="2.2" />
+        </g>
+      );
+
+    // ── 💧 ماء ──
+    case 'flow_control':
+      return (
+        <g stroke="#7dd3fc" fill="none" strokeWidth="2.2" strokeLinecap="round" opacity="0.9">
+          <path d="M8 66 q10 -8 20 0 t20 0" />
+          <path d="M8 76 q10 -8 20 0 t20 0" opacity="0.7" />
+        </g>
+      );
+    case 'bounce':
+      return (
+        <g stroke="#7dd3fc" fill="none" strokeWidth="2.4" strokeLinecap="round" opacity="0.9">
+          <path d="M96 30 q-14 -12 -26 0" />
+          <path d="M70 30 L70 22 M70 30 L78 30" />
+        </g>
+      );
+    case 'purify':
+      return (
+        <g fill="#e0f2fe" opacity="0.9">
+          <path d="M52 6 L54.5 14 L62 16.5 L54.5 19 L52 27 L49.5 19 L42 16.5 L49.5 14 Z" />
+          <circle cx="30" cy="22" r="1.8" opacity="0.8" />
+          <circle cx="74" cy="20" r="1.4" opacity="0.7" />
+        </g>
+      );
+
+    // ── 🌑 ظلام ──
+    case 'sacrifice':
+      return (
+        <g fill="#f43f5e" opacity="0.85">
+          <path d="M52 72 q3 5 0 8 a3.6 3.6 0 0 1 -3.6 -3.6 q0 -2 3.6 -4.4 Z" />
+          <path d="M34 78 q2.4 4 0 6.4 a3 3 0 0 1 -3 -3 q0 -1.6 3 -3.4 Z" opacity="0.7" />
+          <path d="M70 76 q2.4 4 0 6.4 a3 3 0 0 1 -3 -3 q0 -1.6 3 -3.4 Z" opacity="0.6" />
+        </g>
+      );
+    case 'graveyard':
+      return (
+        <g fill="none" stroke="#cbd5e1" strokeWidth="2" opacity="0.8">
+          <path d="M14 84 L14 72 a7 7 0 0 1 14 0 L28 84" />
+          <path d="M10 84 L32 84" />
+        </g>
+      );
+    case 'curse':
+      return (
+        <g fill="none" stroke="#c084fc" strokeWidth="1.8" opacity="0.85">
+          <circle cx="88" cy="18" r="9" />
+          <path d="M88 9 L88 27 M79 18 L97 18 M82 12 L94 24 M94 12 L82 24" />
+        </g>
+      );
+
+    // ── 🌪️ ريح ──
+    case 'speed':
       return (
         <g stroke={glow} strokeLinecap="round" opacity="0.8">
           <path d="M2 38 L18 38" strokeWidth="2.4" />
@@ -407,62 +508,42 @@ function AbilityMark({ ink }: { ink: Ink }) {
           <path d="M4 58 L16 58" strokeWidth="2" />
         </g>
       );
-    case 'charge':
+    case 'dodge':
+      return (
+        <g stroke="#e2e8f0" fill="none" strokeWidth="2" strokeLinecap="round" opacity="0.75">
+          <path d="M6 40 q12 -6 22 0 q10 6 18 0" />
+          <path d="M8 52 q12 -6 22 0" opacity="0.7" />
+        </g>
+      );
+    case 'mobility':
+      return (
+        <g stroke="#a5f3fc" fill="none" strokeWidth="2.2" strokeLinecap="round" opacity="0.9">
+          <path d="M70 76 q14 -4 22 -16" />
+          <path d="M92 60 L86 62 M92 60 L92 67" />
+        </g>
+      );
+
+    // ── ⚡ كهرباء ──
+    case 'overcharge':
       return (
         <g fill="#fde047" opacity="0.95">
           <path d="M10 10 L16 10 L12 18 L18 18 L8 30 L11 20 L6 20 Z" />
           <path d="M92 58 L98 58 L94 66 L100 66 L90 78 L93 68 L88 68 Z" />
         </g>
       );
-    case 'guard':
+    case 'chain':
+      return (
+        <g stroke="#fde047" fill="none" strokeWidth="2.2" strokeLinecap="round" opacity="0.9">
+          <path d="M18 30 L30 40 L22 44 L34 54" />
+          <path d="M86 30 L74 40 L82 44 L70 54" opacity="0.75" />
+        </g>
+      );
+    case 'recharge':
       return (
         <g>
-          <path d="M44 44 L60 44 L60 54 Q60 62 52 66 Q44 62 44 54 Z" fill={deep} stroke={glow} strokeWidth="2" />
-          <path d="M52 47 L52 62 M46.5 52 L57.5 52" stroke={glow} strokeWidth="1.6" />
-        </g>
-      );
-    case 'pierce':
-      return (
-        <g>
-          <path d="M22 44 L4 6 L28 38 Z" fill="#e2e8f0" />
-          <path d="M22 44 L4 6" stroke={glow} strokeWidth="1.2" />
-        </g>
-      );
-    case 'drain':
-      return (
-        <g stroke="#f43f5e" fill="none" strokeLinecap="round" opacity="0.85">
-          <path d="M104 12 Q86 16 80 30" strokeWidth="2" />
-          <path d="M104 30 Q92 30 84 38" strokeWidth="1.6" />
-          <path d="M100 50 Q90 44 84 42" strokeWidth="1.4" />
-          <circle cx="96" cy="14" r="1.8" fill="#f43f5e" />
-          <circle cx="98" cy="31" r="1.4" fill="#f43f5e" />
-        </g>
-      );
-    case 'link':
-      return (
-        <g fill="none" stroke={glow} strokeWidth="2" opacity="0.75">
-          <ellipse cx="52" cy="82" rx="30" ry="5" strokeDasharray="6 4" />
-        </g>
-      );
-    case 'scout':
-      return (
-        <g>
-          <ellipse cx="14" cy="14" rx="8" ry="5" fill="#04050a" stroke={glow} strokeWidth="1.5" />
-          <circle cx="14" cy="14" r="2.6" fill={glow} />
-        </g>
-      );
-    case 'venom':
-      return (
-        <g fill="#a3e635">
-          {[
-            [30, 72],
-            [52, 76],
-            [74, 70],
-          ].map(([x, y]) => (
-            <path key={x} d={`M${x} ${y} q2.6 4 0 6.4 a3 3 0 0 1 -3 -3 q0 -1.6 3 -3.4 Z`} opacity="0.9" />
-          ))}
-          <circle cx="40" cy="82" r="1.6" opacity="0.7" />
-          <circle cx="64" cy="84" r="1.2" opacity="0.6" />
+          <rect x="6" y="40" width="14" height="22" rx="2.5" fill="none" stroke={glow} strokeWidth="2" />
+          <rect x="10" y="36" width="6" height="4" rx="1" fill={glow} />
+          <rect x="9" y="48" width="8" height="11" rx="1" fill={glow} opacity="0.9" />
         </g>
       );
     default:

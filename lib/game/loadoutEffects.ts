@@ -47,23 +47,27 @@ export function strikeOf(m: FieldMonster, weather: WeatherId | null): number {
   return atk;
 }
 
-/** ما ينقص من الضرر الواقع على هذا الوحش: «حراسة» 1 و«درع الصخر» 2 */
+/**
+ * ما ينقص من الضرر الواقع على هذا الوحش: «درع الصخر» 2.
+ * كانت «حراسة» تعطي 1، وقد زالت مع الخصائص القديمة — الدفاع الآن صفةُ
+ * تجهيزٍ أو طراز (الدرع الحراري) لا كلمةَ عنصر.
+ */
 export function reductionOf(m: FieldMonster): number {
-  let r = def(m.defId).ability === 'guard' ? 1 : 0;
-  if (hasGear(m, 'rock_shield')) r += 2;
-  return r;
+  return hasGear(m, 'rock_shield') ? 2 : 0;
 }
 
 /** «صاعقة خارقة» (فليكس): يتجاهل المهاجم نصف تخفيض المدافع، مجبوراً لأسفل */
 export const surgeCut = (reduction: number): number => Math.floor(reduction / 2);
 
-/** «نصل البرق» يخترق الدفاع أيضاً، فلا يقتصر الاختراق على قدرة البطاقة */
+/** الاختراق صار صفة تجهيزٍ وحده بعد زوال خاصية «اختراق» القديمة */
 export function piercesOf(m: FieldMonster): boolean {
-  return def(m.defId).ability === 'pierce' || hasGear(m, 'lightning_blade');
+  return hasGear(m, 'lightning_blade');
 }
 
 /** احتمالات مضبوطة في مكان واحد كي لا تتفرّق أرقامها بين المحرّك والنصوص */
 export const FOG_MISS_CHANCE = 0.2;
+/** «مراوغة» (ريح) — بنفس ثقل التفادي الهوائي كي لا يصير الإفلات هو القاعدة */
+export const DODGE_CHANCE = 0.2;
 export const AIR_DODGE_CHANCE = 0.2;
 
 /** «أمطار حمضية»: نقطة على كل وحش كل دور، ويتضاعف معها أثر السُم */

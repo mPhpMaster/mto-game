@@ -230,13 +230,13 @@ export const UI = {
   },
   help3: { ar: '3 · استدعِ ثم هاجم', en: '3 · Summon, then attack' },
   help3Body: {
-    ar: 'يمكنك إنزال حتى {field} وحوش على الساحة. فوق كل وحش شارة حالته: ⚔ جاهز، 💤 مُنهك، ⏳ جديد (لا يهاجم في دور استدعائه إلا بخاصية «اندفاع»). للهجوم اضغط وحشك، فتتوهّج الأهداف الصالحة بالأحمر وفوقها الضرر المتوقّع (💀 إن كان قاتلاً)، ثم اضغط الهدف. الهجوم المباشر على اللاعب متاح فقط حين تخلو ساحته.',
-    en: 'You can have up to {field} monsters on the field. Each shows a status badge: ⚔ ready, 💤 exhausted, ⏳ new (it cannot attack the turn it was summoned unless it has Rush). To attack, tap your monster: valid targets glow red with the expected damage above them (💀 if lethal) — then tap one. You can hit the player directly only when their field is empty.',
+    ar: 'يمكنك إنزال حتى {field} وحوش على الساحة. فوق كل وحش شارة حالته: ⚔ جاهز، 💤 مُنهك، ⏳ جديد (لا يهاجم في دور استدعائه إلا بكلمة «سرعة»). للهجوم اضغط وحشك، فتتوهّج الأهداف الصالحة بالأحمر وفوقها الضرر المتوقّع (💀 إن كان قاتلاً)، ثم اضغط الهدف. الهجوم المباشر على اللاعب متاح فقط حين تخلو ساحته.',
+    en: 'You can have up to {field} monsters on the field. Each shows a status badge: ⚔ ready, 💤 exhausted, ⏳ new (it cannot attack the turn it was summoned unless it has Speed). To attack, tap your monster: valid targets glow red with the expected damage above them (💀 if lethal) — then tap one. You can hit the player directly only when their field is empty.',
   },
   help4: { ar: '4 · ادمج الهجمات', en: '4 · Combine attacks' },
   help4Body: {
-    ar: 'حدّد وحشين أو أكثر يشتركان في العنصر أو الرقم (أو أحدهما بخاصية «رابط») لتضربهما معاً بمكافأة +{bonus} لكل وحش إضافي. مرة واحدة كل دور.',
-    en: 'Select two or more monsters sharing an element or number (or one with Link) to strike together, with a +{bonus} bonus per extra monster. Once per turn.',
+    ar: 'حدّد وحشين أو أكثر يشتركان في العنصر أو الرقم لتضربهما معاً بمكافأة +{bonus} لكل وحش إضافي. مرة واحدة كل دور.',
+    en: 'Select two or more monsters sharing an element or number to strike together, with a +{bonus} bonus per extra monster. Once per turn.',
   },
   help5: { ar: '5 · كروت السحب تتكدّس', en: '5 · Draw cards stack' },
   help5Body: {

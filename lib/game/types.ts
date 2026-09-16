@@ -18,16 +18,44 @@ export type CardKind = 'monster' | 'action' | 'trap' | 'spell' | 'fragment';
 
 export type ActionKind = 'skip' | 'draw2' | 'reverse' | 'wild' | 'wild4';
 
+/**
+ * الكلمات المفتاحية: ثلاثٌ لكل عنصر، وهي هوية العنصر في اللعب لا زينته.
+ *
+ * حلّت محلّ الخصائص الثماني القديمة (اندفاع/شحن/حراسة/اختراق/امتصاص/رابط/
+ * استطلاع/سُم) التي كانت موزّعة على العناصر بلا معنى: وحشٌ ناريّ يحرس ووحشٌ
+ * مائيّ يندفع. بعضها بقي بمعناه تحت اسمٍ يخصّ عنصره — «اندفاع» صار
+ * `speed` للريح، و«شحن» صار `recharge` للكهرباء.
+ *
+ * ولكل وحش طبقتان لا ثلاث: كلمةُ عنصره وقدرةُ طرازه. ولذلك لا يحمل طائرُ
+ * الريح `dodge` (طرازه يتفادى أصلاً)، ولا تحمل أفعى النار `burn` (طرازها
+ * يسمّم أصلاً).
+ */
 export type Ability =
   | 'none'
-  | 'rush'
-  | 'charge'
-  | 'guard'
-  | 'pierce'
-  | 'drain'
-  | 'link'
-  | 'scout'
-  | 'venom';
+  // 🔥 نار — ضغطٌ ومخاطرة
+  | 'burn'
+  | 'rage'
+  | 'overheat'
+  // 🌿 عشب — نموّ واستمرار
+  | 'growth'
+  | 'regen'
+  | 'swarm'
+  // 💧 ماء — تحكّم
+  | 'flow_control'
+  | 'bounce'
+  | 'purify'
+  // 🌑 ظلام — تضحية ومهملات
+  | 'sacrifice'
+  | 'graveyard'
+  | 'curse'
+  // 🌪️ ريح — إيقاع وحركة
+  | 'speed'
+  | 'dodge'
+  | 'mobility'
+  // ⚡ كهرباء — طاقة وسلسلة
+  | 'overcharge'
+  | 'chain'
+  | 'recharge';
 
 export type TrapEffect =
   | 'ambush'
@@ -144,6 +172,8 @@ export interface FieldMonster {
   gear?: GearId[];
   /** سُمّ متراكم: يفقده صحةً في بداية كل دور */
   poison?: number;
+  /** الحرق: يفقد صحةً في بداية دور صاحبه، ويزيله «تطهير» */
+  burn?: number;
   /** استُهلكت «حلقة امتصاص» (طراز هالو) */
   absorbed?: boolean;
   /** استُهلكت «عودة الطيف» (طراز خَيال) */
