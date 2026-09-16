@@ -114,8 +114,8 @@ export const ABILITY_TEXT: Record<Ability, Localized> = {
     en: 'Regeneration: restores 3 health at the start of each of your turns.',
   },
   swarm: {
-    ar: 'سِرب: عند استدعائه يمنح بقية وحوشك +1 هجوم.',
-    en: 'Swarm: when summoned, your other monsters gain +1 attack.',
+    ar: 'سِرب: عند استدعائه يمنح بقية وحوشك +2 هجوم.',
+    en: 'Swarm: when summoned, your other monsters gain +2 attack.',
   },
   flow_control: {
     ar: 'توجيه التدفق: عند استدعائه يصير التدفق على عنصره ورقمه.',
@@ -158,7 +158,10 @@ export const ABILITY_TEXT: Record<Ability, Localized> = {
     ar: 'سلسلة: ضربته تصيب وحشاً آخر للخصم بثلث الضرر.',
     en: 'Chain: its strike also hits another enemy monster for a third of the damage.',
   },
-  recharge: { ar: 'إمداد: +1 طاقة في بداية دورك.', en: 'Recharge: +1 energy at the start of your turn.' },
+  recharge: {
+    ar: 'إمداد: +1 طاقة في بداية دورك، ولا تتراكم.',
+    en: 'Recharge: +1 energy at the start of your turn; does not stack.',
+  },
 };
 
 interface SpeciesRow {

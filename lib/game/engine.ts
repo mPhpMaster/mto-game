@@ -653,7 +653,13 @@ export function canPlayCard(
  * كلّها محدودة بسقف: الوثيقة تمنع وحشاً يكبر بلا نهاية.
  */
 export const KEYWORD_VALUES = {
-  burnStackMax: 3,
+  /*
+    سقف طبقات الحرق. كان 3، فيبلغ الحرق 3 ضرر في الدور — أعلى من أيّ تجدّدٍ
+    أو نموٍّ يقابله، والنار تفتح بوحشَي حرقٍ من ثلاثة فتبلغ السقف سريعاً.
+    وهو سببُ أسوأ خانتين في الجدول: نار ضد عشب ونار ضد ظلام، 76.5% لكلٍّ،
+    ولم تتحرّكا مع أيّ ضبطٍ للعشب أو للظلام لأن العلّة في المهاجم لا فيهما.
+  */
+  burnStackMax: 2,
   burnTick: 1,
   rageAtk: 2,
   overheatDamage: 3,
@@ -661,16 +667,18 @@ export const KEYWORD_VALUES = {
   growthPerTurn: 2,
   growthMax: 6,
   regenHeal: 3,
-  swarmAtk: 1,
+  swarmAtk: 2,
   sacrificeAtk: 3,
   sacrificeHp: 3,
   graveyardPer: 3,
   graveyardMax: 3,
-  curseDamage: 1,
+  curseDamage: 2,
   curseMax: 3,
   overchargePer: 5,
   overchargeMax: 2,
   rechargeEnergy: 1,
+  /** سقف ما تمنحه «الإمداد» مجتمعةً في الدور — فلا تتراكم إمدادات الساحة */
+  rechargeMax: 1,
   /** كسرُ الضرر الذي تنقله «سلسلة» إلى وحشٍ ثانٍ */
   chainDivisor: 3,
 } as const;
@@ -1075,8 +1083,15 @@ function beginTurn(s: GameState) {
   s.turn += 1;
 
   p.energyCap = Math.min(p.maxEnergyCap, p.energyCap + 1);
-  const chargeBonus =
-    p.field.filter((m) => def(m.defId).ability === 'recharge').length * KEYWORD_VALUES.rechargeEnergy;
+  /*
+    السقف يمنع تراكم الإمداد: الكهرباء تفتح بوحشَي إمداد فكانت تكسب +2 طاقة
+    كل دور على سقفٍ يبدأ عند 1 أو 2 — أي مضاعفةُ اقتصادها في الأدوار الأولى،
+    وهي الأدوار التي تقيسها الأداة.
+  */
+  const chargeBonus = Math.min(
+    KEYWORD_VALUES.rechargeMax,
+    p.field.filter((m) => def(m.defId).ability === 'recharge').length * KEYWORD_VALUES.rechargeEnergy
+  );
   p.energy = p.energyCap + chargeBonus + p.bonusEnergy;
   p.bonusEnergy = 0;
   if (chargeBonus > 0) {
