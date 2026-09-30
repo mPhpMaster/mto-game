@@ -177,6 +177,10 @@ export const UI = {
   drawCard: { ar: 'اسحب كارتاً', en: 'Draw a card' },
   drawCardHint: { ar: 'سحبٌ إضافي مرة واحدة كل دور — لا يُنهي دورك', en: 'One extra draw each turn — it does not end your turn' },
   evolve: { ar: 'طوّر', en: 'Evolve' },
+  returnOrLose: {
+    ar: 'غاب {name} — يعود أو يخسر',
+    en: '{name} left — return or forfeit',
+  },
   evolveHint: {
     ar: 'نسختان من الوحش نفسه تصيران وحشه المتطوّر — لا يهاجم في دور تطويره',
     en: 'Two copies of the same monster become its evolved form — it cannot attack the turn it evolves',

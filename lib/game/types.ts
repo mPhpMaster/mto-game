@@ -333,4 +333,6 @@ export type GameAction =
   | { type: 'WEATHER'; weather: WeatherId | null }
   /** تطوير: نسختان من الوحش نفسه على ساحتك تصيران وحشه المتطوّر */
   | { type: 'EVOLVE'; uids: [string, string] }
+  /** انسحاب: غاب صاحب الخانة ولم يعد في مهلته — يُقصى */
+  | { type: 'FORFEIT'; seat: Seat }
   | { type: 'END_TURN' };

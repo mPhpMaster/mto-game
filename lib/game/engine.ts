@@ -2213,6 +2213,34 @@ function doEvolve(s: GameState, side: Seat, uids: [string, string]) {
   log(s, 'play', side, 'evolved', { player: p.name, card: d.id, atk: d.atk!, hp: d.hp! });
 }
 
+// ===================== الانسحاب =====================
+
+/**
+ * انسحابُ خانة: تُقصى كما لو نزلت حياتها إلى الصفر، ثم يُحسم آخرُ واقف.
+ *
+ * والإقصاءُ لا الإنهاءُ مقصود: في اللعب الثلاثيّ خروجُ واحدٍ لا ينهي
+ * المباراة، والاثنان الباقيان يكملان. ويمرّ الانسحاب حركةً في اللعبة
+ * فتبقى الحالة دالّةً في بذرتها وحركاتها لا في وقت الجهاز.
+ */
+function doForfeit(s: GameState, seat: Seat) {
+  const p = s.players[seat];
+  if (!p || p.eliminated) return;
+  p.eliminated = true;
+  log(s, 'system', seat, 'forfeited', { player: p.name });
+
+  const living = livingSeats(s);
+  if (living.length === 1) {
+    endGame(s, living[0], { key: 'reason_disconnect', params: { loser: p.name } });
+    return;
+  }
+  if (living.length === 0) {
+    endGame(s, seat, { key: 'reason_disconnect', params: { loser: p.name } });
+    return;
+  }
+  // إن كان الدور دورَه فلا يبقى معلّقاً على من خرج
+  if (s.current === seat) endTurn(s);
+}
+
 // ===================== نقطة الدخول =====================
 
 export function applyGameAction(state: GameState, action: GameAction): GameState {
@@ -2236,6 +2264,14 @@ export function applyGameAction(state: GameState, action: GameAction): GameState
 
     case 'EVOLVE':
       doEvolve(s, side, action.uids);
+      break;
+
+    /*
+      الانسحاب وحدَه لا يشترط أن يكون دورَ صاحبه: من غاب غاب في أي وقت،
+      ولذلك يحمل خانته معه ولا يُقرأ من `s.current`.
+    */
+    case 'FORFEIT':
+      doForfeit(s, action.seat);
       break;
 
     case 'DRAW': {

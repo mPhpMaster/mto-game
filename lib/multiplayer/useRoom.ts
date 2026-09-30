@@ -6,7 +6,7 @@ import { applyGameAction, createGame } from '@/lib/game/engine';
 import { redactFor } from '@/lib/game/redact';
 import type { GameAction, GameState, Seat } from '@/lib/game/types';
 import { CROSS_DEVICE_READY } from '@/lib/supabase/client';
-import { DEFAULT_TURN_SECONDS } from './turnClock';
+import { DEFAULT_TURN_SECONDS, DISCONNECT_GRACE_SECONDS } from './turnClock';
 import {
   HOST_SEAT,
   canStart,
@@ -76,6 +76,10 @@ interface RoomResult {
   fillEmptyWithAi: () => void;
   turnDeadline: number | null;
   turnSeconds: number;
+  /** لحظةُ انقضاء مهلة عودة الغائب، أو null إن لم يغب أحد */
+  forfeitDeadline: number | null;
+  /** اسم الغائب الذي تُعدّ مهلته — للعرض */
+  absentName: string | null;
 }
 
 export function useRoom({
@@ -473,6 +477,48 @@ export function useRoom({
     return () => window.clearTimeout(timer);
   }, [isHost, state, publish]);
 
+  /*
+    خانةٌ بشريّة غاب صاحبها والمباراة جارية. ولحظةُ الغياب تُبثّ مع الطاقم،
+    فيحسب الطرفان المهلةَ من الرقم نفسه لا كلٌّ من ساعته.
+  */
+  const absentRow =
+    state && state.phase !== 'ended'
+      ? (lobby.find(
+          (s) =>
+            !s.isAI &&
+            s.clientId &&
+            !s.present &&
+            typeof s.absentSince === 'number' &&
+            !state.players[s.seat]?.eliminated
+        ) ?? null)
+      : null;
+  const absentSeat = absentRow?.seat ?? null;
+  const absentName = absentRow?.name ?? null;
+  const forfeitDeadline =
+    absentRow && typeof absentRow.absentSince === 'number'
+      ? absentRow.absentSince + DISCONNECT_GRACE_SECONDS * 1000
+      : null;
+
+  /*
+    المضيف وحده يحاسب، على مثال مؤقّت عدّاد الدور: يُتحقَّق قبل التنفيذ أن
+    الغائب ما زال غائباً وأن المباراة لم تنتهِ، فمن عاد في مهلته لا يُقصى.
+    والانسحاب يُنشَر حركةً فتبقى الحالة دالّةً في بذرتها وحركاتها.
+  */
+  useEffect(() => {
+    if (!isHost || forfeitDeadline === null || absentSeat === null) return;
+    const seat = absentSeat;
+    const delay = Math.max(0, forfeitDeadline - Date.now());
+    const timer = window.setTimeout(() => {
+      const current = fullRef.current;
+      if (!current || current.phase === 'ended') return;
+      const seatNow = lobbyRef.current.find((x) => x.seat === seat);
+      if (!seatNow || seatNow.present) return;
+      if (current.players[seat]?.eliminated) return;
+      publish(applyGameAction(current, { type: 'FORFEIT', seat }));
+    }, delay);
+    return () => window.clearTimeout(timer);
+  }, [isHost, forfeitDeadline, absentSeat, publish]);
+
   const newMatch = useCallback(() => {
     if (isHost) startMatch();
     else transportRef.current?.send('restart', {});
@@ -509,5 +555,7 @@ export function useRoom({
     fillEmptyWithAi: fillEmpty,
     turnDeadline,
     turnSeconds: isHost ? turnSeconds : activeSeconds,
+    forfeitDeadline,
+    absentName,
   };
 }

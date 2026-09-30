@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRoom, type PublicSeat, type RoomRole } from '@/lib/multiplayer/useRoom';
 import { useLocale } from '@/lib/i18n/LocaleProvider';
@@ -217,6 +218,13 @@ function OnlineGameInner({
                 {waitingForOpponent ? t('disconnected') : t('connected')}
               </span>
             </div>
+            {room.forfeitDeadline !== null && (
+              <ForfeitCountdown
+                key={room.forfeitDeadline}
+                deadline={room.forfeitDeadline}
+                label={t('returnOrLose', { name: room.absentName ?? t('guest') })}
+              />
+            )}
             {ffa3 && (
               <ul className="mt-1.5 flex flex-wrap gap-1.5">
                 {room.seats.map((s) => (
@@ -334,6 +342,30 @@ function Shell({
         <h1 className="mb-4 text-2xl font-black">{title}</h1>
         {children}
       </div>
+    </div>
+  );
+}
+
+/**
+ * عدّاد مهلة العودة. العلامةُ ثابتة تأتي جاهزةً من الأعلى، والعقربُ وحده
+ * يتحرّك هنا — فلا يُعاد عرض اللوحة كلّها مرّتين في الثانية لأجل رقم.
+ */
+function ForfeitCountdown({ deadline, label }: { deadline: number; label: string }) {
+  const [left, setLeft] = useState(() => Math.max(0, deadline - Date.now()));
+  useEffect(() => {
+    const id = window.setInterval(() => setLeft(Math.max(0, deadline - Date.now())), 500);
+    return () => window.clearInterval(id);
+  }, [deadline]);
+  const total = Math.ceil(left / 1000);
+  const mm = Math.floor(total / 60);
+  const ss = String(total % 60).padStart(2, '0');
+  return (
+    <div className="mt-1.5 flex items-center gap-2 rounded-lg bg-rose-500/15 px-2 py-1 text-rose-100 ring-1 ring-rose-400/30">
+      <span className="motion-safe:animate-pulse">⏳</span>
+      <span className="min-w-0 font-bold">{label}</span>
+      <span className="ms-auto font-black tabular-nums">
+        {mm}:{ss}
+      </span>
     </div>
   );
 }

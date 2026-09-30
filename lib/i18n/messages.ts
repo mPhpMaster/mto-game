@@ -168,6 +168,10 @@ export const LOG_MESSAGES: Record<string, Localized> = {
     ar: '💀 لعنة: {player} فقد {amount} صحة.',
     en: '💀 Curse: {player} lost {amount} life.',
   },
+  forfeited: {
+    ar: '🚪 انسحب {player} — غاب ولم يعد في مهلته.',
+    en: '🚪 {player} forfeited - left and did not return in time.',
+  },
   evolved: {
     ar: '✨ تطوّر {card} — نسختان صارتا وحشاً واحداً ({atk}/{hp}).',
     en: '✨ {card} evolved - two copies became one monster ({atk}/{hp}).',
@@ -265,6 +269,10 @@ export const LOG_MESSAGES: Record<string, Localized> = {
 
   // --- النهاية ---
   win: { ar: '🏆 {winner} فاز — {reason}.', en: '🏆 {winner} wins — {reason}.' },
+  reason_disconnect: {
+    ar: 'انسحب {loser} — لم يعد في مهلته',
+    en: '{loser} forfeited - did not return in time',
+  },
   reason_hp: { ar: 'أُسقطت حياة {loser} إلى الصفر', en: '{loser} was reduced to zero life' },
   reason_titan: { ar: 'استدعى {titan}', en: 'summoned {titan}' },
   reason_empty_hand: { ar: 'أفرغ يده أولاً', en: 'emptied their hand first' },

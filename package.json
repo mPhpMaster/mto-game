@@ -30,6 +30,7 @@
     "check:flow": "tsx scripts/flow-check.ts",
     "check:comeback": "tsx scripts/comeback-check.ts",
     "check:evolve": "tsx scripts/evolve-check.ts",
+    "check:forfeit": "tsx scripts/forfeit-check.ts",
     "balance:elements": "tsx scripts/element-balance.ts",
     "check:opening": "tsx scripts/opening-check.ts",
     "check:abilities": "tsx scripts/abilities-check.ts",

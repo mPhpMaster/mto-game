@@ -132,6 +132,12 @@ export function openRoomTransport(
     handlers.onEvent(wire);
   };
 
+  /*
+    حضور هذا الجهاز يُحفَظ على انفراد: عند إعادة بناء الخريطة من
+    `presenceState` قد لا يكون قد ظهر فيها بعدُ، فيُفقد من قائمته هو.
+  */
+  let selfMeta: PresenceMember | null = null;
+
   const publishPresence = () => {
     handlers.onPresence([...localPeers.values()]);
   };
@@ -160,6 +166,13 @@ export function openRoomTransport(
 
     channel.on('presence', { event: 'sync' }, () => {
       const raw = Object.values(channel.presenceState()).flat() as unknown[];
+      /*
+        تُبنى الخريطة من جديد لا يُضاف إليها. كان `set` وحده يجعلها تكبر
+        ولا تصغر، فلا يظهر من غاب قطّ — وذلك سببُ أن تحديث الصفحة أو
+        إغلاق التبويب لا يُكتشف، إذ لا يُرسَل `bye` في هذه الحالة.
+      */
+      localPeers.clear();
+      if (selfMeta) localPeers.set(selfMeta.clientId, selfMeta);
       for (const item of raw) {
         if (isPresence(item)) localPeers.set(item.clientId, item);
       }
@@ -193,6 +206,7 @@ export function openRoomTransport(
 
   const track = (meta: PresenceMember) => {
     if (closed) return;
+    selfMeta = meta;
     localPeers.set(meta.clientId, meta);
     channel?.track(meta);
   };

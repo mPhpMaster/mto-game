@@ -11,6 +11,11 @@ export interface SeatOccupant {
   name: string | null;
   present: boolean;
   isAI: boolean;
+  /**
+   * لحظةُ غياب صاحب الخانة (بتوقيت الجهاز)، أو null إن كان حاضراً. منها
+   * تُحسب مهلةُ العودة، وتُبثّ مع الطاقم فيرى الطرفان العدّ نفسه.
+   */
+  absentSince?: number | null;
 }
 
 export function normalizePlayerCount(n: number | undefined | null): PlayerCount {
@@ -24,8 +29,8 @@ export function makeLobby(
   const n = normalizePlayerCount(playerCount);
   return Array.from({ length: n }, (_, seat) =>
     seat === HOST_SEAT
-      ? { seat, clientId: host.clientId, name: host.name, present: true, isAI: false }
-      : { seat, clientId: null, name: null, present: false, isAI: false }
+      ? { seat, clientId: host.clientId, name: host.name, present: true, isAI: false, absentSince: null }
+      : { seat, clientId: null, name: null, present: false, isAI: false, absentSince: null }
   );
 }
 
@@ -48,7 +53,7 @@ export function claimSeat(
     return {
       lobby: lobby.map((s) =>
         s.seat === existing.seat
-          ? { ...s, name: name || s.name, present: true, isAI: false }
+          ? { ...s, name: name || s.name, present: true, isAI: false, absentSince: null }
           : s
       ),
       seat: existing.seat,
@@ -61,7 +66,7 @@ export function claimSeat(
   return {
     lobby: lobby.map((s) =>
       s.seat === empty.seat
-        ? { ...s, clientId, name: name || s.name, present: true, isAI: false }
+        ? { ...s, clientId, name: name || s.name, present: true, isAI: false, absentSince: null }
         : s
     ),
     seat: empty.seat,
@@ -71,9 +76,15 @@ export function claimSeat(
 export function setPresent(
   lobby: SeatOccupant[],
   clientId: string,
-  present: boolean
+  present: boolean,
+  now: number = Date.now()
 ): SeatOccupant[] {
-  return lobby.map((s) => (s.clientId === clientId && !s.isAI ? { ...s, present } : s));
+  return lobby.map((s) =>
+    s.clientId === clientId && !s.isAI
+      ? // لا تُصفَّر لحظةُ الغياب بغيابٍ ثانٍ: المهلة تبدأ من أوّل غياب
+        { ...s, present, absentSince: present ? null : (s.absentSince ?? now) }
+      : s
+  );
 }
 
 /** يملأ الخانات البشرية الفارغة بخصم آلي — الخانات المشغولة لا تُمسّ */
