@@ -20,6 +20,7 @@ import {
   canSummonTitan,
   createGame,
   evaluateAttack,
+  evolvablePairs,
   isPerfectMatch,
   matchesFlow,
 } from '@/lib/game/engine';
@@ -626,6 +627,15 @@ export default function GameBoard({
   // مرة كل دور، سواءٌ أكان في اليد ما يُلعب أم لا
   const canRescueDraw = canAct && game.phase === 'main' && !me.extraDrawUsed;
 
+  /*
+    أوّل زوجٍ قابلٍ للتطوير. الواجهة تكتفي بواحد: وجود زوجين معاً أندرُ من
+    أن يستحقّ قائمةَ اختيار، ولو وُجد فالزرّ يُظهر التالي بعد الأول.
+  */
+  const evolvePair = useMemo(
+    () => (canAct && game.phase === 'main' ? (evolvablePairs(game, ME)[0] ?? null) : null),
+    [game, ME, canAct]
+  );
+
   // «إحياء» و«استدعاء» لا يبلغان إلا مقبرتك أنت، فلا تُعرض أهدافٌ يرفضها المحرّك
   const discardMonsters = useMemo(
     () => game.players[ME].discard.filter((c) => def(c.defId).kind === 'monster'),
@@ -1105,6 +1115,16 @@ export default function GameBoard({
                       title={t('drawCardHint')}
                     >
                       {t('drawCard')}
+                    </button>
+                  )}
+                  {evolvePair && (
+                    <button
+                      disabled={autoPlaying}
+                      onClick={() => dispatch({ type: 'EVOLVE', uids: evolvePair })}
+                      className="rounded-xl bg-gradient-to-b from-fuchsia-400 to-fuchsia-600 px-4 py-2 font-black text-black shadow-[0_0_18px_rgba(232,121,249,0.4)] disabled:opacity-35"
+                      title={t('evolveHint')}
+                    >
+                      ✨ {t('evolve')}
                     </button>
                   )}
                   <button

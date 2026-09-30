@@ -1,4 +1,4 @@
-import { def } from './cards';
+import { def, evolutionOf } from './cards';
 import { DIFFICULTIES } from './difficulty';
 import {
   applyGameAction,
@@ -7,6 +7,7 @@ import {
   canPlayCard,
   canSummonTitan,
   evaluateAttack,
+  evolvablePairs,
   hasAnyPlayable,
   opponentsOf,
   RULES,
@@ -418,6 +419,21 @@ export function aiChooseAction(s: GameState): GameAction {
   //    `reservedEnergy` يحمي ثمن أرخص وحشٍ في اليد فلا تُخنق الساحة.
   const prep = chooseLoadout(s, side);
   if (prep) return prep;
+
+  /*
+    التطوير قبل الاستدعاء: لا يكلّف طاقةً ولا كارتاً، فلا معنى لتأخيره.
+    والشرط أن يفوق الجسدُ الجديد — وهو كامل الصحة — مجموعَ الجسدين كما
+    هما الآن، فالزوج الجريح يستحقّه والسليم لا يستحقّه.
+  */
+  for (const pair of evolvablePairs(s, side)) {
+    const first = me.field.find((m) => m.uid === pair[0]);
+    const second = me.field.find((m) => m.uid === pair[1]);
+    if (!first || !second) continue;
+    const evo = evolutionOf(first.defId);
+    if (!evo) continue;
+    const asIs = first.atk + first.hp + second.atk + second.hp;
+    if ((evo.atk ?? 0) + (evo.hp ?? 0) >= asIs) return { type: 'EVOLVE', uids: pair };
+  }
 
   // 3) الكروت غير المنهية للدور (قطع، وحوش، سحر، فخاخ)
   const playable = me.hand

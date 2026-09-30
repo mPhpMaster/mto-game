@@ -21,7 +21,7 @@ import {
   strikeOf,
   surgeCut,
 } from './loadoutEffects';
-import { CATALOG, DECK_RECIPE } from './cards';
+import { CATALOG, DECK_RECIPE, evolutionOf } from './cards';
 import { DEFAULT_DIFFICULTY, DIFFICULTIES, type Difficulty } from './difficulty';
 import { curveShuffle, makeSeed, nextRandom, randomInt, shuffle } from './rng';
 import type {
@@ -108,6 +108,19 @@ function clone<T>(v: T): T {
 function toDiscard(s: GameState, card: CardInstance, fallback: Seat): void {
   const owner = card.owner ?? fallback;
   s.players[owner].discard.push({ ...card, owner });
+}
+
+/**
+ * معرّف الكارت الحقيقي لوحشٍ على الساحة. الوحش المتطوّر يلبس أرقام الطور
+ * الثاني وهو كارت الطور الأول، فكل ما يخرج به من الساحة يخرج بهذه الهوية.
+ */
+function trueDefId(m: FieldMonster): string {
+  return m.baseDefId ?? m.defId;
+}
+
+/** الوحش وقد صار كارتاً مرّةً أخرى — إلى المهملات أو إلى اليد */
+function cardOf(m: FieldMonster): CardInstance {
+  return { uid: m.uid, defId: trueDefId(m) };
 }
 
 function log(
@@ -824,7 +837,7 @@ function triggerTraps(
         const m = foe.field.find((x) => x.uid === ctx.summonedUid);
         if (!m) { fired = false; break; }
         foe.field = foe.field.filter((x) => x.uid !== m.uid);
-        foe.hand.push({ uid: m.uid, defId: m.defId });
+        foe.hand.push(cardOf(m));
         log(s, 'trap', ownerIdx, 'trap_sinkhole', { card: m.defId, player: foe.name });
         break;
       }
@@ -1012,7 +1025,7 @@ function damageMonster(
     }
     const p = s.players[ownerIdx];
     p.field = p.field.filter((x) => x.uid !== m.uid);
-    toDiscard(s, { uid: m.uid, defId: m.defId }, ownerIdx);
+    toDiscard(s, cardOf(m), ownerIdx);
     log(s, 'attack', ownerIdx, 'monster_fell', { card: d.id });
   }
   return dealt;
@@ -1289,7 +1302,7 @@ function onSummonKeyword(s: GameState, side: Seat, d: CardDef, m: FieldMonster) 
         // الأضعف: الأقلّ حياةً ثم الأقلّ هجوماً — نفس ترتيب «صورة المرآة»
         const weakest = foe.field.slice().sort((a, b) => a.hp - b.hp || a.atk - b.atk)[0];
         foe.field = foe.field.filter((x) => x.uid !== weakest.uid);
-        foe.hand.push({ uid: weakest.uid, defId: weakest.defId });
+        foe.hand.push(cardOf(weakest));
         log(s, 'play', side, 'ability_bounce', { card: weakest.defId, player: foe.name });
         break;
       }
@@ -1312,7 +1325,7 @@ function onSummonKeyword(s: GameState, side: Seat, d: CardDef, m: FieldMonster) 
         .sort((a, b) => a.hp - b.hp || a.atk - b.atk)[0];
       if (wounded) {
         p.field = p.field.filter((x) => x.uid !== wounded.uid);
-        toDiscard(s, { uid: wounded.uid, defId: wounded.defId }, side);
+        toDiscard(s, cardOf(wounded), side);
         m.atk += KEYWORD_VALUES.sacrificeAtk;
         m.maxHp += KEYWORD_VALUES.sacrificeHp;
         m.hp += KEYWORD_VALUES.sacrificeHp;
@@ -1396,7 +1409,7 @@ function applySpell(
       const m = foe.field.find((x) => x.uid === targetUid) ?? foe.field[0];
       if (m) {
         foe.field = foe.field.filter((x) => x.uid !== m.uid);
-        foe.hand.push({ uid: m.uid, defId: m.defId });
+        foe.hand.push(cardOf(m));
         log(s, 'play', side, 'bounced', { card: m.defId, player: foe.name });
       }
       break;
@@ -1524,11 +1537,11 @@ function applySpell(
       const weakest = p.field.slice().sort((a, b) => a.hp - b.hp || a.atk - b.atk)[0];
       // النسخة تُسحب من السطح أو المهملات لا تُختلق، وإلا اختلّ جرد الكروت.
       // فإن نفدت النسخ الأخرى من هذا التصميم لم يجد السحر ما ينسخه.
-      let idx = p.deck.findIndex((c) => c.defId === weakest.defId);
+      let idx = p.deck.findIndex((c) => c.defId === trueDefId(weakest));
       const inst =
         idx >= 0
           ? p.deck.splice(idx, 1)[0]
-          : (idx = p.discard.findIndex((c) => c.defId === weakest.defId)) >= 0
+          : (idx = p.discard.findIndex((c) => c.defId === trueDefId(weakest))) >= 0
             ? p.discard.splice(idx, 1)[0]
             : null;
       if (!inst) break;
@@ -1552,7 +1565,7 @@ function applySpell(
       if (m) {
         // إزالة مباشرة لا ضرر: «حراسة» لا تحمي منها
         foe.field = foe.field.filter((x) => x.uid !== m.uid);
-        toDiscard(s, { uid: m.uid, defId: m.defId }, foeIdx);
+        toDiscard(s, cardOf(m), foeIdx);
         log(s, 'play', side, 'banished', { card: m.defId, player: foe.name });
       }
       break;
@@ -2126,6 +2139,80 @@ function doWeather(s: GameState, side: Seat, weather: WeatherId | null) {
   log(s, 'system', side, 'weather_set', { player: p.name, weather });
 }
 
+// ===================== التطوير =====================
+
+export type EvolveCheck = { ok: true; d: CardDef } | { ok: false; reason: string };
+
+/**
+ * شرطُ التطوير: نسختان من **الكارت نفسه** في الطور الأول على ساحتك.
+ * «نفس النوع ونفس الاسم» تعني تصميماً واحداً بعينه لا فصيلةً متقاربة.
+ */
+export function canEvolve(s: GameState, side: Seat, uids: [string, string]): EvolveCheck {
+  if (s.phase !== 'main' || s.current !== side) return { ok: false, reason: 'not_your_turn' };
+  const [a, b] = uids;
+  if (a === b) return { ok: false, reason: 'need_two' };
+  const p = s.players[side];
+  const first = p.field.find((m) => m.uid === a);
+  const second = p.field.find((m) => m.uid === b);
+  if (!first || !second) return { ok: false, reason: 'not_on_field' };
+  if (first.defId !== second.defId) return { ok: false, reason: 'not_same_card' };
+  const evo = evolutionOf(first.defId);
+  if (!evo) return { ok: false, reason: 'no_evolution' };
+  return { ok: true, d: evo };
+}
+
+/** أزواج التطوير المتاحة الآن — تستعملها الواجهة والآلي */
+export function evolvablePairs(s: GameState, side: Seat): [string, string][] {
+  const p = s.players[side];
+  const out: [string, string][] = [];
+  const byDef = new Map<string, string[]>();
+  for (const m of p.field) {
+    if (!evolutionOf(m.defId)) continue;
+    const list = byDef.get(m.defId) ?? [];
+    list.push(m.uid);
+    byDef.set(m.defId, list);
+  }
+  for (const uids of byDef.values()) {
+    for (let i = 0; i + 1 < uids.length; i += 2) out.push([uids[i], uids[i + 1]]);
+  }
+  return out;
+}
+
+function doEvolve(s: GameState, side: Seat, uids: [string, string]) {
+  const chk = canEvolve(s, side, uids);
+  if (!chk.ok) return;
+  const p = s.players[side];
+  const [a, b] = uids;
+  const first = p.field.find((m) => m.uid === a)!;
+  const second = p.field.find((m) => m.uid === b)!;
+  const base = first.defId;
+  const d = chk.d;
+
+  /*
+    الثانية تخرج بهويتها الحقيقية إلى مهملات صاحبها، والأولى تبقى في مكانها
+    فتلبس أرقام الطور الثاني وتحفظ كارتها الأصلي. فالجرد لا يتغيّر: نسختان
+    قبل التطوير ونسختان بعده، إحداهما على الساحة والأخرى في المهملات.
+  */
+  p.field = p.field.filter((m) => m.uid !== second.uid);
+  toDiscard(s, cardOf(second), side);
+
+  first.defId = d.id;
+  first.baseDefId = base;
+  first.atk = d.atk!;
+  first.hp = d.hp!;
+  first.maxHp = d.hp!;
+  // جسدٌ جديد: يزول ما كان عليه من سُمٍّ وحرقٍ وحالة
+  first.poison = 0;
+  first.burn = 0;
+  first.evasive = false;
+  first.protectedNew = false;
+  first.sick = false;
+  // لكنه لا يهاجم في دور تطويره: ثمنُه وقتٌ لا طاقة
+  first.exhausted = true;
+
+  log(s, 'play', side, 'evolved', { player: p.name, card: d.id, atk: d.atk!, hp: d.hp! });
+}
+
 // ===================== نقطة الدخول =====================
 
 export function applyGameAction(state: GameState, action: GameAction): GameState {
@@ -2145,6 +2232,10 @@ export function applyGameAction(state: GameState, action: GameAction): GameState
 
     case 'WEATHER':
       doWeather(s, side, action.weather);
+      break;
+
+    case 'EVOLVE':
+      doEvolve(s, side, action.uids);
       break;
 
     case 'DRAW': {

@@ -176,6 +176,11 @@ export const UI = {
   clearSelection: { ar: 'إلغاء التحديد', en: 'Clear selection' },
   drawCard: { ar: 'اسحب كارتاً', en: 'Draw a card' },
   drawCardHint: { ar: 'سحبٌ إضافي مرة واحدة كل دور — لا يُنهي دورك', en: 'One extra draw each turn — it does not end your turn' },
+  evolve: { ar: 'طوّر', en: 'Evolve' },
+  evolveHint: {
+    ar: 'نسختان من الوحش نفسه تصيران وحشه المتطوّر — لا يهاجم في دور تطويره',
+    en: 'Two copies of the same monster become its evolved form — it cannot attack the turn it evolves',
+  },
   summonTitan: { ar: '🗿 استدعِ {titan}', en: '🗿 Summon {titan}' },
   endTurn: { ar: 'إنهاء الدور ⟵', en: 'End turn ⟶' },
   acceptPenalty: { ar: 'اقبل العقوبة', en: 'Accept the penalty' },

@@ -168,6 +168,10 @@ export const LOG_MESSAGES: Record<string, Localized> = {
     ar: '💀 لعنة: {player} فقد {amount} صحة.',
     en: '💀 Curse: {player} lost {amount} life.',
   },
+  evolved: {
+    ar: '✨ تطوّر {card} — نسختان صارتا وحشاً واحداً ({atk}/{hp}).',
+    en: '✨ {card} evolved - two copies became one monster ({atk}/{hp}).',
+  },
   summon_protected: {
     ar: '🛡️ حماية الاستدعاء: {card} لا تقتله ضربةُ وحش هذا الدور (فارق {n}).',
     en: '🛡️ Summon Protection: a monster attack cannot kill {card} this turn (behind by {n}).',

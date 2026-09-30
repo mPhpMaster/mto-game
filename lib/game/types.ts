@@ -184,6 +184,12 @@ export interface FieldMonster {
   absorbed?: boolean;
   /** استُهلكت «عودة الطيف» (طراز خَيال) */
   revived?: boolean;
+  /**
+   * الكارت الذي هو عليه في الحقيقة. يُضبط عند التطوير وحده: الوحش المتطوّر
+   * يلبس أرقام الطور الثاني وهو ما زال كارت الطور الأول، وإليه يعود إن سقط
+   * أو رجع إلى اليد — وإلا دخل ديكَ صاحبه كارتٌ لم يكن فيه قطّ.
+   */
+  baseDefId?: string;
 }
 
 /** فخ مُجهّز على الساحة */
@@ -325,4 +331,6 @@ export type GameAction =
   | { type: 'PICK_REVEAL'; uid: string }
   | { type: 'EQUIP'; gear: GearId; targetUid: string }
   | { type: 'WEATHER'; weather: WeatherId | null }
+  /** تطوير: نسختان من الوحش نفسه على ساحتك تصيران وحشه المتطوّر */
+  | { type: 'EVOLVE'; uids: [string, string] }
   | { type: 'END_TURN' };

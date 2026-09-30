@@ -615,6 +615,24 @@ export function def(id: string): CardDef {
   return d;
 }
 
+/**
+ * الطور الثاني لوحشٍ من الطور الأول، أو null إن لم يكن له طورٌ ثانٍ.
+ * البحث بالفصيلة والعنصر لا بتحويل المعرّف نصّياً، فلا يتعلّق بشكل المعرّف.
+ */
+export function evolutionOf(defId: string): CardDef | null {
+  const d = CATALOG.find((c) => c.id === defId);
+  if (!d || d.kind !== 'monster' || d.stage !== 1 || !d.species) return null;
+  return (
+    CATALOG.find(
+      (c) =>
+        c.kind === 'monster' &&
+        c.stage === 2 &&
+        c.species === d.species &&
+        c.element === d.element
+    ) ?? null
+  );
+}
+
 export const TOTAL_CARDS = CATALOG.reduce((n, c) => n + c.copies, 0);
 
 /** كم كارتاً في ديك اللاعب الواحد */
